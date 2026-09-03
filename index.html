@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>刘孟涵 · 个人主页</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ 设计系统（参照参考图） ============ */
+  :root {
+    /* 水彩天空蓝 */
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    /* 文字 */
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    /* 字体：标题衬线 / 正文无衬线 / 标语手写 */
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    /* 水彩天空背景图 */
+    background-image: url("assets/bg.jpg");
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 像素蕾丝花边（分区装饰） ==== */
+  .lace {
+    height: 22px;
+    background-repeat: repeat-x;
+    background-position: center;
+  }
+  .lace-top {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 22 A11 11 0 0 1 22 22 A11 11 0 0 1 44 22' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='4' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='4' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+  .lace-bot {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 0 A11 11 0 0 0 22 0 A11 11 0 0 0 44 0' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='18' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='18' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+
+  /* ==== 顶部：胶囊导航 ==== */
+  .masthead {
+    text-align: center;
+    padding: clamp(30px, 6vw, 52px) 16px 8px;
+  }
+
+  /* ==== TAB 面板切换 ==== */
+  .panel { display: none; }
+  .panel.active { display: block; }
+  /* ==== 首页手绘标题 WELCOME TO MY UNIVERSE ==== */
+  .welcome {
+    text-align: center;
+    padding: clamp(26px, 5vw, 48px) 16px 0;
+  }
+  .welcome h1 {
+    font-family: "Permanent Marker", "Caveat", cursive;
+    font-weight: 400;
+    font-size: clamp(34px, 8vw, 78px);
+    line-height: 1.12;
+    letter-spacing: 0.03em;
+    color: #3d6c99;            /* 深一点的蓝 */
+    text-transform: uppercase;
+    transform: rotate(-1.6deg);
+    /* 浅一点蓝的多层阴影（右下） */
+    text-shadow:
+      1px 1px 0 #cfe4f5,
+      2px 2px 0 #bcd7ec,
+      3px 3px 0 #a9cbe6,
+      5px 6px 14px rgba(95,139,181,0.32);
+  }
+  .welcome .welcome-sub {
+    margin-top: 18px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(18px, 3.4vw, 26px);
+    letter-spacing: 0.34em;
+    color: var(--ink-500);
+  }
+
+  .masthead .site-title {
+    font-family: var(--font-serif);
+    font-size: clamp(30px, 6.4vw, 56px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink-700);
+    text-shadow: 0 2px 12px rgba(255,255,255,0.6);
+  }
+  .masthead .site-title small {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: clamp(12px, 2vw, 15px);
+    letter-spacing: 0.28em;
+    color: var(--ink-500);
+    margin-top: 8px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+  .masthead .site-title { display: none; }
+  .masthead .site-title small { display: none; }
+
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    margin-top: 0;
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active {
+    color: var(--ink-900);
+    background: var(--sky-100);
+  }
+
+  /* ==== 页面栅格 ==== */
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px) 90px;
+  }
+
+  /* ==== 冰蓝半透明卡片 ==== */
+  .card {
+    background: linear-gradient(160deg, rgba(210,236,251,0.66), rgba(255,255,255,0.86));
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 26px;
+    padding: clamp(24px, 4vw, 40px);
+    box-shadow: 0 18px 46px rgba(95,139,181,0.14);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--ink-700);
+    letter-spacing: 0.06em;
+    margin-bottom: 22px;
+  }
+  .card-title .en {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+  }
+
+  /* ==== 主视觉卡片（About me） ==== */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  @media (min-width: 640px) {
+    .about-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .about-item { min-width: 0; }
+  .about-item h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--sky-600);
+    letter-spacing: 0.12em;
+    margin-bottom: 9px;
+  }
+  .about-item h3 .en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .about-item p { font-size: 15.5px; color: var(--ink-700); }
+  .about-item p.en {
+    font-size: 12.5px;
+    color: var(--ink-500);
+    margin-top: 3px;
+    letter-spacing: 0.02em;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sky-400);
+    display: inline-block;
+    flex: none;
+  }
+  .span-all { grid-column: 1 / -1; }
+
+  .interest-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 12px;
+  }
+  .pill {
+    padding: 6px 15px;
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    color: var(--ink-700);
+    font-size: 13.5px;
+    letter-spacing: 0.04em;
+    box-shadow: 0 3px 10px rgba(95,139,181,0.08);
+  }
+  .pill-en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.1em;
+    margin-left: 6px;
+  }
+
+  /* ==== 头像 ==== */
+  .avatar-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 22px;
+    margin-top: 6px;
+  }
+  .avatar {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 26%, #ffffff 0%, transparent 42%),
+      linear-gradient(135deg, var(--sky-200), var(--sky-400));
+    border: 4px solid #fff;
+    box-shadow: 0 14px 30px rgba(95,139,181,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .avatar span {
+    font-family: var(--font-serif);
+    font-size: 48px;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(43,59,76,0.18);
+  }
+
+  .hero-intro { text-align: center; padding: 6px 12px 0; }
+  .name {
+    font-family: var(--font-serif);
+    font-size: clamp(30px, 5vw, 42px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink-900);
+    line-height: 1.25;
+  }
+  .tagline {
+    margin-top: 12px;
+    font-family: var(--font-serif);
+    font-size: clamp(16px, 2.4vw, 20px);
+    color: var(--ink-700);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+  .hero-note {
+    margin-top: 14px;
+    font-size: 13.5px;
+    color: var(--ink-500);
+    letter-spacing: 0.05em;
+  }
+
+  .contact-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+  .contact-list a {
+    font-size: 14.5px;
+    color: var(--sky-600);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--sky-300);
+    padding-bottom: 1px;
+    transition: color .2s ease, border-color .2s ease;
+  }
+  .contact-list a:hover { color: var(--ink-900); border-color: var(--ink-400); }
+  .contact-tag {
+    font-size: 10.5px;
+    color: var(--ink-500);
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    letter-spacing: 0.04em;
+  }
+
+  /* ==== 旅行照片轮播区 ==== */
+  .journey {
+    margin-top: clamp(30px, 5vw, 50px);
+  }
+  .stage {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 22px 50px rgba(95,139,181,0.22);
+    border: 6px solid rgba(255,255,255,0.75);
+    aspect-ratio: 16 / 8;
+  }
+  .stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity .8s ease, transform .8s ease;
+    transform: scale(1.04);
+  }
+  .stage img.show { opacity: 1; transform: scale(1); }
+
+  .season-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0 14px;
+    color: var(--ink-700);
+    font-family: var(--font-serif);
+    font-size: 20px;
+    letter-spacing: 0.22em;
+  }
+  .season-label .arrow {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--ink-500);
+    user-select: none;
+    border: none;
+    background: none;
+    padding: 4px 8px;
+    transition: color .2s ease;
+  }
+  .season-label .arrow:hover { color: var(--ink-900); }
+
+  .thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .thumbs img {
+    width: 110px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.85);
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.16);
+  }
+  .thumbs img:hover { transform: translateY(-3px); }
+  .thumbs img.current { box-shadow: 0 0 0 3px var(--sky-400), 0 8px 20px rgba(95,139,181,0.26); }
+
+  .journey-caption {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-500);
+    letter-spacing: 0.08em;
+  }
+
+  /* ==== 标语：手写英文 ==== */
+  .motto-wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 26px;
+    align-items: center;
+    padding: clamp(28px,5vw,48px) 6px;
+    position: relative;
+  }
+  @media (min-width: 760px) { .motto-wrap { grid-template-columns: 1fr 1.1fr; } }
+  .motto {
+    font-family: var(--font-hand);
+    font-size: clamp(22px, 3.4vw, 32px);
+    line-height: 1.7;
+    color: var(--ink-700);
+    text-align: center;
+  }
+  .motto .flower {
+    display: block;
+    margin: 0 auto 14px;
+    width: 40px;
+  }
+  .motto-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-500);
+  }
+
+  /* ==== 左侧白色竖排圆形图标条 ==== */
+  .side-dock {
+    position: fixed;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 20;
+  }
+  .side-dock a {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: var(--ink-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.18);
+    transition: transform .2s ease, color .2s ease;
+  }
+  .side-dock a:hover { transform: translateY(-2px); color: var(--sky-600); }
+  @media (max-width: 720px) { .side-dock { display: none; } }
+
+  /* ==== 数字分身聊天 ==== */
+  .chat { display: flex; flex-direction: column; min-height: 380px; }
+  .chat-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(217,232,244,0.8);
+    margin-bottom: 4px;
+  }
+  .chat-head .mini {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--sky-200), var(--sky-400));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    flex: none;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.2);
+    overflow: hidden;
+  }
+  .chat-head .mini img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .chat-head .who strong {
+    font-family: var(--font-serif);
+    font-size: 16.5px;
+    display: block;
+    color: var(--ink-900);
+    letter-spacing: 0.04em;
+  }
+  .chat-head .who span { font-size: 11.5px; color: var(--ink-400); }
+  .online {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--sky-600);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .online::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #7aa77a; }
+
+  .quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 0 4px;
+  }
+  .quick button {
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.7);
+    color: var(--ink-700);
+    transition: all .2s ease;
+    box-shadow: 0 3px 8px rgba(95,139,181,0.08);
+  }
+  .quick button:hover { background: var(--sky-200); }
+
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 8px 2px;
+    scroll-behavior: smooth;
+  }
+  .msg { display: flex; gap: 10px; max-width: 100%; }
+  .msg .bubble {
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .msg.me { justify-content: flex-end; }
+  .msg.me .bubble {
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.2);
+  }
+  .msg.digital .bubble {
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(255,255,255,0.9);
+    color: var(--ink-700);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.1);
+  }
+  .msg .avatar-tag {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: #fff;
+    margin-top: 2px;
+    background: linear-gradient(135deg, var(--sky-200), var(--sky-400));
+  }
+  .msg.me .avatar-tag { display: none; }
+
+  .typed::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--sky-600); }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .input-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(217,232,244,0.8);
+  }
+  .input-bar input {
+    flex: 1;
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background: rgba(255,255,255,0.85);
+    outline: none;
+    transition: border-color .2s ease;
+  }
+  .input-bar input:focus { border-color: var(--sky-400); }
+  .input-bar button {
+    cursor: pointer;
+    border: none;
+    border-radius: 12px;
+    padding: 0 22px;
+    font-size: 13.5px;
+    font-family: var(--font-sans);
+    color: #fff;
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    transition: opacity .2s ease;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.22);
+  }
+  .input-bar button:hover { opacity: 0.9; }
+  .chat-foot {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--ink-400);
+    text-align: center;
+  }
+
+  /* ==== 页脚 ==== */
+  .footer {
+    margin-top: 46px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.06em;
+  }
+
+  /* ==== 给我建议 ==== */
+  .advice-into {
+    font-size: 14px;
+    color: var(--ink-500);
+    letter-spacing: 0.02em;
+    margin: -6px 0 22px;
+  }
+  .advice-form { display: flex; flex-direction: column; gap: 20px; }
+  .field label {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--sky-600);
+    letter-spacing: 0.1em;
+    margin-bottom: 9px;
+  }
+  .field label .en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .field input,
+  .field textarea {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    color: var(--ink-900);
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 14px;
+    padding: 13px 16px;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    resize: vertical;
+  }
+  .field input::placeholder,
+  .field textarea::placeholder { color: var(--ink-400); }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: var(--sky-400);
+    box-shadow: 0 0 0 3px rgba(147,188,221,0.16);
+  }
+  .advice-actions { display: flex; justify-content: flex-end; }
+  .advice-btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    padding: 13px 30px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    box-shadow: 0 8px 20px rgba(95,139,181,0.24);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .advice-btn:hover { opacity: 0.92; transform: translateY(-2px); }
+  .advice-done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--sky-600);
+    background: rgba(210,236,251,0.5);
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .advice-done[hidden] { display: none; }
+  .advice-done .advice-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #7aa77a;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex: none;
+  }
+
+  .section-gap { height: clamp(30px, 6vw, 56px); }
+</style>
+</head>
+<body>
+
+  <!-- 左侧白色竖排圆形图标条 -->
+  <div class="side-dock">
+    <a href="#top" title="首页">⌂</a>
+    <a href="#about" title="关于我">人</a>
+    <a href="#contact" title="联系">✉</a>
+  </div>
+
+  <div class="page" id="top">
+    <!-- 顶部：胶囊导航（面板切换） -->
+    <header class="masthead">
+      <nav class="nav" id="nav">
+        <a href="#about" data-panel="about" class="active">About Me</a>
+        <a href="#home" data-panel="home">Home</a>
+        <a href="#chat" data-panel="chat">Virtual Space</a>
+      </nav>
+    </header>
+
+    <div class="lace lace-top"></div>
+
+    <!-- ============== HOME 面板 ============== -->
+    <section class="panel" id="panel-home">
+      <!-- 手绘主标题 -->
+      <section class="welcome">
+        <h1>Welcome to<br />My Universe</h1>
+        <div class="welcome-sub">— Menghan Liu · Personal Homepage —</div>
+      </section>
+
+      <div class="section-gap"></div>
+
+      <!-- 旅行照片轮播区 -->
+      <section class="journey">
+        <div class="stage">
+          <img id="main" src="assets/tour-1.jpg" alt="旅行风景" />
+        </div>
+        <div class="season-label">
+          <button class="arrow" id="prev" aria-label="上一张">◀</button>
+          <span id="season">EXPLORE</span>
+          <button class="arrow" id="next" aria-label="下一张">▶</button>
+        </div>
+        <div class="thumbs" id="thumbs">
+          <img src="assets/tour-1.jpg" data-season="SUMMER" alt="夏·海边栈道" class="current" />
+          <img src="assets/tour-2.jpg" data-season="CITY" alt="地中海小镇" />
+          <img src="assets/tour-3.jpg" data-season="INK" alt="书法 · 墨" />
+        </div>
+        <div class="journey-caption" id="caption">夏 · 海边的栈道和遮阳伞</div>
+        <div class="lace lace-bot"></div>
+      </section>
+
+      <div class="section-gap"></div>
+
+      <!-- 手写英文标语 -->
+      <section class="motto-wrap">
+        <div>
+          <svg class="flower" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#f4c7d6">
+              <circle cx="24" cy="14" r="7"/>
+              <circle cx="34" cy="24" r="7"/>
+              <circle cx="24" cy="34" r="7"/>
+              <circle cx="14" cy="24" r="7"/>
+            </g>
+            <circle cx="24" cy="24" r="5" fill="#ffffff"/>
+          </svg>
+          <p class="motto">Slow down, breathe deeply,<br/>and appreciate the simple joys<br/>that make life so beautiful.</p>
+        </div>
+        <div>
+          <div class="motto-note" style="margin-bottom:16px;">这也是我想过的生活：慢慢走，深深呼吸，认真感受。</div>
+          <div class="card" style="padding:24px;">
+            <div class="mini-list">
+              <p style="font-size:14px; color:var(--ink-700);">也许你也喜欢——</p>
+              <div class="interest-pills" style="margin-top:10px;">
+                <span class="pill">旅行<span class="pill-en">Travel</span></span>
+                <span class="pill">书法<span class="pill-en">Calligraphy</span></span>
+                <span class="pill">摄影<span class="pill-en">Photo</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 给我建议 -->
+      <section id="advice-section">
+        <div class="card">
+          <div class="card-title">给我建议 <span class="en">Advice &amp; Feedback</span></div>
+          <p class="advice-into">欢迎留下你的想法、建议或想对我说的话，我会认真看的。</p>
+          <form id="advice-form" class="advice-form" novalidate>
+            <div class="field">
+              <label for="nick">你的昵称 <span class="en">Your Name</span></label>
+              <input id="nick" type="text" name="nick" placeholder="怎么称呼你？（选填）" autocomplete="nickname" />
+            </div>
+            <div class="field">
+              <label for="advice">填写建议 <span class="en">Your Suggestion</span></label>
+              <textarea id="advice" name="advice" rows="5" placeholder="把你想说的写在这里吧……" required></textarea>
+            </div>
+            <div class="advice-actions">
+              <button type="submit" class="advice-btn">送出建议</button>
+            </div>
+            <div class="advice-done" id="advice-done" hidden>
+              <span class="advice-check">✓</span> 谢谢你的建议，我已经收到了！
+            </div>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <!-- ============== ABOUT ME 面板 ============== -->
+    <section class="panel" id="panel-about">
+      <!-- 主视觉：头像 + 介绍 + 关于我 -->
+      <section id="about">
+      <div class="card" style="text-align:center; padding-bottom: 34px;">
+        <div class="avatar-row"><div class="avatar"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div></div>
+        <div class="hero-intro">
+          <div class="name">刘孟涵</div>
+          <p class="tagline">Welcome to my channel!</p>
+          <p class="hero-note">大学新生 · 探索者 · 记录生活的人</p>
+        </div>
+
+        <div style="height:26px;"></div>
+
+        <div class="card-title" style="justify-content:center; margin-bottom:14px;">
+          关于我 <span class="en">About Me</span>
+        </div>
+
+        <div class="about-grid" style="text-align:left;">
+          <div class="about-item">
+            <h3><span class="dot"></span>学校 <span class="en">School</span></h3>
+            <p>天津大学香港理工大学深圳未来技术学院</p>
+            <p class="en">Tianjin Univ. &amp; PolyU Future Technology College (Shenzhen)</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>专业 <span class="en">Major</span></h3>
+            <p>智能医学工程（脑机接口方向）</p>
+            <p class="en">Intelligent Medical Engineering · BCI</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>身份 <span class="en">Status</span></h3>
+            <p>大一学生</p>
+            <p class="en">Freshman undergraduate</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>最近在做 <span class="en">Now</span></h3>
+            <p>搭个人主页 · 学习大一必修课 · 探索深圳</p>
+            <p class="en">Building this page · Studying · Exploring Shenzhen</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>兴趣 <span class="en">Interests</span></h3>
+            <div class="interest-pills">
+              <span class="pill">旅行<span class="pill-en">Travel</span></span>
+              <span class="pill">书法<span class="pill-en">Calligraphy</span></span>
+              <span class="pill">摄影<span class="pill-en">Photo</span></span>
+            </div>
+          </div>
+          <div class="about-item span-all" id="contact">
+            <h3><span class="dot"></span>联系方式 <span class="en">Contact</span></h3>
+            <div class="contact-list">
+              <a href="mailto:lmh_2007@tju.edu.cn">lmh_2007@tju.edu.cn</a>
+              <span class="contact-tag">天大 TJU</span>
+              <a href="mailto:menghan.liu@connect.polyu.hk">menghan.liu@connect.polyu.hk</a>
+              <span class="contact-tag">港理工 PolyU</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <!-- ============== VIRTUAL SPACE 面板 ============== -->
+    <section class="panel" id="panel-chat">
+      <div class="lace"></div>
+      __CHAT_CONTENT__
+    <!-- 数字分身 -->
+    <section id="chat">
+      <div class="card">
+        <div class="card-title">数字分身 · 和我聊聊 <span class="en">Virtual Space</span></div>
+        <div class="chat">
+          <div class="chat-head">
+            <div class="mini"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div>
+            <div class="who">
+              <strong>刘孟涵的数字分身</strong>
+              <span>基于主人的公开信息 · 本地原型</span>
+            </div>
+            <div class="online">在线</div>
+          </div>
+          <div class="quick" id="quick">
+            <button data-q="你现在在做什么？">你现在在做什么？</button>
+            <button data-q="你的专业是什么？">你的专业是什么？</button>
+            <button data-q="怎么联系你？">怎么联系你？</button>
+          </div>
+          <div class="log" id="log"></div>
+          <div class="input-bar">
+            <input id="input" type="text" placeholder="随便聊聊，比如「你最近在做什么？」" />
+            <button id="send">发送</button>
+          </div>
+          <div class="chat-foot">本地规则引擎原型 · 之后可接入真实 AI</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <footer class="footer">
+      刘孟涵 · 个人主页 · 天津大学香港理工大学深圳未来技术学院
+    </footer>
+  </div>
+
+<script>
+  /* ============ 数字分身知识库 ============ */
+  const profile = {
+    name: "刘孟涵",
+    role: "大一学生",
+    major: "智能医学工程（脑机接口方向）",
+    school: "天津大学香港理工大学深圳未来技术学院",
+    interests: ["旅行", "书法", "摄影"],
+    doing: "搭个人主页、学习大一必修课、探索深圳",
+    email: {
+      tju: "lmh_2007@tju.edu.cn",
+      polyu: "menghan.liu@connect.polyu.hk",
+    },
+  };
+
+  const greeting = "嗨，我是刘孟涵的数字分身！关于他的学校、专业、兴趣和近况，你尽管问我。";
+  const fallback = "这个我还在学习，你可以试着问我：他现在在做什么？他的专业是什么？怎么联系他？";
+
+  const rules = [
+    { k: ["现在在做什么", "在做什么", "忙什么", "最近在干嘛", "近况", "在干嘛"],
+      a: "他最近主要在忙三件事：一是亲手搭这个个人主页，二是学习大一必修课，三是抽空探索深圳这座新城市。总的来说，过得充实又新鲜。" },
+    { k: ["专业", "学什么", "学啥", "什么专业", "方向", "医学", "脑机", "智能医学"],
+      a: "他的专业是智能医学工程，方向是脑机接口，就读于天津大学香港理工大学深圳未来技术学院。简单说，就是把智能技术用在守护人类健康这件事上——比如脑机接口这类前沿领域。" },
+    { k: ["联系", "找到你", "怎么联系", "微信", "邮箱", "email", "联系方式", "加你", "写信", "发邮件"],
+      a: "你可以发邮件给他：天大邮箱是 lmh_2007@tju.edu.cn，港理工邮箱是 menghan.liu@connect.polyu.hk。老师、朋友或家人可以直接用邮件联系他。" },
+    { k: ["学校", "大学", "哪里"],
+      a: "他是天津大学香港理工大学深圳未来技术学院的学生，校址在深圳——一座特别有活力的城市。" },
+    { k: ["兴趣", "爱好", "喜欢", "爱什么", "喜欢什么"],
+      a: "他是个爱旅行、练书法、也爱摄影的人。这三件事让他既走得远，也能静得下心来。" },
+    { k: ["旅行", "去过哪里", "去哪里"],
+      a: "旅行是他的爱好之一。他喜欢在世界里走走看看，把见闻变成自己的故事。" },
+    { k: ["书法", "写字"],
+      a: "书法是他的爱好。对他来说，练字是安静下来、和自己相处的好方式。" },
+    { k: ["摄影", "拍照", "相机"],
+      a: "摄影是他记录世界的方式。他会用镜头捕捉身边的光影和日常。" },
+    { k: ["你好", "hi", "hello", "嗨", "在吗", "你是谁", "你是谁呀"],
+      a: "你好呀！我是「" + profile.name + "」的数字分身，基于他在这页面上公开的信息整理而成。想聊什么都行。" },
+  ];
+
+  /* ============ 对话逻辑 ============ */
+  const logEl = document.getElementById("log");
+  const inputEl = document.getElementById("input");
+  const sendBtn = document.getElementById("send");
+
+  function makeDigitalBubble(text) {
+    const wrap = document.createElement("div");
+    wrap.className = "msg digital";
+    const tag = document.createElement("div");
+    tag.className = "avatar-tag";
+    tag.textContent = "刘";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    wrap.appendChild(tag);
+    wrap.appendChild(bubble);
+    logEl.appendChild(wrap);
+    logEl.scrollTop = logEl.scrollHeight;
+    return bubble;
+  }
+
+  function typeOut(bubble, text) {
+    let i = 0;
+    bubble.textContent = "";
+    bubble.classList.add("typed");
+    const step = () => {
+      bubble.textContent = text.slice(0, ++i);
+      logEl.scrollTop = logEl.scrollHeight;
+      if (i < text.length) setTimeout(step, 14);
+      else bubble.classList.remove("typed");
+    };
+    step();
+  }
+
+  function answer(q) {
+    q = String(q || "").toLowerCase();
+    for (const r of rules) {
+      if (r.k.some((kw) => q.includes(kw))) return r.a;
+    }
+    return fallback;
+  }
+
+  function send(text) {
+    const t = text.trim();
+    if (!t) return;
+    const me = document.createElement("div");
+    me.className = "msg me";
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = t;
+    me.appendChild(b);
+    logEl.appendChild(me);
+    logEl.scrollTop = logEl.scrollHeight;
+    typeOut(makeDigitalBubble(""), answer(t));
+  }
+
+  sendBtn.addEventListener("click", () => { send(inputEl.value); inputEl.value = ""; });
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { send(e.target.value); inputEl.value = ""; }
+  });
+  document.getElementById("quick").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    send(btn.getAttribute("data-q"));
+  });
+
+  window.addEventListener("load", () => typeOut(makeDigitalBubble(""), greeting));
+
+  /* ============ 旅行轮播 ============ */
+  const slides = [
+    { src: "assets/tour-1.jpg", season: "SUMMER", caption: "夏 · 海边的栈道和遮阳伞" },
+    { src: "assets/tour-2.jpg", season: "CITY", caption: "地中海 · 蓝白小镇的街角" },
+    { src: "assets/tour-3.jpg", season: "INK", caption: "书 · 一笔一划的安静时刻" },
+  ];
+  let cur = 0;
+  const mainImg = document.getElementById("main");
+  const seasonEl = document.getElementById("season");
+  const captionEl = document.getElementById("caption");
+  const thumbs = document.getElementById("thumbs").querySelectorAll("img");
+
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    mainImg.classList.remove("show");
+    setTimeout(() => {
+      mainImg.src = slides[cur].src;
+      mainImg.classList.add("show");
+    }, 180);
+    seasonEl.textContent = slides[cur].season;
+    captionEl.textContent = slides[cur].caption;
+    thumbs.forEach((t, idx) => t.classList.toggle("current", idx === cur));
+  }
+  document.getElementById("next").addEventListener("click", () => show(cur + 1));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
+  thumbs.forEach((t, idx) => t.addEventListener("click", () => show(idx)));
+  show(0);
+
+  /* ============ TAB 面板切换 ============ */
+  const panels = {
+    home: document.getElementById("panel-home"),
+    about: document.getElementById("panel-about"),
+    chat: document.getElementById("panel-chat"),
+  };
+  const navLinks = document.querySelectorAll("#nav a");
+
+  function activate(name) {
+    Object.keys(panels).forEach((k) => {
+      panels[k].classList.toggle("active", k === name);
+    });
+    navLinks.forEach((a) => a.classList.toggle("active", a.dataset.panel === name));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  navLinks.forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      activate(a.dataset.panel);
+    });
+  });
+
+  // 默认显示 HOME 面板（欢迎语 + 旅行）
+  activate("home");
+
+  /* ============ 给我建议 ============ */
+  const adviceForm = document.getElementById("advice-form");
+  const adviceDone = document.getElementById("advice-done");
+  const nickInput = document.getElementById("nick");
+  const adviceInput = document.getElementById("advice");
+
+  // 把提交保存到 localStorage，便于用户本人回看（本机）
+  function loadAdvices() {
+    try { return JSON.parse(localStorage.getItem("lmh_advices") || "[]"); }
+    catch (e) { return []; }
+  }
+
+  adviceForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nick = nickInput.value.trim();
+    const text = adviceInput.value.trim();
+    if (!text) {
+      adviceInput.focus();
+      return;
+    }
+    const list = loadAdvices();
+    list.push({ nick: nick || "匿名", text, time: new Date().toLocaleString() });
+    try { localStorage.setItem("lmh_advices", JSON.stringify(list)); } catch (e) {}
+
+    // 成功提示 + 清空
+    adviceDone.hidden = false;
+    adviceInput.value = "";
+    adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setTimeout(() => { adviceDone.hidden = true; }, 3500);
+  });
+</script>
+</body>
+</html>
