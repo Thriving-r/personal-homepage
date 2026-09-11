@@ -252,6 +252,21 @@
     letter-spacing: 0.1em;
     margin-left: 6px;
   }
+  /* 可点击的 pill（例如「旅行」跳转到 travel.html） */
+  a.pill {
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+  }
+  a.pill:hover {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.95);
+    color: var(--ink-900);
+    box-shadow: 0 7px 18px rgba(95,139,181,0.22);
+  }
+  a.pill .pill-en { transition: color .2s ease; }
+  a.pill:hover .pill-en { color: var(--sky-600); }
 
   /* ==== 头像 ==== */
   .avatar-row {
@@ -597,19 +612,6 @@
     transition: border-color .2s ease;
   }
   .input-bar input:focus { border-color: var(--sky-400); }
-  .input-bar button {
-    cursor: pointer;
-    border: none;
-    border-radius: 12px;
-    padding: 0 22px;
-    font-size: 13.5px;
-    font-family: var(--font-sans);
-    color: #fff;
-    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
-    transition: opacity .2s ease;
-    box-shadow: 0 6px 16px rgba(95,139,181,0.22);
-  }
-  .input-bar button:hover { opacity: 0.9; }
   .chat-foot {
     margin-top: 10px;
     font-size: 11px;
@@ -673,20 +675,87 @@
     box-shadow: 0 0 0 3px rgba(147,188,221,0.16);
   }
   .advice-actions { display: flex; justify-content: flex-end; }
-  .advice-btn {
-    cursor: pointer;
+
+  /* ==== Stateful Button（交互借鉴 Aceternity UI · MIT） ==== */
+  .stateful-btn {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 48px;
+    padding: 0;
     border: none;
     border-radius: 999px;
-    padding: 13px 30px;
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    color: #fff;
     font-family: var(--font-sans);
     font-size: 14px;
-    letter-spacing: 0.06em;
-    color: #fff;
-    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    overflow: hidden;
     box-shadow: 0 8px 20px rgba(95,139,181,0.24);
-    transition: opacity .2s ease, transform .2s ease;
+    transition: width .42s cubic-bezier(.65, 0, .35, 1),
+                box-shadow .2s ease,
+                opacity .2s ease,
+                transform .2s ease;
+    -webkit-tap-highlight-color: transparent;
   }
-  .advice-btn:hover { opacity: 0.92; transform: translateY(-2px); }
+  .stateful-btn:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-2px);
+    /* hover 外环：2px 间隙 + 2px 环（对照 Aceternity 的 hover:ring-2 ring-offset-2） */
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 4px var(--sky-400),
+      0 8px 20px rgba(95,139,181,0.24);
+  }
+  .stateful-btn:focus-visible { outline: 2px solid var(--sky-600); outline-offset: 3px; }
+  .stateful-btn:disabled { cursor: default; }
+
+  /* loading / success：文字隐去，按钮收缩为圆形，图标居中 */
+  .stateful-btn.is-loading,
+  .stateful-btn.is-success {
+    width: 48px;
+    transform: none;
+  }
+  .stateful-btn .sb-label,
+  .stateful-btn .sb-icon {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .18s ease;
+  }
+  .stateful-btn .sb-icon { opacity: 0; }
+  .stateful-btn.is-loading .sb-label { opacity: 0; }
+  .stateful-btn.is-loading .sb-spinner { opacity: 1; }
+  .stateful-btn.is-success .sb-label,
+  .stateful-btn.is-success .sb-spinner { opacity: 0; }
+  .stateful-btn.is-success .sb-check { opacity: 1; }
+
+  .stateful-btn .sb-icon > svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 旋转圆环 */
+  .sb-spinner > svg { animation: sb-spin .65s linear infinite; }
+  @keyframes sb-spin { to { transform: rotate(360deg); } }
+
+  /* 对勾描边动画 */
+  .sb-check > svg path { stroke-dasharray: 26; stroke-dashoffset: 26; }
+  .stateful-btn.is-success .sb-check > svg path { animation: sb-draw .4s ease .1s forwards; }
+  @keyframes sb-draw { to { stroke-dashoffset: 0; } }
+
   .advice-done {
     display: flex;
     align-items: center;
@@ -786,7 +855,7 @@
             <div class="mini-list">
               <p style="font-size:14px; color:var(--ink-700);">也许你也喜欢——</p>
               <div class="interest-pills" style="margin-top:10px;">
-                <span class="pill">旅行<span class="pill-en">Travel</span></span>
+                <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
                 <span class="pill">书法<span class="pill-en">Calligraphy</span></span>
                 <span class="pill">摄影<span class="pill-en">Photo</span></span>
               </div>
@@ -810,7 +879,15 @@
               <textarea id="advice" name="advice" rows="5" placeholder="把你想说的写在这里吧……" required></textarea>
             </div>
             <div class="advice-actions">
-              <button type="submit" class="advice-btn">送出建议</button>
+              <button type="submit" class="stateful-btn" id="advice-send">
+                <span class="sb-icon sb-spinner" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                </span>
+                <span class="sb-icon sb-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                </span>
+                <span class="sb-label">Send</span>
+              </button>
             </div>
             <div class="advice-done" id="advice-done" hidden>
               <span class="advice-check">✓</span> 谢谢你的建议，我已经收到了！
@@ -819,8 +896,6 @@
         </div>
       </section>
     </section>
-
-    <div class="section-gap"></div>
 
     <!-- ============== ABOUT ME 面板 ============== -->
     <section class="panel" id="panel-about">
@@ -864,7 +939,7 @@
           <div class="about-item">
             <h3><span class="dot"></span>兴趣 <span class="en">Interests</span></h3>
             <div class="interest-pills">
-              <span class="pill">旅行<span class="pill-en">Travel</span></span>
+              <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
               <span class="pill">书法<span class="pill-en">Calligraphy</span></span>
               <span class="pill">摄影<span class="pill-en">Photo</span></span>
             </div>
@@ -883,38 +958,45 @@
     </section>
     </section>
 
-    <div class="section-gap"></div>
-
     <!-- ============== VIRTUAL SPACE 面板 ============== -->
     <section class="panel" id="panel-chat">
       <div class="lace"></div>
-      __CHAT_CONTENT__
-    <!-- 数字分身 -->
-    <section id="chat">
-      <div class="card">
-        <div class="card-title">数字分身 · 和我聊聊 <span class="en">Virtual Space</span></div>
-        <div class="chat">
-          <div class="chat-head">
-            <div class="mini"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div>
-            <div class="who">
-              <strong>刘孟涵的数字分身</strong>
-              <span>基于主人的公开信息 · 本地原型</span>
+
+      <!-- 数字分身 -->
+      <section id="chat">
+        <div class="card">
+          <div class="card-title">数字分身 · 和我聊聊 <span class="en">Virtual Space</span></div>
+          <div class="chat">
+            <div class="chat-head">
+              <div class="mini"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div>
+              <div class="who">
+                <strong>刘孟涵的数字分身</strong>
+                <span>基于主人的公开信息 · 本地原型</span>
+              </div>
+              <div class="online">在线</div>
             </div>
-            <div class="online">在线</div>
+            <div class="quick" id="quick">
+              <button data-q="你现在在做什么？">你现在在做什么？</button>
+              <button data-q="你的专业是什么？">你的专业是什么？</button>
+              <button data-q="怎么联系你？">怎么联系你？</button>
+            </div>
+            <div class="log" id="log"></div>
+            <div class="input-bar">
+              <input id="input" type="text" placeholder="随便聊聊，比如「你最近在做什么？」" />
+              <button id="send" class="stateful-btn" type="button">
+                <span class="sb-icon sb-spinner" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                </span>
+                <span class="sb-icon sb-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                </span>
+                <span class="sb-label">Send</span>
+              </button>
+            </div>
+            <div class="chat-foot">本地规则引擎原型 · 之后可接入真实 AI</div>
           </div>
-          <div class="quick" id="quick">
-            <button data-q="你现在在做什么？">你现在在做什么？</button>
-            <button data-q="你的专业是什么？">你的专业是什么？</button>
-            <button data-q="怎么联系你？">怎么联系你？</button>
-          </div>
-          <div class="log" id="log"></div>
-          <div class="input-bar">
-            <input id="input" type="text" placeholder="随便聊聊，比如「你最近在做什么？」" />
-            <button id="send">发送</button>
-          </div>
-          <div class="chat-foot">本地规则引擎原型 · 之后可接入真实 AI</div>
         </div>
-      </div>
+      </section>
     </section>
 
     <div class="section-gap"></div>
@@ -1018,9 +1100,32 @@
     typeOut(makeDigitalBubble(""), answer(t));
   }
 
-  sendBtn.addEventListener("click", () => { send(inputEl.value); inputEl.value = ""; });
+  /* ---- Stateful Button 状态机 ---- */
+  function runStateful(btn, onSuccess, opts) {
+    if (!btn || btn.classList.contains("is-loading") || btn.classList.contains("is-success")) return;
+    const loadMs = (opts && opts.loadMs) || 650;
+    const okMs = (opts && opts.okMs) || 2000;
+    btn.classList.add("is-loading");
+    btn.setAttribute("aria-busy", "true");
+    setTimeout(() => {
+      btn.classList.remove("is-loading");
+      btn.classList.add("is-success");
+      btn.removeAttribute("aria-busy");
+      if (onSuccess) onSuccess();
+      setTimeout(() => btn.classList.remove("is-success"), okMs);
+    }, loadMs);
+  }
+
+  function submitChat() {
+    const t = inputEl.value.trim();
+    if (!t) { inputEl.focus(); return; }
+    inputEl.value = "";
+    runStateful(sendBtn, () => send(t), { loadMs: 550, okMs: 2000 });
+  }
+
+  sendBtn.addEventListener("click", submitChat);
   inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { send(e.target.value); inputEl.value = ""; }
+    if (e.key === "Enter") { e.preventDefault(); submitChat(); }
   });
   document.getElementById("quick").addEventListener("click", (e) => {
     const btn = e.target.closest("button");
@@ -1096,6 +1201,8 @@
     catch (e) { return []; }
   }
 
+  const adviceSendBtn = document.getElementById("advice-send");
+
   adviceForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const nick = nickInput.value.trim();
@@ -1104,15 +1211,18 @@
       adviceInput.focus();
       return;
     }
-    const list = loadAdvices();
-    list.push({ nick: nick || "匿名", text, time: new Date().toLocaleString() });
-    try { localStorage.setItem("lmh_advices", JSON.stringify(list)); } catch (e) {}
 
-    // 成功提示 + 清空
-    adviceDone.hidden = false;
-    adviceInput.value = "";
-    adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    setTimeout(() => { adviceDone.hidden = true; }, 3500);
+    runStateful(adviceSendBtn, () => {
+      const list = loadAdvices();
+      list.push({ nick: nick || "匿名", text, time: new Date().toLocaleString() });
+      try { localStorage.setItem("lmh_advices", JSON.stringify(list)); } catch (e) {}
+
+      // 成功提示 + 清空
+      adviceDone.hidden = false;
+      adviceInput.value = "";
+      adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => { adviceDone.hidden = true; }, 3500);
+    }, { loadMs: 850, okMs: 2000 });
   });
 </script>
 </body>

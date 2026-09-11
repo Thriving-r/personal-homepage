@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行 · Travel — 刘孟涵</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ 设计系统（与 index.html 保持一致） ============ */
+  :root {
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    background-image: url("assets/bg.jpg");
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 蕾丝花边 ==== */
+  .lace { height: 22px; background-repeat: repeat-x; background-position: center; }
+  .lace-top {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 22 A11 11 0 0 1 22 22 A11 11 0 0 1 44 22' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='4' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='4' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+
+  /* ==== 顶部导航 ==== */
+  .masthead { text-align: center; padding: clamp(30px, 6vw, 52px) 16px 8px; }
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+
+  /* ==== 栅格 ==== */
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 90px; }
+  .section-gap { height: clamp(24px, 4vw, 42px); }
+
+  /* ==== 卡片 ==== */
+  .card {
+    background: linear-gradient(160deg, rgba(210,236,251,0.66), rgba(255,255,255,0.86));
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 26px;
+    padding: clamp(20px, 3.4vw, 34px);
+    box-shadow: 0 18px 46px rgba(95,139,181,0.14);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ==== 标题 ==== */
+  .travel-head { text-align: center; padding: clamp(20px, 4vw, 40px) 16px 0; }
+  .travel-head h1 {
+    font-family: "Permanent Marker", "Caveat", cursive;
+    font-weight: 400;
+    font-size: clamp(32px, 7vw, 66px);
+    line-height: 1.14;
+    letter-spacing: 0.03em;
+    color: #3d6c99;
+    text-transform: uppercase;
+    transform: rotate(-1.4deg);
+    text-shadow:
+      1px 1px 0 #cfe4f5,
+      2px 2px 0 #bcd7ec,
+      3px 3px 0 #a9cbe6,
+      5px 6px 14px rgba(95,139,181,0.32);
+  }
+  .travel-sub {
+    margin-top: 16px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(17px, 3vw, 24px);
+    letter-spacing: 0.16em;
+    color: var(--ink-500);
+  }
+
+  /* ==== 地球舞台 ==== */
+  .globe-stage {
+    position: relative;
+    width: 100%;
+    height: clamp(340px, 60vh, 600px);
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255,255,255,0.9) 0%, rgba(231,242,251,0.35) 46%, rgba(231,242,251,0) 72%),
+      linear-gradient(165deg, rgba(210,236,251,0.35), rgba(255,255,255,0.5));
+  }
+  #globe { position: absolute; inset: 0; }
+  #globe canvas { display: block; touch-action: none; }
+
+  .globe-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+    text-align: center;
+    line-height: 1.95;
+    font-size: 13.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-400);
+    pointer-events: none;
+    transition: opacity .5s ease;
+  }
+  .globe-loading.hide { opacity: 0; }
+  .globe-loading b { color: var(--sky-600); font-weight: 600; }
+  .globe-loading code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1px 6px;
+    color: var(--ink-700);
+    letter-spacing: 0;
+  }
+
+  /* ==== 标记 ==== */
+  .marker-layer { position: absolute; inset: 0; pointer-events: none; }
+  .marker {
+    position: absolute;
+    left: 0; top: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 8px;
+    border: 1px solid rgba(255,255,255,0.95);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 4px 14px rgba(95,139,181,0.28);
+    color: var(--ink-700);
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    backdrop-filter: blur(4px);
+    transition: background .2s ease, box-shadow .2s ease, color .2s ease;
+  }
+  .marker-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--sky-500);
+    box-shadow: 0 0 0 3px rgba(147,188,221,0.32);
+    flex: none;
+    transition: background .2s ease, box-shadow .2s ease;
+  }
+  .marker:hover, .marker.active {
+    background: #fff;
+    color: var(--ink-900);
+    box-shadow: 0 7px 22px rgba(95,139,181,0.42);
+  }
+  .marker:hover .marker-dot, .marker.active .marker-dot {
+    background: var(--pink);
+    box-shadow: 0 0 0 4px rgba(244,199,214,0.5);
+  }
+
+  /* ==== 照片面板 ==== */
+  [hidden] { display: none !important; }
+  .photo-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .photo-city {
+    font-family: var(--font-serif);
+    font-size: clamp(22px, 3.4vw, 28px);
+    color: var(--ink-900);
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+  .photo-en {
+    margin-top: 4px;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+  }
+  .photo-close {
+    flex: none;
+    width: 34px; height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: var(--ink-500);
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(95,139,181,0.15);
+    transition: background .2s ease, color .2s ease;
+  }
+  .photo-close:hover { background: #fff; color: var(--ink-900); }
+  .photo-frame {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 12px 30px rgba(95,139,181,0.18);
+    background: var(--sky-100);
+  }
+  .photo-frame img {
+    width: 100%;
+    display: block;
+    max-height: 62vh;
+    object-fit: cover;
+  }
+  .photo-note { margin-top: 14px; font-size: 13.5px; color: var(--ink-500); letter-spacing: 0.02em; }
+
+  .foot {
+    text-align: center;
+    padding: 46px 16px 60px;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <nav class="nav">
+      <a href="index.html">← 返回主页</a>
+      <a href="index.html#home">Home</a>
+      <a class="active" href="travel.html">旅行 Travel</a>
+    </nav>
+  </header>
+
+  <div class="lace lace-top"></div>
+
+  <main class="page">
+    <section class="travel-head">
+      <h1>My Travel Map</h1>
+      <p class="travel-sub">— 去过的地方，都在这颗星球上 —</p>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card">
+      <div class="globe-stage">
+        <div id="globe"></div>
+        <div class="marker-layer" id="marker-layer"></div>
+        <div class="globe-loading" id="globe-loading">正在加载地球…</div>
+      </div>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card" id="photo-panel" hidden>
+      <div class="photo-head">
+        <div>
+          <div class="photo-city" id="photo-city"></div>
+          <div class="photo-en" id="photo-en"></div>
+        </div>
+        <button class="photo-close" id="photo-close" type="button" aria-label="关闭照片">✕</button>
+      </div>
+      <div class="photo-frame"><img id="photo-img" alt="" /></div>
+      <p class="photo-note" id="photo-note"></p>
+    </section>
+  </main>
+
+  <div class="foot">MENGHAN LIU · TRAVEL</div>
+
+  <!-- three.js 与 OrbitControls 用的是「普通脚本」版（由 ESM 版转换而来），
+       地球贴图也内联成 data URI，所以直接双击 travel.html（file:// 协议）
+       就能看到地球，不再需要本地服务器。 -->
+  <script src="./assets/lib/three.global.js"></script>
+  <script src="./assets/lib/OrbitControls.global.js"></script>
+  <script src="./assets/earth-texture.js"></script>
+
+  <script>
+
+    /* ============================================================
+       旅游地点数据
+       以后加城市：往数组里加一条就行
+       { city:"城市", en:"City", lat:纬度, lng:经度,
+         photo:"assets/travel/xxx.jpg", note:"一句话" }
+       ============================================================ */
+    const TRAVELS = [
+      { city: "深圳", en: "Shenzhen", lat: 22.54, lng: 114.06, photo: "assets/tour-1.jpg", note: "示例地点 · 等你的照片来替换" },
+      { city: "尼斯", en: "Nice", lat: 43.71, lng: 7.26, photo: "assets/tour-2.jpg", note: "示例地点 · 等你的照片来替换" },
+      { city: "京都", en: "Kyoto", lat: 35.01, lng: 135.77, photo: "assets/tour-3.jpg", note: "示例地点 · 等你的照片来替换" }
+    ];
+
+    /* ============================================================
+       海洋调色：抬高明度 + 补饱和（保留原色相）
+       ⚠️ 用户已选定「原来的宝蓝」，故 hmix=0（不动色相）。
+          主页天空蓝那套参数也验证过能用，改 URL 即可切回：
+          travel.html?lift=0.66&span=0.50&sat=0.62&hue=206&hmix=0.85
+       当前实测海洋平均色 rgb(28,43,73) → rgb(44,98,234)，色相 220→223。
+       lift  明度抬升量（越大整体越浅）
+       span  明度缩放（越大深海与浅海对比越强）
+       sat   饱和度倍数（越小越发灰，越大越艳）
+       hue   目标色相，角度制（主页蓝约 206）
+       hmix  向目标色相靠拢的程度 0~1（0=保留原色相，1=完全同色相）
+       想现场试：travel.html?lift=0.42&span=0.72&sat=1.22&hmix=0
+       ============================================================ */
+    const Q = new URLSearchParams(location.search);
+    const qnum = (k, def) => {
+      const v = parseFloat(Q.get(k));
+      return Number.isFinite(v) ? v : def;
+    };
+    const OCEAN = {
+      lift: qnum("lift", 0.84),
+      span: qnum("span", 0.18),
+      sat: qnum("sat", 0.85),
+      hue: qnum("hue", 206),
+      hmix: qnum("hmix", 1),
+      cap: qnum("cap", 0.96)
+    };
+
+    const RADIUS = 2;
+
+    const stage = document.getElementById("globe");
+    const layer = document.getElementById("marker-layer");
+    const loadingEl = document.getElementById("globe-loading");
+
+    /* ---------- 场景 ---------- */
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0.35, 7);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    stage.appendChild(renderer.domElement);
+
+    /* ---------- 光照 ----------
+       海洋贴图已调成高明度淡冰蓝（L≈0.87），光照总强度必须降到 ≈1.0，
+       否则贴图 × 光照会顶到 1.0 以上、过曝成纯白，蓝色全丢。
+       ambient + key ≈ 1.03（略高于 1，让受光面正好呈现出目标蓝）。 */
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.18);
+    keyLight.position.set(5, 2.5, 5);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0xd7e9f8, 0.08);
+    rimLight.position.set(-5, 1.5, -4);
+    scene.add(rimLight);
+
+    /* ---------- 地球 ---------- */
+    const globe = new THREE.Group();
+    scene.add(globe);
+
+    const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0 });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 64, 64), sphereMat);
+    globe.add(sphere);
+
+    /* ---------- 大气微光（柔化边缘） ---------- */
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0xffffff) },
+        uIntensity: { value: 0.5 },
+        uPower: { value: 2.8 }
+      },
+      vertexShader: `
+        varying vec3 vN;
+        varying vec3 vP;
+        void main() {
+          vN = normalize(normalMatrix * normal);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vP = mv.xyz;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uIntensity;
+        uniform float uPower;
+        varying vec3 vN;
+        varying vec3 vP;
+        void main() {
+          float fres = pow(1.0 - abs(dot(vN, normalize(-vP))), uPower);
+          gl_FragColor = vec4(uColor, fres * uIntensity);
+        }
+      `,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false
+    });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(RADIUS * 1.1, 64, 64), atmoMat));
+
+    /* ---------- 加载地球纹理 + 调浅海洋 ---------- */
+    const loader = new THREE.TextureLoader();
+    // 优先用 earth-texture.js 里的 data URI：file:// 下用它画 canvas 才不会被判跨域污染
+    const TEX_SRC = window.__EARTH_TEXTURE_DATA || "./assets/earth-texture.jpg";
+    loader.load(
+      TEX_SRC,
+      (tex) => {
+        const lightTex = new THREE.CanvasTexture(lightenOcean(tex.image));
+        lightTex.colorSpace = THREE.SRGBColorSpace;
+        lightTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        sphereMat.map = lightTex;
+        sphereMat.needsUpdate = true;
+        loadingEl.classList.add("hide");
+      },
+      undefined,
+      () => { loadingEl.textContent = "地球纹理加载失败，请检查 assets/earth-texture.js"; }
+    );
+
+    function lightenOcean(img) {
+      const c = document.createElement("canvas");
+      c.width = img.width;
+      c.height = img.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, c.width, c.height);
+      const d = imgData.data;
+      const { lift, span, sat, hue, hmix, cap } = OCEAN;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        // 判定海洋：蓝色分量最强，且明显高于红色（陆地/沙漠/冰雪不满足）
+        if (b > r + 6 && b >= g) {
+          const hsl = rgbToHsl(r, g, b);
+          let h = hsl[0], s = hsl[1], l = hsl[2];
+          // 色相往主页天空蓝靠拢（角度制，走最短弧，避免跨越 0/360 绕远路）
+          let dh = hue - h;
+          if (dh > 180) dh -= 360;
+          if (dh < -180) dh += 360;
+          h = (h + dh * hmix + 360) % 360;
+          l = Math.min(cap, lift + l * span);    // 抬明度，保留深浅层次
+          s = Math.min(1, s * sat);              // 收饱和，贴近水彩感
+          const rgb = hslToRgb(h, s, l);
+          d[i] = rgb[0];
+          d[i + 1] = rgb[1];
+          d[i + 2] = rgb[2];
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const l = (max + min) / 2;
+      const delta = max - min;
+      let h = 0, s = 0;
+      if (delta !== 0) {
+        s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+        if (max === r) h = (g - b) / delta + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / delta + 2;
+        else h = (r - g) / delta + 4;
+        h *= 60;
+      }
+      return [h, s, l];
+    }
+
+    function hslToRgb(h, s, l) {
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const hp = h / 60;
+      const x = c * (1 - Math.abs((hp % 2) - 1));
+      let r = 0, g = 0, b = 0;
+      if (hp < 1) { r = c; g = x; }
+      else if (hp < 2) { r = x; g = c; }
+      else if (hp < 3) { g = c; b = x; }
+      else if (hp < 4) { g = x; b = c; }
+      else if (hp < 5) { r = x; b = c; }
+      else { r = c; b = x; }
+      const m = l - c / 2;
+      return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+    }
+
+    /* ---------- 经纬度 → 三维坐标 ---------- */
+    function latLngToVec3(lat, lng, r) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (lng + 180) * Math.PI / 180;
+      return new THREE.Vector3(
+        -(r * Math.sin(phi) * Math.cos(theta)),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+
+    /* ---------- 标记 ---------- */
+    const markers = TRAVELS.map((t, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "marker";
+      el.innerHTML = '<span class="marker-dot"></span><span class="marker-name">' + t.city + "</span>";
+      el.addEventListener("click", () => openPhoto(i));
+      layer.appendChild(el);
+      return el;
+    });
+
+    const tmp = new THREE.Vector3();
+    function updateMarkers() {
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      const camDir = camera.position.clone().normalize();
+
+      for (let i = 0; i < TRAVELS.length; i++) {
+        const el = markers[i];
+        tmp.copy(latLngToVec3(TRAVELS[i].lat, TRAVELS[i].lng, RADIUS * 1.01));
+        globe.localToWorld(tmp);
+
+        const facing = tmp.clone().normalize().dot(camDir);
+        if (facing < 0.12) { el.style.display = "none"; continue; }
+
+        el.style.display = "";
+        el.style.opacity = String(Math.min(1, (facing - 0.12) * 4.5));
+
+        tmp.project(camera);
+        const x = (tmp.x * 0.5 + 0.5) * w;
+        const y = (-tmp.y * 0.5 + 0.5) * h;
+        el.style.transform = "translate(-50%, -50%) translate(" + x + "px, " + y + "px)";
+      }
+    }
+
+    /* ---------- 尺寸自适应 ---------- */
+    function resize() {
+      const w = stage.clientWidth || 1;
+      const h = stage.clientHeight || 1;
+      renderer.setSize(w, h, true);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    /* ---------- 交互：拖动旋转 / 滚轮缩放 / 自动缓慢旋转 ---------- */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false;
+    controls.enableZoom = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 12;
+    controls.rotateSpeed = 0.45;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    /* 用户开始拖动时暂停自动旋转，松手后恢复 */
+    controls.addEventListener("start", () => { controls.autoRotate = false; });
+    controls.addEventListener("end", () => {
+      clearTimeout(window.__autoRotateTimer);
+      window.__autoRotateTimer = setTimeout(() => { controls.autoRotate = true; }, 2200);
+    });
+
+    /* ---------- 照片面板 ---------- */
+    function openPhoto(i) {
+      const t = TRAVELS[i];
+      document.getElementById("photo-city").textContent = t.city;
+      document.getElementById("photo-en").textContent = t.en || "";
+      document.getElementById("photo-note").textContent = t.note || "";
+
+      const img = document.getElementById("photo-img");
+      img.src = t.photo;
+      img.alt = t.city;
+
+      const panel = document.getElementById("photo-panel");
+      panel.hidden = false;
+      markers.forEach((m, k) => m.classList.toggle("active", k === i));
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    document.getElementById("photo-close").addEventListener("click", () => {
+      document.getElementById("photo-panel").hidden = true;
+      markers.forEach((m) => m.classList.remove("active"));
+    });
+
+    /* ---------- 主循环 ---------- */
+    function tick() {
+      controls.update();
+      updateMarkers();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    tick();
+    window.__globeReady = true;
+  </script>
+
+  <!-- 加载失败诊断：把真实原因直接显示在页面中央，不用去翻控制台 -->
+  <script>
+    (function () {
+      var el = document.getElementById("globe-loading");
+      var globeBox = document.getElementById("globe");
+      function show(html) {
+        if (!el || !globeBox) return;
+        el.classList.remove("hide");
+        el.innerHTML = html;
+      }
+      // 双击（file://）和本地服务器（http://）都支持，5 秒还没起来就报出当前地址
+      setTimeout(function () {
+        if (window.__globeReady) return;
+        show(
+          "<span>地球没能启动。<br>当前地址：<code>" + location.href + "</code><br>" +
+          "请确认 travel.html 旁边的 <b>assets/</b> 文件夹完整（尤其 assets/lib/ 与 assets/earth-texture.js）。<br>" +
+          "按 <b>F12</b> 打开控制台，把红色报错发我。</span>"
+        );
+      }, 5000);
+    })();
+  </script>
+</body>
+</html>
