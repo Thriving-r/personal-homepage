@@ -371,14 +371,15 @@
     stage.appendChild(renderer.domElement);
 
     /* ---------- 光照 ----------
-       海洋贴图已调成高明度淡冰蓝（L≈0.87），光照总强度必须降到 ≈1.0，
-       否则贴图 × 光照会顶到 1.0 以上、过曝成纯白，蓝色全丢。
-       ambient + key ≈ 1.03（略高于 1，让受光面正好呈现出目标蓝）。 */
-    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.18);
+       海洋贴图已调成高明度淡冰蓝（L≈0.87）。想让受光面正好呈现出贴图本身的蓝，
+       需要的有效光照系数 ≈ 1.0；而 three.js 新版物理光照会除以 π，
+       所以强度要按 π 来配：ambient(2.80) + key(0.82)×平均NdotL(≈0.5) ≈ 3.21 → /π ≈ 1.02。
+       （旧值 0.48/0.75 只给到 0.27，会把淡蓝压成暗灰蓝。） */
+    scene.add(new THREE.AmbientLight(0xffffff, 2.80));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.82);
     keyLight.position.set(5, 2.5, 5);
     scene.add(keyLight);
-    const rimLight = new THREE.DirectionalLight(0xd7e9f8, 0.08);
+    const rimLight = new THREE.DirectionalLight(0xd7e9f8, 0.22);
     rimLight.position.set(-5, 1.5, -4);
     scene.add(rimLight);
 
