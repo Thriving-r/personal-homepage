@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>书法 · Calligraphy — 刘孟涵</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<!--
+  书法作品页 · 可拖拽卡片
+  ------------------------------------------------------------------
+  · 交互：用原生 pointer 事件实现拖拽（无框架、file:// 双击可用）
+      - 按住拖动，卡片跟手并置顶
+      - 双击卡片 → 归位到初始位置
+      - 右上「重新摆放」→ 全部归位
+      - 摆放位置记在 localStorage，刷新后保持
+  · 换成真实作品照片：把图片放进 assets/calligraphy/，
+    然后在下面 WORKS 数组里给对应项填 img: "assets/calligraphy/xxx.jpg"
+      - img 为空 → 显示占位大字 glyph
+      - img 有值 → 显示照片（加载失败会自动退回占位大字）
+  · 调初始摆位：nx / ny 是归一化位置（0~1，相对画布），
+    rot 是旋转角度（deg），w / h 是桌面基准尺寸（px，小屏会等比缩小）
+  ------------------------------------------------------------------
+-->
+<style>
+  /* ============ 设计系统（与 index.html 保持一致） ============ */
+  :root {
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+    --font-kai: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    padding: 0 clamp(12px, 3vw, 40px);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.05'/></svg>"),
+      radial-gradient(1100px 620px at 10% 4%, rgba(255,255,255,0.90), rgba(255,255,255,0) 62%),
+      radial-gradient(900px 560px at 92% 6%, rgba(244,199,214,0.30), rgba(244,199,214,0) 64%),
+      radial-gradient(1200px 760px at 50% 106%, rgba(180,212,236,0.60), rgba(180,212,236,0) 62%),
+      url("assets/bg.jpg");
+    background-size: 140px 140px, cover, cover, cover, cover;
+    background-position: left top, center top, right top, center bottom, center top;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 顶部导航 ==== */
+  .masthead {
+    position: sticky;
+    top: 14px;
+    z-index: 80;
+    display: flex;
+    justify-content: center;
+    padding: 14px 0 8px;
+  }
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+
+  /* ==== 栅格 ==== */
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(4px, 2vw, 24px) 80px; }
+  .section-gap { height: clamp(20px, 3.4vw, 34px); }
+
+  /* ==== 标题 ==== */
+  .cali-head { text-align: center; padding: clamp(16px, 3.4vw, 34px) 16px 0; }
+  .cali-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(38px, 8vw, 68px);
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    color: var(--ink-900);
+    text-shadow: 2px 3px 12px rgba(95,139,181,0.22);
+  }
+  .cali-title .en {
+    display: block;
+    margin-top: 6px;
+    font-family: "Caveat", cursive;
+    font-size: clamp(15px, 2.4vw, 21px);
+    letter-spacing: 0.24em;
+    color: var(--sky-600);
+  }
+  .cali-sub {
+    margin-top: 14px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(16px, 2.8vw, 22px);
+    letter-spacing: 0.14em;
+    color: var(--ink-500);
+  }
+  .cali-tip {
+    margin-top: 12px;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink-400);
+  }
+  .reset-btn {
+    margin-top: 16px;
+    padding: 7px 20px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-700);
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.95);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(95,139,181,0.14);
+    transition: transform .2s ease, box-shadow .2s ease, color .2s ease, background .2s ease;
+  }
+  .reset-btn:hover {
+    transform: translateY(-1px);
+    color: var(--ink-900);
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(95,139,181,0.24);
+  }
+
+  /* ==== 画布（宣纸桌面） ==== */
+  .stage-card { padding: clamp(10px, 1.6vw, 16px); }
+  .stage {
+    position: relative;
+    min-height: clamp(520px, 72vh, 820px);
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.045'/></svg>"),
+      radial-gradient(circle at 50% 38%, rgba(255,255,255,0.96) 0%, rgba(231,242,251,0.5) 58%, rgba(231,242,251,0.16) 78%),
+      linear-gradient(160deg, rgba(210,236,251,0.34), rgba(255,255,255,0.62));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.9), inset 0 14px 40px rgba(95,139,181,0.08);
+  }
+
+  /* ==== 作品卡片 ==== */
+  .work {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+    width: var(--w, 190px);
+    height: var(--h, 260px);
+    padding: 10px 10px 0;
+    background: #ffffff;
+    border-radius: 5px;
+    box-shadow:
+      0 14px 32px rgba(95,139,181,0.20),
+      0 2px 6px rgba(95,139,181,0.12),
+      inset 0 0 0 1px rgba(255,255,255,0.9);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    will-change: transform;
+    opacity: 0;
+    transition:
+      opacity .45s ease,
+      transform .38s cubic-bezier(.22, 1, .36, 1),
+      box-shadow .3s ease;
+  }
+  .work.in { opacity: 1; }
+  .work:hover { box-shadow: 0 20px 42px rgba(95,139,181,0.26), 0 3px 8px rgba(95,139,181,0.14); }
+  .work.dragging {
+    cursor: grabbing;
+    transition: box-shadow .3s ease;
+    box-shadow: 0 28px 56px rgba(95,139,181,0.34), 0 8px 18px rgba(95,139,181,0.20);
+  }
+
+  .work-art {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 3px;
+    border: 1px dashed rgba(180,212,236,0.75);
+    background: linear-gradient(150deg, #fdfdfb, #f3f8fc);
+  }
+  /* 米字格辅助线 */
+  .work-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(to right,
+        transparent calc(50% - 0.5px), rgba(180,212,236,0.6) calc(50% - 0.5px),
+        rgba(180,212,236,0.6) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+      linear-gradient(to bottom,
+        transparent calc(50% - 0.5px), rgba(180,212,236,0.6) calc(50% - 0.5px),
+        rgba(180,212,236,0.6) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  }
+  .work-art img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .work-glyph {
+    position: relative;
+    font-family: var(--font-kai);
+    font-size: clamp(42px, 7.6vw, 84px);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--ink-900);
+    opacity: 0.92;
+  }
+  .seal {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--pink);
+    color: #ffffff;
+    font-family: var(--font-serif);
+    font-size: 11.5px;
+    line-height: 1;
+    box-shadow: 0 2px 7px rgba(244,199,214,0.75);
+    pointer-events: none;
+  }
+
+  .work-cap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 3px 11px;
+  }
+  .work-title {
+    font-family: var(--font-serif);
+    font-size: 13.5px;
+    letter-spacing: 0.04em;
+    color: var(--ink-900);
+  }
+  .work-meta {
+    flex: none;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-400);
+    white-space: nowrap;
+  }
+
+  .foot {
+    text-align: center;
+    padding: 42px 16px 60px;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+  }
+
+  @media (max-width: 560px) {
+    .cali-tip { padding: 0 20px; }
+    .work-glyph { font-size: clamp(34px, 11vw, 54px); }
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <nav class="nav">
+      <a href="index.html">← 返回主页</a>
+      <a href="index.html#home">Home</a>
+      <a class="active" href="calligraphy.html">书法 Calligraphy</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="cali-head">
+      <h1 class="cali-title">墨<span class="en">Calligraphy</span></h1>
+      <p class="cali-sub">— 一笔一划，慢慢写 —</p>
+      <p class="cali-tip">按住卡片可以拖动，摆成你喜欢的样子 · 双击卡片归位</p>
+      <button class="reset-btn" id="reset" type="button">重新摆放</button>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card stage-card">
+      <div class="stage" id="stage"></div>
+    </section>
+
+    <footer class="foot">刘孟涵 · 书法 Calligraphy</footer>
+  </main>
+
+<script>
+  /* ============ 作品数据 ============ */
+  /* 有照片后：把图片放进 assets/calligraphy/，再填 img 字段即可 */
+  const WORKS = [
+    { id: "yong", glyph: "永", title: "永字八法",  meta: "楷书 · 临帖", img: "", w: 190, h: 272, nx: 0.22, ny: 0.34, rot: -5 },
+    { id: "jing", glyph: "静", title: "静",        meta: "行书 · 立轴", img: "", w: 172, h: 252, nx: 0.47, ny: 0.24, rot:  3 },
+    { id: "he",   glyph: "和", title: "和",        meta: "楷书 · 斗方", img: "", w: 204, h: 204, nx: 0.74, ny: 0.35, rot:  6 },
+    { id: "mo",   glyph: "墨", title: "墨",        meta: "隶书 · 横幅", img: "", w: 300, h: 186, nx: 0.33, ny: 0.71, rot: -3 },
+    { id: "zhi",  glyph: "知", title: "知",        meta: "行书 · 小品", img: "", w: 178, h: 244, nx: 0.62, ny: 0.72, rot:  4 },
+    { id: "yuan", glyph: "远", title: "宁静致远",  meta: "楷书 · 横披", img: "", w: 314, h: 172, nx: 0.85, ny: 0.60, rot: -7 }
+  ];
+
+  const KEY = "lmh_calligraphy_pos";
+
+  const stage = document.getElementById("stage");
+  const resetBtn = document.getElementById("reset");
+  const items = [];
+  let scale = 1;
+  let topZ = 10;
+
+  /* 读取上次摆放的位置 */
+  function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+
+  function persist() {
+    const out = {};
+    items.forEach(function (it) { out[it.work.id] = [Math.round(it.offX), Math.round(it.offY)]; });
+    try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+  }
+
+  /* 小屏等比缩小卡片 */
+  function computeScale() {
+    const w = stage.clientWidth || 1000;
+    return Math.min(1, Math.max(0.5, w / 1040));
+  }
+
+  function sizeCard(it) {
+    it.el.style.setProperty("--w", Math.round(it.work.w * scale) + "px");
+    it.el.style.setProperty("--h", Math.round(it.work.h * scale) + "px");
+  }
+
+  /* 由归一化坐标算出基准位移（相对画布中心），保证卡片落在画布内 */
+  function basePos(it) {
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+    const halfW = (it.work.w * scale) / 2 + 4;
+    const halfH = (it.work.h * scale) / 2 + 4;
+    const ax = Math.max(0, W - halfW * 2);
+    const ay = Math.max(0, H - halfH * 2);
+    return {
+      x: (it.work.nx - 0.5) * ax,
+      y: (it.work.ny - 0.5) * ay
+    };
+  }
+
+  function apply(it) {
+    const b = basePos(it);
+    const x = b.x + it.offX;
+    const y = b.y + it.offY;
+    it.el.style.transform =
+      "translate(-50%, -50%) translate(" + x + "px, " + y + "px) rotate(" + it.work.rot + "deg)";
+  }
+
+  /* 拖拽时把卡片限制在画布内 */
+  function clampOff(it) {
+    const b = basePos(it);
+    const halfW = (it.work.w * scale) / 2;
+    const halfH = (it.work.h * scale) / 2;
+    const W = stage.clientWidth;
+    const H = stage.clientHeight;
+    const cx = W / 2 + b.x + it.offX;
+    const cy = H / 2 + b.y + it.offY;
+    const nx = Math.min(Math.max(cx, halfW + 4), W - halfW - 4);
+    const ny = Math.min(Math.max(cy, halfH + 4), H - halfH - 4);
+    it.offX += nx - cx;
+    it.offY += ny - cy;
+  }
+
+  function bringToFront(it) {
+    it.el.style.zIndex = String(++topZ);
+  }
+
+  /* ---- 拖拽（pointer 事件，鼠标 / 触屏通用） ---- */
+  function attachDrag(it) {
+    const el = it.el;
+
+    el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      it.drag = { x: e.clientX, y: e.clientY, ox: it.offX, oy: it.offY, dist: 0 };
+      el.classList.add("dragging");
+      bringToFront(it);
+      e.preventDefault();
+    });
+
+    el.addEventListener("pointermove", function (e) {
+      if (!it.drag) return;
+      const dx = e.clientX - it.drag.x;
+      const dy = e.clientY - it.drag.y;
+      it.drag.dist = Math.sqrt(dx * dx + dy * dy);
+      it.offX = it.drag.ox + dx;
+      it.offY = it.drag.oy + dy;
+      clampOff(it);
+      apply(it);
+    });
+
+    function end() {
+      if (!it.drag) return;
+      const moved = it.drag.dist > 4;
+      it.drag = null;
+      el.classList.remove("dragging");
+      if (moved) persist();
+    }
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+
+    /* 双击归位 */
+    el.addEventListener("dblclick", function () {
+      it.offX = 0;
+      it.offY = 0;
+      apply(it);
+      bringToFront(it);
+      persist();
+    });
+  }
+
+  /* ---- 生成卡片 ---- */
+  function addGlyph(art, work) {
+    const span = document.createElement("span");
+    span.className = "work-glyph";
+    span.textContent = work.glyph;
+    art.appendChild(span);
+  }
+
+  function buildCard(work, saved) {
+    const el = document.createElement("figure");
+    el.className = "work";
+    el.dataset.id = work.id;
+
+    const art = document.createElement("div");
+    art.className = "work-art";
+
+    if (work.img) {
+      const img = document.createElement("img");
+      img.src = work.img;
+      img.alt = work.title + " · 书法作品";
+      img.draggable = false;
+      img.addEventListener("error", function () {
+        img.remove();
+        addGlyph(art, work);
+      });
+      art.appendChild(img);
+    } else {
+      addGlyph(art, work);
+    }
+
+    const seal = document.createElement("span");
+    seal.className = "seal";
+    seal.textContent = "涵";
+    art.appendChild(seal);
+
+    const cap = document.createElement("figcaption");
+    cap.className = "work-cap";
+    const title = document.createElement("span");
+    title.className = "work-title";
+    title.textContent = work.title;
+    const meta = document.createElement("span");
+    meta.className = "work-meta";
+    meta.textContent = work.meta;
+    cap.appendChild(title);
+    cap.appendChild(meta);
+
+    el.appendChild(art);
+    el.appendChild(cap);
+    return el;
+  }
+
+  /* ---- 初始化 ---- */
+  const saved = loadSaved();
+  scale = computeScale();
+
+  WORKS.forEach(function (work, i) {
+    const el = buildCard(work, saved);
+    stage.appendChild(el);
+
+    const pos = saved[work.id] || [0, 0];
+    const it = {
+      work: work,
+      el: el,
+      offX: Number(pos[0]) || 0,
+      offY: Number(pos[1]) || 0,
+      drag: null
+    };
+    items.push(it);
+
+    sizeCard(it);
+    el.style.zIndex = String(i + 1);
+    apply(it);
+    attachDrag(it);
+
+    /* 依次淡入 */
+    setTimeout(function () { el.classList.add("in"); }, 60 + i * 70);
+  });
+
+  /* ---- 重置 ---- */
+  resetBtn.addEventListener("click", function () {
+    items.forEach(function (it, i) {
+      it.offX = 0;
+      it.offY = 0;
+      apply(it);
+      it.el.style.zIndex = String(i + 1);
+    });
+    topZ = items.length;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+  });
+
+  /* ---- 窗口尺寸变化 ---- */
+  let resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      const ns = computeScale();
+      if (Math.abs(ns - scale) > 0.001) {
+        scale = ns;
+        items.forEach(sizeCard);
+      }
+      items.forEach(function (it) { clampOff(it); apply(it); });
+    }, 120);
+  });
+</script>
+</body>
+</html>

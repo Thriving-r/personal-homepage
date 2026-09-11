@@ -9,7 +9,7 @@
 - 技术栈：原生 HTML + 内联 CSS + 内联 `<script>`，无构建工具、无框架
 - 主页面 `index.html` 无外部依赖；`travel.html` 例外，使用本地 three.js（`assets/lib/`）
 - ⚠️ `travel.html` 依赖 **普通脚本**（非 ES Module）与 **内联 data URI 贴图**，目的是让 `file://` 双击也能正常渲染，详见「交互与组件约定 · 旅行页」
-- 页面结构：`index.html` 三个面板（Tab 切换）—— `About Me` / `Home` / `Virtual Space`；`travel.html` 为独立 3D 地球旅行页
+- 页面结构：`index.html` 三个面板（Tab 切换）—— `About Me` / `Home` / `Virtual Space`；`travel.html` 为独立 3D 地球旅行页；`calligraphy.html` 为独立书法页（可拖拽作品卡片）
 - 用途：个人展示（非商业）
 
 ## 目录结构
@@ -24,6 +24,8 @@
 |---|---|
 | `index.html` | 主文件，HTML / CSS / JS 全部内联其中 |
 | `travel.html` | 旅行页：three.js 3D 地球 + 城市标记 + 照片展示（独立页面） |
+| `calligraphy.html` | 书法页：可拖拽的书法作品卡片（独立页面，原生 pointer 事件） |
+| `assets/calligraphy/` | 书法作品照片（**尚未创建**，拿到照片后放在这里并在 `WORKS` 里填 `img`） |
 | `assets/avatar.png` | 头像 |
 | `assets/bg.jpg` | 水彩天空背景图 |
 | `assets/tour-1.jpg` | 旅行照片 1（夏 · 海边栈道） |
@@ -120,6 +122,31 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-09-11（晚 · 二）
+
+- **新增 `calligraphy.html` 书法页**：借鉴 Aceternity `draggable-card` 的交互思路，用**原生 pointer 事件**重写（无 React / 无框架，`file://` 双击可用）
+  - 卡片可拖拽跟手并置顶（`zIndex` 自增）、松手保持位置；位置写入 `localStorage`（key `lmh_calligraphy_pos`），刷新后仍在
+  - 拖拽用 `setPointerCapture`（外面包了 `try/catch`，个别环境不支持时不至于中断）；`touch-action: none` 同时支持鼠标与触屏
+  - 拖拽时把卡片限制在画布内（`clampOff()` 按卡片半宽 / 半高夹取），画布 `overflow: hidden` 兜底
+  - 双击卡片归位；「重新摆放」按钮全部归位并清除 `localStorage`
+  - 小屏等比缩放：`computeScale()` 把卡片基准尺寸乘 `min(1, max(0.5, 画布宽 / 1040))`，`resize` 时重算（120ms 防抖）并重新夹取
+- **作品卡片预留照片入口**：`WORKS` 数组 6 条（`永 / 静 / 和 / 墨 / 知 / 远`）。`img` 为空时显示占位大字（楷体 + 米字格虚线底）；填入 `assets/calligraphy/xxx.jpg` 即显示照片，加载失败会自动退回占位大字。初始摆位由 `nx / ny`（归一化 0~1）、`rot`（角度）、`w / h`（基准 px）控制
+  - ⚠️ 用户尚未提供书法照片，`assets/calligraphy/` 还没建；拿到照片后放进该目录并在 `WORKS` 里填 `img` 即可
+  - 卡片右下角印章用 `--pink`（未引入朱红等新色系）
+- **`index.html` 两处「书法」pill 改为链接** `<a class="pill" href="calligraphy.html">`（第 866 行 Home 面板 motto 区、第 950 行 About 面板），复用已有 `a.pill` 悬停样式
+- 无头 Chrome 回归（1280 / 500 视口）：`cards=6`、全部淡入、`dragDelta=100`（拖拽跟手）、`allInside=true`、`errors=[]`、无横向溢出
+  - ⚠️ 探针 `cdp-probe.mjs` 用 `--window-size` 设视口，Chrome 窗口最窄约 500px，**传 390 实际得到 500**（页面本身无问题；真机小屏靠 CSS `clamp` 自适应）
+
+### 2026-09-11（晚）
+
+- **陆地也改成用户参考图那样的绿色（用户要求「绿色部分增多」）**：`lightenOcean` 重命名为 `tintEarth`（调用点同步），内部由「只处理海洋」改为海洋 / 陆地 / 冰雪三分支。新增 `LAND = { lift 0.34, span 0.92, sat 0.70, hue 130, hmix 0.50, cap 0.93 }`，URL 参数加前缀 `l` 避免与海洋撞名：`travel.html?lhue=130&lhmix=0.5&lsat=0.7&llift=0.34&lspan=0.92&lcap=0.93`
+- **冰雪必须显式放行**：陆地分支前加 `else if (l0 > 0.86 && s0 < 0.18) continue;`，否则南极 / 格陵兰会被一起染绿
+- **参考图取色**（`截屏 2026-09-11 13.53.21.jpeg`，1179×2556 手机截屏，隔点采样 754020 px）：深绿 `#5C9160` H124 S0.22 L0.46（n=23422）｜黄绿 `#A4B27B` H76 S0.26 L0.59｜黄褐 `#B9AF93` H44 S0.22 L0.65；**绿:褐 = 66.7% : 33.3%**，陆地整体 H93.5 S0.19 L0.55。而原贴图陆地是 **绿 36.4% : 黄褐 56.1%、平均 L 0.26**——又黄又暗，正是要改的地方
+- **参数由 6 组对照扫描选出**（`make_sweep3.py`）。⚠️ 扫描脚本**必须先抽样**：隔行隔列只保留陆地像素（101776 px）后秒级出结果；早先「209 万像素 × 多候选」的全量扫描跑太久，被用户手动中断。选中的 `hue 130 / hmix 0.50` 让色相呈**双峰**——10% 分位 H81（黄绿，原沙漠）+ 90% 分位 H132（真绿，原植被），恰好对应参考图的「黄绿 76 + 深绿 124」；hmix 调到 0.7 则双峰塌陷成单一 H106，沙漠失去辨识度
+- ⚠️ **踩坑：贴图均值 ≈ 全球均值，但用户看到的是「可见半球」**。第一版按全球均值标定（`llift 0.22 / lsat 0.90`，贴图侧陆地 L0.53 看着已达标），渲染回读却只有 `#638C4E` L0.43。排查确认 `lightTex.colorSpace = SRGBColorSpace` 设置无误，**均匀光照下「渲染 ≡ 贴图」是恒等映射**，故差异只可能来自像素集合不同——摄像机默认对着的那个半球陆地本身偏暗偏艳。据此按可见半球重新标定为 `llift 0.34 / lsat 0.70`
+- **`make_render.py` 升级为双通道回读**：① 真实光照（看水色与过曝）② 临时把 `AmbientLight` 强度设为 `π`、所有 `DirectionalLight` 设为 `0` 再渲一次（有效系数恒为 1.0，画面即贴图本色）。两通道分别统计水体 / 陆地的均值与占比、近白过曝像素，并把实际生效的 `OCEAN` / `LAND` JSON 一并打印存档
+- 最终实测（642×340 球面 46625 px）：**陆地 `#81AB70` H103 S0.26 L0.55**（目标 `#89A176` H94 S0.19 L0.55，明度完全命中，色相略偏绿）、**水体 `#C7E1F4`**（目标 `#C9E1F5`）、近白过曝 7 px（0.0%）、`errors=[]`
 
 ### 2026-09-11（下午）
 
