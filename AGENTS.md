@@ -123,6 +123,13 @@ python3 -m http.server 8777 --directory .
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
 
+### 2026-09-11（晚 · 三）
+
+- **`travel.html` 顶部导航精简**：删除中间的 `Home` 项（原 `<a href="index.html#home">Home</a>`），导航只保留「返回主页」+「旅行 Travel」两项；「← 返回主页」文案改为 `← Return to Home`（保留左箭头图标，与英文导航整体风格一致）
+- **旅行页副标题改文案**：`.travel-sub` 由「— 去过的地方，都在这颗星球上 —」改为「— 想去的地方 天气好的时候就出发吧 —」，两侧短横线装饰保留
+- ⚠️ **教训：存在两份项目副本**。DeepWorks 会话工作目录是 `~/Documents/deepwork/outputs/personal-homepage/`，而实际用浏览器打开、含 `.git` 的权威项目是 `~/Documents/个人主页/outputs/personal-homepage/`。只改会话副本用户看不到效果。**以后改本项目应优先改 `~/Documents/个人主页/` 下的文件**，必要时再同步副本
+- **`calligraphy.html` 同步统一导航**（用户确认后）：同样删除 `Home` 项、「← 返回主页」→「← Return to Home」，导航只剩「返回主页」+「书法 Calligraphy」两项；副标题「— 一笔一划，慢慢写 —」按用户要求保持不变
+
 ### 2026-09-11（晚 · 二）
 
 - **新增 `calligraphy.html` 书法页**：借鉴 Aceternity `draggable-card` 的交互思路，用**原生 pointer 事件**重写（无 React / 无框架，`file://` 双击可用）
@@ -137,6 +144,8 @@ python3 -m http.server 8777 --directory .
 - **`index.html` 两处「书法」pill 改为链接** `<a class="pill" href="calligraphy.html">`（第 866 行 Home 面板 motto 区、第 950 行 About 面板），复用已有 `a.pill` 悬停样式
 - 无头 Chrome 回归（1280 / 500 视口）：`cards=6`、全部淡入、`dragDelta=100`（拖拽跟手）、`allInside=true`、`errors=[]`、无横向溢出
   - ⚠️ 探针 `cdp-probe.mjs` 用 `--window-size` 设视口，Chrome 窗口最窄约 500px，**传 390 实际得到 500**（页面本身无问题；真机小屏靠 CSS `clamp` 自适应）
+- **摆位重排**（用户选定「6 张 / 自然散落」）：初版右下角三张挤在一起，实测 `he+yuan=51%`、`zhi+yuan=45%`（`宁静致远` 被叠掉一半）。重排 `nx / ny / rot` 后，最大叠压降到 **14%**（`yong+mo`），其余 4~11%，六张全部可见；1290 / 900 / 600 三档视口均 `outside=[]`、最小边距 13~18px、无横向溢出
+  - 摆位回归方法：探针两两算包围盒重叠率（`overlaps` / `maxOverlap` / `minMargin`），可直接量化「有没有卡片被压住」，比看图更可靠
 
 ### 2026-09-11（晚）
 
