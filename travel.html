@@ -265,8 +265,7 @@
 
   <header class="masthead">
     <nav class="nav">
-      <a href="index.html">← 返回主页</a>
-      <a href="index.html#home">Home</a>
+      <a href="index.html">← Return to Home</a>
       <a class="active" href="travel.html">旅行 Travel</a>
     </nav>
   </header>
@@ -276,7 +275,7 @@
   <main class="page">
     <section class="travel-head">
       <h1>My Travel Map</h1>
-      <p class="travel-sub">— 去过的地方，都在这颗星球上 —</p>
+      <p class="travel-sub">— 想去的地方 天气好的时候就出发吧 —</p>
     </section>
 
     <div class="section-gap"></div>
@@ -341,7 +340,7 @@
        现场试海洋：travel.html?lift=0.84&span=0.18&sat=0.85&hue=206&hmix=1&cap=0.96
        切回宝蓝  ：travel.html?lift=0.42&span=0.72&sat=1.22&hue=207&hmix=0
        ---- 陆地参数（URL 前缀 l，避免与海洋撞名）----
-       现场试陆地：travel.html?lhue=130&lhmix=0.5&lsat=0.9&llift=0.22&lspan=0.98&lcap=0.93
+       现场试陆地：travel.html?lhue=130&lhmix=0.5&lsat=0.7&llift=0.34&lspan=0.92&lcap=0.93
        ============================================================ */
     const Q = new URLSearchParams(location.search);
     const qnum = (k, def) => {
@@ -357,9 +356,9 @@
       cap: qnum("cap", 0.96)
     };
     const LAND = {
-      lift: qnum("llift", 0.22),
-      span: qnum("lspan", 0.98),
-      sat: qnum("lsat", 0.90),
+      lift: qnum("llift", 0.34),
+      span: qnum("lspan", 0.92),
+      sat: qnum("lsat", 0.70),
       hue: qnum("lhue", 130),
       hmix: qnum("lhmix", 0.50),
       cap: qnum("lcap", 0.93)
@@ -443,7 +442,7 @@
     loader.load(
       TEX_SRC,
       (tex) => {
-        const lightTex = new THREE.CanvasTexture(lightenOcean(tex.image));
+        const lightTex = new THREE.CanvasTexture(tintEarth(tex.image));
         lightTex.colorSpace = THREE.SRGBColorSpace;
         lightTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
         sphereMat.map = lightTex;
@@ -454,7 +453,7 @@
       () => { loadingEl.textContent = "地球纹理加载失败，请检查 assets/earth-texture.js"; }
     );
 
-    function lightenOcean(img) {
+    function tintEarth(img) {
       const c = document.createElement("canvas");
       c.width = img.width;
       c.height = img.height;
@@ -463,26 +462,39 @@
 
       const imgData = ctx.getImageData(0, 0, c.width, c.height);
       const d = imgData.data;
-      const { lift, span, sat, hue, hmix, cap } = OCEAN;
+
+      // 色相往目标靠拢（角度制，走最短弧，避免跨越 0/360 绕远路）
+      const toward = (h, target, amount) => {
+        let dh = target - h;
+        if (dh > 180) dh -= 360;
+        if (dh < -180) dh += 360;
+        return (h + dh * amount + 360) % 360;
+      };
 
       for (let i = 0; i < d.length; i += 4) {
         const r = d[i], g = d[i + 1], b = d[i + 2];
-        // 判定海洋：蓝色分量最强，且明显高于红色（陆地/沙漠/冰雪不满足）
+        const hsl = rgbToHsl(r, g, b);
+        const h0 = hsl[0], s0 = hsl[1], l0 = hsl[2];
+        let h, s, l;
+
         if (b > r + 6 && b >= g) {
-          const hsl = rgbToHsl(r, g, b);
-          let h = hsl[0], s = hsl[1], l = hsl[2];
-          // 色相往主页天空蓝靠拢（角度制，走最短弧，避免跨越 0/360 绕远路）
-          let dh = hue - h;
-          if (dh > 180) dh -= 360;
-          if (dh < -180) dh += 360;
-          h = (h + dh * hmix + 360) % 360;
-          l = Math.min(cap, lift + l * span);    // 抬明度，保留深浅层次
-          s = Math.min(1, s * sat);              // 收饱和，贴近水彩感
-          const rgb = hslToRgb(h, s, l);
-          d[i] = rgb[0];
-          d[i + 1] = rgb[1];
-          d[i + 2] = rgb[2];
+          // 海洋：蓝色分量最强，且明显高于红色（陆地/沙漠/冰雪不满足）
+          h = toward(h0, OCEAN.hue, OCEAN.hmix);
+          l = Math.min(OCEAN.cap, OCEAN.lift + l0 * OCEAN.span);  // 抬明度，保留深浅层次
+          s = Math.min(1, s0 * OCEAN.sat);                        // 收饱和，贴近水彩感
+        } else if (l0 > 0.86 && s0 < 0.18) {
+          continue;                                              // 冰雪保持原样，不染色
+        } else {
+          // 陆地：色相靠向目标绿 + 抬明度，让植被绿成为主色（沙漠变黄绿，仍与雨林可区分）
+          h = toward(h0, LAND.hue, LAND.hmix);
+          l = Math.min(LAND.cap, LAND.lift + l0 * LAND.span);
+          s = Math.min(1, s0 * LAND.sat);
         }
+
+        const rgb = hslToRgb(h, s, l);
+        d[i] = rgb[0];
+        d[i + 1] = rgb[1];
+        d[i + 2] = rgb[2];
       }
       ctx.putImageData(imgData, 0, 0);
       return c;

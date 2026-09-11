@@ -81,6 +81,18 @@ python3 -m http.server 8777 --directory .
   - **按钮文案统一为 `Send`**
 - **数字分身**：本地规则引擎（`rules` 数组关键词匹配），非真实 AI
 - **建议表单**：提交后写入 `localStorage`，key 为 `lmh_advices`
+- **液态玻璃球（`.hero-glass` / `#glassCanvas`）**：**全站常驻**。桌面端 Home / About Me / Virtual Space 三个面板都是同一颗球、都跟着鼠标走
+  - 停靠点由 `placeOrb()` 按当前面板计算：Home 贴欢迎语右侧（保持原位 `[904,161,236]`）；另两页走右侧留白（`right:18 / width:210 / top:54%` → `[1052,304,210]`）
+  - **鼠标在页面内移动时球整页跟随**（用户原话「泡泡在整个页面动，不止右侧」）：指针活跃时停靠点临时变成指针位置，球缓动追过去；`pointerleave` / 触摸设备 / `prefers-reduced-motion` 下回到停靠点。位移由渲染循环缓动后写成 `transform: translate3d()`（`k = 跟随 5.0 / 回归 3.6`，`1-exp(-k*dt)`，`dt` 上限 0.05s）
+  - ⚠️ **已删除 `top/right/width` 的 CSS 过渡**：跟随（每帧追指针）与切面板（滑到新停靠点）是同一套缓动，两套机制并存会互相打架。`will-change:transform` 下不要再用 CSS transition 动同一颗球，也不要改回用 `top/left` 每帧写像素
+  - ⚠️ **跟随点必须夹紧在文档内**（横向留在视口、纵向 `≤ docH - 半径`），否则球会把文档撑高、凭空多出滚动条
+  - ⚠️ **必须用文档坐标（`position:absolute`，布局盒钉在 `top:0;left:0`、靠 `transform` 位移），不要改成 `position:fixed`**：`fixed` 会让球钉在视口上，正文一滚就从球下穿过（实测 1280×620 滚到底压到 `Send` 按钮）；`absolute` 下球与正文的相对位置恒定，避让在任意滚动位置都成立（Home 分支要 `r.top + window.scrollY`）
+  - ⚠️ **改落点前必须先量「文字墨迹」**（`Range.getClientRects()`），不要用块级元素的满宽盒子，否则会把大片空白误判成重叠
+  - `pointer-events:none`：纯装饰浮层，绝不拦截点击 / 划选 / 滚轮；点击涟漪靠 **window 级圆形命中判定**实现（不是监听 canvas）
+  - ⚠️ **窄屏（≤700px）单独处理**：窄屏既没有右侧留白、也没有鼠标跟随（触摸不产生 hover 跟随）。Home 回落到 `.welcome` 文档流（`width:min(180px,46vw); margin:18px auto 0`），About Me / Virtual Space 藏球。**不要**在窄屏改成固定定位，实测会压住 Home 的 H1
+  - ⚠️ **不要**恢复「整页铺满泡泡跟随鼠标」的方案——该方案已被用户明确否决
+  - ⚠️ **验证球位不要用「像素差分 bbox 质心」**：球心近乎透明（过 DOM 球心的中线差值 ≤3），强差分只出现在边缘折射新月区，质心会随背后背景内容漂移几十像素，看着像「没画在指针处」。要判定位置请用 **DOM rect**（`getBoundingClientRect`）或**红盒法**（临时 `canvas.style.background='#ff0000'; canvas.style.filter='none'`，footprint 应精确等于球盒）
+  - 自检钩子：只有 `?selftest=1` 才挂 `window.__heroGlass`（正式访问下为 `undefined`）
 - **旅行页 `travel.html`**：three.js 独立页面，**加载方式刻意做成「双击可用」**
   - 脚本用普通 `<script src>`（`three.global.js` → `OrbitControls.global.js` → `earth-texture.js` → 主脚本），顺序不能调换：后一个依赖前一个建立的全局变量 `THREE` / `OrbitControls` / `window.__EARTH_TEXTURE_DATA`
   - ⚠️ **不要改回 ES Module（`type="module"` + `import`）**，那样 `file://` 双击会被 Chrome 拦掉
@@ -122,6 +134,134 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-09-11（深夜 · 十四）
+
+- **液态玻璃球升级为「整页跟随鼠标」**（用户原话：「泡泡在整个页面动，不止右侧」）：
+  - CSS：`.hero-glass` 由 `top:0; right:0` + `top/right/width` 0.5s 过渡，改为 **`top:0; left:0` + `will-change:transform`，删除全部 CSS 过渡**；位移统一由渲染循环写 `transform: translate3d()`
+  - JS：新增 `pos`（当前，文档坐标）/ `home`（当前面板停靠点，文档坐标）/ `follow{on,x,y}`（视口坐标）/ `orbSize` / `docH` / `snapNext`；`placeOrb()` 改为**只算数值停靠点**（不再写 `style.top/right`），`applyOrb(snap)` 统一落位；跟随只在 `!MOBILE_Q.matches && !prefers-reduced-motion` 时开启；`resetPtr()` 里一并关掉跟随
+  - 验证（无头 Chrome + CDP，1280×757）：①停靠态 Home 中心 `(1022,279)` w=236 = `[904,161,236]`、About/Chat `(1157,409)` w=210 = `[1052,304,210]`，与改造前逐像素一致、零墨迹重叠；②跟随 5 个点位偏差 ≤1px，球心横覆盖 `119→1161`、纵覆盖 `118→639`（整个视口）；③跟随中切面板球停在指针处，`pointerleave` 后滑回 `(1156,409)`；④球在指针下仍能真实点击 nav 切页；`EVENTS: none`
+  - **不多出滚动条**：停靠态与跟随态 `scrollHeight` 都是 `1138`、`scrollWidth` 都是 `1280`
+  - 移动端 430×800 复测：Home `[125,308,180]` 零重叠、另两页隐藏，与上一版完全一致
+  - ⚠️ **像素级复核（重要教训）**：先用「显示/隐藏球两帧差分的 bbox 质心」判断球是否画在指针处，得到偏移 `(-52,+50)` 的**假象**。查明两个污染源：**投影 `drop-shadow(0 12px 26px)` 下移** + **球心近乎透明**（强差分只在边缘折射新月区，方向随背后背景漂移）。改用**红盒法**（`background:#ff0000; filter:none`）实测画布像素盒 `[262,312,497,547]` = 精确 `236×236`、中心与 DOM 球心偏差 **(0,0)** → 球确实逐像素画在指针处，无渲染滞后。另测「球隐藏时两帧差分 = **0px**」，证明页面本身没有动画污染
+  - 用户已确认（**这几项是刻意保留的现状，不要自作主张「优化」**）：About/Virtual Space 停靠位**保持现状**、≤700px 窄屏**保持隐藏**另两页的球、**球心正压在指针上**（不加偏移、不加拖尾惯性）、**切面板 236↔210 的尺寸跳变保持现状**（不做宽度缓动、不统一尺寸）
+  - 结构自检：`scripts 2 / failed 0`，文件 **75223 bytes**；`Documents/deepwork` 副本已整文件覆盖同步（`diff -q` = SAME）
+
+### 2026-09-11（晚 · 十三）
+
+- **把 Hero 那颗液态玻璃球升级为「全站常驻」：About Me / Home / Virtual Space 三个面板都是同一颗球、都跟着鼠标走**（用户原话：「我要的是现在 hero 区那个泡泡不只在 hero 区跟着鼠标动，而是这一个泡泡可以在 About Me / Home / Virtual Space 这三个页面都可以跟着鼠标跑」；在给出的三个方案里明确选择「全站常驻同一颗球，原位联动」）
+  - ⚠️ 本轮先试过「整页铺满 14 颗泡泡跟随鼠标」的方案，**被用户否决**（「不是整个页面都铺满泡泡跟着鼠标跑」），该方案已**完整回滚**（回滚后与十二版逐字节一致）。**后续任何方案都不要再引入整页泡泡场**
+  - 关键难点：**单一固定落点无法同时满足「Home 保持原位」与「三页都不压正文」**。Home 的球必须在欢迎语右侧（原位 `[904,161,236]`），About Me / Virtual Space 的零墨迹留白在更靠外处 → 改为**按面板切换落点** + CSS 过渡滑行
+  - 落点依据**文字墨迹实测**（`Range.getClientRects()` 量文字真实墨迹，而非块级满宽盒子）：卡片右边界 `1140`；About / Chat 卡内文字最右墨迹 `980`；About 右上「在线」徽标 `x1076-1099`。对 `right × width × top` 网格扫描（留白 8px）得 **239 个零重叠组合**，取 `right:18 / width:210 / top:54%` → 球区 `[1052,304,210]`
+  - CSS：`.hero-glass` 由 `position:absolute; top:50%; right:0; transform:translateY(-50%)`（在 `.welcome` 内）改为 **`position:absolute; top:0; right:0; width:clamp(150px,20vw,236px); aspect-ratio:1/1; z-index:15`**（节点已移出 `.welcome`，成为 `<body>` 直接子元素 → 此时 `top`/`right` 解析为**文档坐标**），加 `top/right/width` 0.5s 过渡；**删除 `cursor:grab` 与 `:active`**；`pointer-events:none`
+  - ⚠️ **落位必须用文档坐标（`absolute`），不能用视口坐标（`fixed`）**：先按 `fixed` 实现，实测球钉在视口上、正文一滚就从球下穿过（1280×620 滚到底时压到 `Send` 按钮 `d=54`，已接近可见球体半径）。改成 `absolute` 后**球与正文的相对位置恒定不变** → scroll 0 量到的「零重叠」在任意滚动位置自动成立（实测顶部与滚到底数据完全一致），并且还原了改造前 Hero 球「随页面一起滚走」的行为。Home 分支因此要 `r.top + window.scrollY`（`activate()` 是 `behavior:"smooth"`，滚动中途换算才准）
+  - DOM：`#heroGlass` 从 `.welcome` 内部**移出**，成为 `<body>` 直接子元素（跨面板常驻的前提）。无新增依赖、未引入新色、`file://` 双击照常可用
+  - JS：新增 `placeOrb()` + `SIDE_SIZE / SIDE_RIGHT / SIDE_TOP`；首屏 `transition:none → placeOrb() → 强制布局 → 还原`，避免球从右上角飞进来；监听 `resize` / `load` / **`panelchange`**（`activate(name)` 末尾新增 `dispatchEvent(new CustomEvent("panelchange", { detail:{ panel:name } }))`）
+  - 点击涟漪：球变 `pointer-events:none` 后原 `wrap.addEventListener("pointerdown")` 失效 → 改为 **window 级圆形命中判定**（`dx²+dy² ≤ r²`），点球仍有涟漪、点别处完全不受影响
+  - **窄屏（≤700px）单独处理**：固定定位的球在窄屏会压住正文（实测压住 Home 的 H1，圆到矩形最近点 `d=0`）→ `placeOrb()` 在 ≤700px 时：Home 把球 `appendChild` 回 `.welcome` 走文档流（还原改造前手机版观感，`width:min(180px,46vw); margin:18px auto 0`）；**About Me / Virtual Space 直接藏球**（窄屏无右侧留白，触摸也不产生鼠标跟随）
+  - 验证（无头 Chrome + CDP，1280×757）：Home 球区 `[904,161,236]` 与改造前**完全一致**（无回归）；About / Chat `[1052,304,210]` **与正文墨迹零重叠**；三面板鼠标左下 / 右上时 `offX/offY` 符号正确翻转；`pointer-events:none` 下真实点击 nav 仍能切页；`EVENTS: none`
+  - **滚动复测**（1280×757 与 1280×620，顶部 / 滚到底各测一遍）：About / Chat 全部零重叠，且顶部与滚到底数据完全一致（相对位置恒定）；Home 的 3 处命中恒为 H1 / 副标题的**块级盒子**落在 canvas 外接圆内，实际文字墨迹右端 `920` 距可见球体左端 `946` 仍有 26px，属改造前既有观感
+  - 球体渲染**像素级硬证明**：显示 / 隐藏球的整页截图逐像素差分 → 三面板都有真实像素贡献（About `3764` 个变化像素）。为此新增 `png.mjs`（自写 PNG 解码 + 差分）
+  - 「About 面板是不是把球洗白了」用**差值对比度**定量排除：球自身贡献平均 `|ΔL|` Home `6.4` / About `5.9` / Chat `8.3`（背景亮度 238~244）→ 三面板观感一致；这颗球本来就是清淡的半透明玻璃质感
+  - 移动端 430×800 复测：三面板**全部零重叠**（Home 球在文档流 `[125,308,180]`，另两页隐藏）
+  - 结构自检：`scripts 2 / failed 0`，文件 **72374 bytes**；`Documents/deepwork` 副本已整文件覆盖同步（`diff -q` = SAME）
+    - ⬅ **本条描述的是十三版机制（`top/right` + CSS 过渡滑行）**；**十四 已改为「停靠点 + 整页跟随」并用 `transform` 缓动、文件 `75223 bytes`，以十四为准**
+
+### 2026-09-11（晚 · 十二）
+
+- **Hero 液态玻璃球新增「泡泡跟随鼠标」交互**（用户看到参考作品里泡泡会跟鼠标跑，要求主页也加）：
+  - 指针监听从「只监听 `.hero-glass` 小 canvas」改为**监听整页 `window`**（`pointermove`，`{passive:true}`）。原实现鼠标不悬在球上就没反应，而这颗球只有 236px，体感等于没交互
+  - 指针位置以 **canvas 中心为原点归一化**（半宽 ≈ 1.0），再 `clamp` 到 `±1.35`，避免鼠标在屏幕另一侧时泡泡被拽飞；`document pointerleave` / `window blur` 时归零，泡泡缓慢飘回原位
+  - 6 颗泡泡各自维护一份位移 `offX/offY`，用**与帧率无关的指数平滑** `1-exp(-k*dt)` 追赶目标，每颗 `k` 不同（1.6~4.6/秒）→ 产生先后与拖尾；`lift = 1 - life*0.35` 让越小的泡泡越轻、被带得越远
+  - 主球球心跟随增益由 `uPointer * 0.10` 提到 `0.12`；泡泡局部位移增益 `0.13 / 0.11`（约 1.5 倍主球半径量级）
+  - `draw()` 里的指针缓动也改成基于 `dt`（`1-exp(-6.5*dt)`，`dt` 上限 0.05），原来固定 0.06/帧在 120Hz 屏上会追得过快；同时修复了降级路径 `updateBubbles(3.2)` → 现在传 `dt=0`，静态帧不会因一次性大 `dt` 把泡泡弹飞
+  - 新增**自检钩子**：`?selftest=1` 时才挂 `window.__heroGlass = { ptr, offX, offY, bubbles }`。动机是泡泡本身在持续轨道运动，截图对比无法证明是指针引起的位移，只能靠数值断言；已确认正式访问（无 query）下 `typeof window.__heroGlass === "undefined"`
+  - 未引入新颜色、未加任何依赖，`file://` 双击仍可用
+- ⚠️ **版权**：参考 CodePen「Liquid Glass」by fand（`azmPjqd`）**仍未抓取到源码**（codepen.io 与 cdpn.io/debug 均 403，r.jina.ai 超时，GitHub code search 401 需鉴权，`fand/vfx-js` 仓库内也没有该 pen 的 shader）。因此本效果是按「泡泡朝指针被吸过去并带滞后」这一思路**独立实现**，未复制任何源码
+- 验证（无头 Chrome + CDP，`localhost:8899` + `?selftest=1`）：
+  - 鼠标居中 `ptr=0/0` → `offX` 全 0；鼠标移到右侧 `ptr.x=1.35` → `offX` 均值 **+0.166**、逐颗分布 **0.152~0.174**（即每颗滞后不同）；移到左侧 → 均值 **-0.156**；移到上方 → `offY` 均值 **+0.140** 而 `offX≈0`。目标值 `1.35*0.13=0.1755`，说明收敛无过冲，且轴向互不串扰
+  - 正式路径（不带 query）：`hook: undefined`、canvas `236x236`、Home active、`EVENTS: none`
+  - 同尺寸裁切截图读图对照：鼠标在右 → 珠体与泡泡聚在画面中右、小泡拖在右下；鼠标在左 → 珠体与泡泡聚在左中、画面右半留空
+- 结构自检：`2 open / 2 close` script 标签、`syntax: OK (14596 chars)`、`heroGlass 1` / `glassCanvas 1`、文件 **67169 bytes**
+- 同步：`Documents/deepwork` 副本已整文件覆盖同步（`diff -q` = SAME）
+
+### 2026-09-11（晚 · 十一）
+
+- **首页 Home 面板 Hero 区新增「液态玻璃球」装饰**（用户在多轮对比后选定「首页 Hero 区点缀」方案，未采用 VFX-JS 依赖方案）：
+  - 新增 `.hero-glass` 容器 + `<canvas id="glassCanvas">`，插在 `.welcome-sub` 之后；CSS 绝对定位在 Hero 右上（`clamp(150px,20vw,236px)`、`aspect-ratio:1/1`、`z-index` 低于标题），`@media (max-width:700px)` 下改为静态居中
+  - 新增一段**完全自包含**的内联 `<script>`（IIFE）：WebGL2 全屏三角形 + raymarching，独立重实现「隐式曲面平滑并集 + 棱镜色散折射 + Beer–Lambert 吸收 + 菲涅尔 + 三点高光 + 假环境窗光反射」
+  - **零外部依赖**：背景贴图由 2D canvas 运行时程序化生成（天空蓝渐变 + 淡粉/白柔光 + 暗蓝斑块 + 一道天光亮带），因此 `file://` 双击照常可用、无跨源污染，也不违反「主页无外部依赖」约定
+  - 只用主页既有色系（天空蓝 / 淡粉 / 白），未引入新色；泡泡整体调小（`mainRadius 0.085`、6 个泡泡 `0.014~0.032`、轨道 `1.35R~1.95R` 环绕）；球体缓慢漂移 + 指针视差；点击回弹并循环切换形状（球 → 方 → 环）
+  - `canvas` 加 `filter: drop-shadow(0 12px 26px rgba(86,128,168,.30))`，借真实 alpha 沿球体轮廓生成投影，让玻璃球在浅色云背景上「浮」起来
+  - 性能 / 无障碍：`IntersectionObserver` + `visibilitychange` 不可见时暂停 rAF；`prefers-reduced-motion` 只静态画一帧；DPR 上限 2；WebGL2 不可用或 shader 编译失败时隐藏组件优雅降级
+  - ⚠️ **版权**：视觉思路参考 CodePen「Liquid Glass」by fand（`azmPjqd`），该作品**未声明任何许可**，默认保留所有权利；本次**未复制其源码**，着色器与交互逻辑均为独立实现，仅借鉴思路。日后若转商业用途需重新评估
+- 调参记录（供后续参考，别走回头路）：中途三版依次是「白色云团 + 灰色点状轮廓」（旧式色调映射把边缘压成灰）→「深灰近黑」（指数色调映射砍半亮度 + 吸收过强）→「纯白过曝」（纹理对比过低、12 个波长平均糊成一片白）；最终以「波长采样降为 6 + S 型提对比 + 吸收 `vec3(1.0,1.2,2.0)` + 不做整体压暗」定稿
+- 验证：无头 Chrome + CDP 在 1280×900 与 430×900 两档均无 JS 异常（`EVENTS: none`）；`#glassCanvas` 尺寸 236×236 / 180×180、`webgl2=true`、Home 面板为 active；裁切放大截图读图确认为「半透明冰蓝/乳白发光珠体 + 环绕小气泡 + 高光」
+- 同步：`Documents/deepwork` 副本已同步
+
+### 2026-09-11（晚 · 十）
+
+- **`bci.html` 加载动画换成「脑形 PCB 走线」**（用户明确要求与参考作品同款，此前手绘的神经网格 / 脑廓两次被否）：
+  - 采用参考 pen 渲染所用的那份 SVG（`viewBox="0 0 464 464"`：115 条 `<polyline>` 走线 + 145 条同名 `<path>` 轨道 + 327 个焊点/脉冲 + 143 组 `animateMotion` / `animate` 脉冲动画），整体**内联**进 `bci.html`（保证 SMIL 动画可用，且页面依旧单文件、双击可开）
+  - 原 96px 迷你神经网格 canvas + 旋转环**全部删除**（`.loader-ring`、`#loaderCanvas`、`initLoader` 内的绘帧逻辑与 `buildGraph` 调用）；`initLoader` 简化为「最短 900ms、兜底 5s 后淡出并移除 DOM」；`prefers-reduced-motion` 时调用 `svg.pauseAnimations()` 静态展示
+  - 显示尺寸 132px（≤600px 视口 108px），配 `.loader-core .st0 { fill:none; stroke:#5fbeff; stroke-width:1.2; vector-effect:non-scaling-stroke }`——线宽按 132px 显示尺寸重调，否则原 2/464 的比例会细到看不清
+  - 小尺寸可读性微调：脉冲点 `r` 3 → 4.5、`values="2; 3; 2"` → `values="4; 6.5; 4"`（143 处）；删除 184 个**全文 0 处 `url(#…)` 引用**的 `<radialGradient>`（SVG 体积 125KB → 81KB）
+  - 体积：`bci.html` 36.7KB → 114.7KB；`loaderCanvas` / `loader-ring` 残留引用检查均为 0
+- ⚠️ **版权**：参考 pen `oYrNLM`（作者 Andry Zirka，@BlackStar1991）**未标注任何授权协议**，默认保留所有权利。此图形为按用户明确要求在个人主页（非商业）内使用，版权归原作者；`bci.html` 加载层上方已加署名注释注明出处。**若本页之后转为商业用途，必须替换该图形**
+- 验证：内联脚本 `node --check` 通过；无头 Chrome 加载态截图读图确认为「由电路板走线构成的大脑形状」；两次不同虚拟时间截图 md5 不同（证明 SMIL 脉冲动画在跑）；加载完成后 live DOM 中 `class="loader"` 计数为 0（加载层已移除）
+
+### 2026-09-11（晚 · 九）
+
+- **数字分身（Virtual Space 对话框）改为第一人称口吻**（用户要求）：所有答句里的「他 / 他的」改为「我 / 我的」
+  - 覆盖 `greeting`（问候）、`fallback`（兜底）、`moreHint`（追问提示）与 `rules` 全部规则：近况 / 专业 / 为什么选这个专业 / 大一 / 学校 / 深圳 / 联系 / 兴趣 / 旅行 / 书法 / Citywalk / 主页 / 身份 / 未公开 / 梦想 / 谢谢 / 再见 / 厉害 / 建议
+  - 权威 `index.html` 仅**故意保留 1 处**「别把我和他本人搞混啦」，用来把「数字分身」与真人区分开；其余一律第一人称
+- 仅改文案，未动样式、未改规则关键词（Citywalk 关键词仍是 `["citywalk","城市漫步","散步","逛街","暴走"]`）
+- ⚠️ 两份副本的 `rules` 结构本来就不同（权威版规则更多、答句更长；`Documents/deepwork` 副本更简、部分为单字符串答句），本次是**按各自结构分别改写**，不要用一个版本去覆盖另一个
+- 内联脚本已过语法校验（`node --check`），渲染后 DOM 校验通过
+
+### 2026-09-11（晚 · 八）
+
+- **`bci.html`「我现在在学什么」内容更新**（用户要求），列表由 4 项精简为 3 项：
+  - 课内：`高数、线性代数、大学物理、程序设计基础` → `微积分、线性代数、程序设计基础（Python）`；`small` 同步由「数学和信号处理，是后面所有解码算法的地基。」改为「数学和编程，是后面所有解码算法的地基。」
+  - 自学：`Python 与数据分析、机器学习入门` → `机器学习入门`
+  - 兴趣：`神经科学 + 人机交互的交叉地带` 保持不变
+  - **删除原「方向」项**（脑电信号 EEG 的采集与特征提取）
+- 仅改文案，未动样式、未引入新色系；权威项目与 `Documents/deepwork` 副本已同步
+
+### 2026-09-11（晚 · 七）
+
+- **兴趣「摄影」改为「Citywalk」**（用户要求），共 4 处同步，避免页面与数字分身口径不一致：
+  1. About 面板「兴趣 Interests」的 pill：`摄影 / Photo` → `Citywalk / City Walk`
+  2. 首页「也许你也喜欢——」卡片里的同款 pill：同上
+  3. `profile.interests` 第三项：`"摄影"` → `"Citywalk"`
+  4. 数字分身规则：原「摄影」规则（关键词 `["摄影","拍照","相机","照片","拍摄"]`）改为 Citywalk 规则（关键词 `["citywalk","城市漫步","散步","逛街","暴走"]`），答句改为「不赶景点、沿街巷慢慢走」的城市漫步表述；「兴趣」规则的两条答句同步去掉摄影字样
+- ⚠️ Citywalk 的 pill 仍是**不可点击的 `<span class="pill">`**（没有对应详情页），与「旅行 / 书法」两个带链接的 pill 不同；如果之后要做 citywalk 详情页，记得同步改成 `<a class="pill" href="...">`
+- 仅改文案与规则关键词，未动样式、未引入新色系
+
+### 2026-09-11（晚 · 六）
+
+- **「专业 Major」栏改为可点击，进入新建的脑机接口详情页**：中文名「智能医学工程（脑机接口方向）」与英文名 `Intelligent Medical Engineering · BCI` 包 `<a class="major-link" href="bci.html">`（**同标签打开**，与 `travel.html` / `calligraphy.html` 的 pill 跳转一致）
+- `.school-link` 规则合并为 `.school-link, .major-link`（选择器与 hover / focus-visible 一并共用），样式不变，仍**未引入新色系**
+- **新增 `bci.html`：脑机接口方向详情页**（独立页面，单文件内联 CSS/JS，无构建工具、无外部依赖，可直接双击打开）
+  - 页面结构：`← Return to Home` + `脑机接口 BCI`（当前态）药丸导航 → Hero（`#neuralCanvas` 神经网格 + 标题 + 关键词 chips + scroll cue）→ 四个方向卡片 → 在学内容列表 → 页脚
+  - 加载态：居中 `LOADING` 微光字 + 96px 迷你神经网格 canvas + 旋转环，最短停留 900ms、兜底 5s 后淡出并移除 DOM（图标为**正常尺寸**，非全屏放大）
+  - 交互：节点脉冲沿近邻连边链式传导、鼠标靠近时节点轻微吸附（移出后回位）、四角 HUD 数值波动 + 通道条、IntersectionObserver 进场、`prefers-reduced-motion` 全套降级（静态渲染、无动画）
+  - ⚠️ **配色为暗色科技风（`--bg-0 #04070e` / `--cyan #5fbeff` 等），与主页水彩天空蓝体系不同**。这是用户明确要求「科技感」的有意例外，**仅限本页**，主页 `index.html` 仍严格遵守原色系
+- **版权审核结论（重要）**：本页视觉思路参考自 CodePen 的两个 pen —— `BlackStar1991/oYrNLM`（Digital Brains 加载动画）与 `VoXelo/xbgpJre`（Bioelectric consciousness engine）。**两处均未声明任何开源许可**（全篇无 MIT / Apache / CC / GPL / license / copyright 标记，CodePen 默认版权归作者），因此**只借鉴了思路**（暗色神经网格、电信号沿连线传导、HUD 面板、居中加载动画），**代码、SVG 路径、素材、文案全部为原创**，未复制任何原作内容
+  - oYrNLM 作者：Andry Zirka（@BlackStar1991）。
+  - 该 pen 无官方 `.css` / `.js` 源码端点（返回 `Pen Not Found`），仅 `embed` 端点可取到渲染后的结构，**这也意味着其代码不可被视为可复用素材**
+  - 后续如要复用任何 CodePen 代码，必须先在 pen 页面确认许可，默认按「保留所有权利」处理
+
+### 2026-09-11（晚 · 五）
+
+- **学校名称加外链**：About 面板「学校 School」栏的中文名与英文名外层包 `<a class="school-link" href="https://sz.tju.edu.cn/" target="_blank" rel="noopener">`，点击新标签打开天津大学深圳校区官网
+- 新增 `.school-link` 样式（紧随 `.about-item p.en`）：`color: inherit` 保持原配色、去掉默认下划线，改用 `border-bottom: 1px dashed var(--line)` 作可点击提示；hover / focus-visible 时文字转 `--sky-600`、下划线转 `--sky-400`，**未引入新色系**
+- 栏目标题「学校 School」不参与链接，仅学校全名可点击
+
+### 2026-09-11（晚 · 四）
+
+- **更新学校英文名**：`index.html` About 面板「学校 School」栏的 `<p class="en">` 由 `Tianjin Univ. & PolyU Future Technology College (Shenzhen)` 改为 `TJU-PolyU Shenzhen Institute of Future Technology`（中文名「天津大学香港理工大学深圳未来技术学院」保持不变）
+- 数字分身 `profile.school` 及问答文案仍为中文校名，未受影响
 
 ### 2026-09-11（晚 · 三）
 

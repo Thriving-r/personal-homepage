@@ -111,6 +111,49 @@
     color: var(--ink-500);
   }
 
+  /* ==== 全站常驻的液态玻璃球（自包含 WebGL，无外部依赖） ====
+     同一颗球在 Home / About Me / Virtual Space 三个面板都在（桌面端），
+     并且**在整个页面范围内跟着鼠标跑**：指针移到哪，球就缓动追到哪。
+     停靠点（指针离开窗口 / 键盘切面板时球回到的地方）由脚本 placeOrb() 计算：
+     Home 面板贴在欢迎语右侧（保持原本的 Hero 观感），另外两个面板停在右侧留白处。
+     球的实际位置由渲染循环的缓动赋值给 transform，所以这里只固定「布局盒」。
+     窄屏（≤700px）没有右侧留白也没有鼠标跟随：Home 回落到欢迎语下方的文档流，
+     另外两个面板藏球，见 placeOrb()。
+     pointer-events:none → 它浮在正文之上，但绝不拦截点击、划选、滚轮。 */
+  .welcome { position: relative; }
+  .welcome h1, .welcome .welcome-sub { position: relative; z-index: 2; }
+  .hero-glass {
+    position: absolute;         /* 布局盒钉在文档原点，真实位置由 JS 用 transform 摆 */
+    top: 0;
+    left: 0;
+    width: clamp(150px, 20vw, 236px);
+    aspect-ratio: 1 / 1;
+    z-index: 15;                /* 正文之上、左侧图标条（20）之下 */
+    pointer-events: none;
+    will-change: transform;
+    /* 这里不再写 top/right 过渡：跟随与切面板滑行统一由渲染循环缓动，避免两套动画打架 */
+  }
+  /* canvas 本身带真实 alpha，drop-shadow 会沿着球体轮廓生成投影，
+     让半透明玻璃球在浅色云背景上「浮」起来 */
+  .hero-glass canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 12px 26px rgba(86, 128, 168, 0.30));
+  }
+  @media (max-width: 700px) {
+    /* 窄屏既没有「右侧留白」也没有鼠标跟随：球回到欢迎语下方的文档流里
+       （与改造前手机版观感一致，绝不压正文），另外两个面板由脚本直接藏球 */
+    .hero-glass {
+      position: static;
+      width: min(180px, 46vw);
+      margin: 18px auto 0;
+    }
+    .hero-glass canvas {
+      filter: drop-shadow(0 8px 18px rgba(86, 128, 168, 0.26));
+    }
+  }
+
   .masthead .site-title {
     font-family: var(--font-serif);
     font-size: clamp(30px, 6.4vw, 56px);
@@ -226,6 +269,21 @@
     color: var(--ink-500);
     margin-top: 3px;
     letter-spacing: 0.02em;
+  }
+  /* 行内文字外链（学校官网 / 专业详情页）：保持原有配色，仅加可点击提示 */
+  .school-link,
+  .major-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--line);
+    transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  }
+  .school-link:hover,
+  .school-link:focus-visible,
+  .major-link:hover,
+  .major-link:focus-visible {
+    color: var(--sky-600);
+    border-bottom-color: var(--sky-400);
   }
   .dot {
     width: 7px; height: 7px;
@@ -864,7 +922,7 @@
               <div class="interest-pills" style="margin-top:10px;">
                 <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
                 <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
-                <span class="pill">摄影<span class="pill-en">Photo</span></span>
+                <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
               </div>
             </div>
           </div>
@@ -925,13 +983,13 @@
         <div class="about-grid" style="text-align:left;">
           <div class="about-item">
             <h3><span class="dot"></span>学校 <span class="en">School</span></h3>
-            <p>天津大学香港理工大学深圳未来技术学院</p>
-            <p class="en">Tianjin Univ. &amp; PolyU Future Technology College (Shenzhen)</p>
+            <p><a class="school-link" href="https://sz.tju.edu.cn/" target="_blank" rel="noopener">天津大学香港理工大学深圳未来技术学院</a></p>
+            <p class="en"><a class="school-link" href="https://sz.tju.edu.cn/" target="_blank" rel="noopener">TJU-PolyU Shenzhen Institute of Future Technology</a></p>
           </div>
           <div class="about-item">
             <h3><span class="dot"></span>专业 <span class="en">Major</span></h3>
-            <p>智能医学工程（脑机接口方向）</p>
-            <p class="en">Intelligent Medical Engineering · BCI</p>
+            <p><a class="major-link" href="bci.html">智能医学工程（脑机接口方向）</a></p>
+            <p class="en"><a class="major-link" href="bci.html">Intelligent Medical Engineering · BCI</a></p>
           </div>
           <div class="about-item">
             <h3><span class="dot"></span>身份 <span class="en">Status</span></h3>
@@ -948,7 +1006,7 @@
             <div class="interest-pills">
               <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
               <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
-              <span class="pill">摄影<span class="pill-en">Photo</span></span>
+              <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
             </div>
           </div>
           <div class="about-item span-all" id="contact">
@@ -1014,6 +1072,11 @@
     </footer>
   </div>
 
+<!-- 全站常驻的液态玻璃球：三个面板共用同一颗，脚本按当前面板计算落点 -->
+<div class="hero-glass" id="heroGlass" aria-hidden="true">
+  <canvas id="glassCanvas"></canvas>
+</div>
+
 <script>
   /* ---- 可配置资料：想补充信息时只改这里，分身会自动用上 ---- */
   const profile = {
@@ -1022,7 +1085,7 @@
     role: "大一学生",
     major: "智能医学工程（脑机接口方向）",
     school: "天津大学香港理工大学深圳未来技术学院",
-    interests: ["旅行", "书法", "摄影"],
+    interests: ["旅行", "书法", "Citywalk"],
     doing: "搭个人主页、学习大一必修课、探索深圳",
     email: {
       tju: "lmh_2007@tju.edu.cn",
@@ -1034,105 +1097,105 @@
     goal: "",
   };
 
-  const greeting = "嗨，我是刘孟涵的数字分身。他在这页里公开的信息我都记得——学校、专业、兴趣、近况，随便问。";
+  const greeting = "嗨，我是刘孟涵的数字分身——接下来我都用第一人称跟你聊。这页里公开的信息我都记得：学校、专业、兴趣、近况，随便问。";
   const fallback = [
-    "这个他还没在这页里公开，我不能瞎编。要不问问：他现在在做什么？专业是什么？怎么联系他？",
-    "唔，这个问题超出我掌握的范围了。你可以换个问法，或者直接发邮件给他。",
-    "我暂时答不上来这个。试试问我：他的学校、专业、爱好，或者最近在忙什么？",
+    "这个我还没在这页里公开，不能瞎编。要不问问：我现在在做什么？学的什么专业？怎么联系我？",
+    "唔，这个问题超出我掌握的范围了。你可以换个问法，或者直接发邮件给我。",
+    "这个我暂时答不上来。试试问我：我的学校、专业、爱好，或者最近在忙什么？",
   ];
   const moreHint = [
     "你想了解哪一方面？学校、专业、兴趣、近况、联系方式，我都能聊。",
-    "还可以问我：他现在在做什么、学什么专业、平时喜欢什么、怎么联系他。",
+    "还可以问我：我现在在做什么、学什么专业、平时喜欢什么、怎么联系我。",
   ];
 
   const rules = [
     /* —— 近况 —— */
     { k: ["现在在做什么", "在做什么", "在做什么呢", "忙什么", "最近在干嘛", "最近在干嘛呢", "最近忙", "近况", "最近怎么样", "最近如何", "过得怎么样", "最近干啥"],
       a: [
-        "他最近主要忙三件事：亲手搭这个个人主页、学习大一必修课、抽空探索深圳。日子过得挺充实。",
-        "最近的他挺满的：一边打磨这个主页，一边应付大一必修课，空下来就爱在深圳的大街小巷转悠。",
+        "我最近主要忙三件事：亲手搭这个个人主页、学习大一必修课、抽空探索深圳。日子过得挺充实。",
+        "最近我挺满的：一边打磨这个主页，一边应付大一必修课，空下来就爱在深圳的大街小巷转悠。",
       ] },
     /* —— 专业 / 学业 —— */
     { k: ["专业", "什么专业", "学的什么", "学什么", "学啥", "学习什么", "课程", "上什么课", "智能医学", "脑机接口", "脑机", "医学工程"],
       a: [
-        "他读的是智能医学工程，方向是脑机接口，在天津大学香港理工大学深圳未来技术学院。说白了，是把智能技术用在守护健康这件事上。",
-        "专业是智能医学工程（脑机接口方向）。他对「用大脑信号去控制外部设备」这类前沿方向特别有兴趣。",
+        "我读的是智能医学工程，方向是脑机接口，在天津大学香港理工大学深圳未来技术学院。说白了，是把智能技术用在守护健康这件事上。",
+        "我的专业是智能医学工程（脑机接口方向），对「用大脑信号去控制外部设备」这类前沿方向特别有兴趣。",
       ] },
     { k: ["为什么选", "为什么学", "当初为什么", "怎么会选", "怎么想到学"],
       a: [
-        "他选这个方向，是觉得「智能 + 医学」既前沿又实在，能真正帮到人。脑机接口尤其让他好奇。",
-        "他想做点能落地、又能帮到人的事，所以选了智能医学工程里的脑机接口方向。",
+        "我选这个方向，是觉得「智能 + 医学」既前沿又实在，能真正帮到人。脑机接口尤其让我好奇。",
+        "我想做点能落地、又能帮到人的事，所以选了智能医学工程里的脑机接口方向。",
       ] },
     { k: ["大一", "大学生活", "大学感受", "刚上大学", "适应", "宿舍"],
       a: [
-        "他刚上大一，还在适应大学节奏——课程比高中更自主，也更需要自己安排时间。整体感觉新鲜又充实。",
-        "大一对他来说是新起点：一边补基础课，一边慢慢找到自己真正想做的东西。",
+        "我刚上大一，还在适应大学节奏——课程比高中更自主，也更需要自己安排时间。整体感觉新鲜又充实。",
+        "大一对我来说是新起点：一边补基础课，一边慢慢找到自己真正想做的东西。",
       ] },
     /* —— 学校 —— */
     { k: ["学校", "哪个学校", "什么学校", "就读", "在哪读", "哪所大学", "天津大学", "港理工", "香港理工", "未来技术学院"],
       a: [
-        "他就读于天津大学香港理工大学深圳未来技术学院，校区在深圳——一座特别有活力的城市。",
-        "学校是天津大学和香港理工大学合办的深圳未来技术学院，他很喜欢这边的氛围。",
+        "我就读于天津大学香港理工大学深圳未来技术学院，校区在深圳——一座特别有活力的城市。",
+        "我的学校是天津大学和香港理工大学合办的深圳未来技术学院，我很喜欢这边的氛围。",
       ] },
     { k: ["深圳"],
       a: [
-        "他在深圳读书。这座城市年轻、节奏快，又靠海，他挺喜欢在这里探索。",
-        "深圳是他现在的城市，开放、有活力，周末总能找到新地方逛。",
+        "我在深圳读书。这座城市年轻、节奏快，又靠海，我挺喜欢在这里探索。",
+        "深圳是我现在的城市，开放、有活力，周末总能找到新地方逛。",
       ] },
     /* —— 联系方式 —— */
     { k: ["联系", "怎么找到", "怎么联系", "联系方式", "微信", "邮箱", "email", "邮件", "加你", "找你", "写信", "发消息"],
       a: [
-        "发邮件最快：天大邮箱 lmh_2007@tju.edu.cn，港理工邮箱 menghan.liu@connect.polyu.hk。",
-        "可以通过邮件找到他——lmh_2007@tju.edu.cn（天大）或 menghan.liu@connect.polyu.hk（港理工）。",
+        "发邮件找我最方便：天大邮箱 lmh_2007@tju.edu.cn，港理工邮箱 menghan.liu@connect.polyu.hk。",
+        "可以通过邮件找到我——lmh_2007@tju.edu.cn（天大）或 menghan.liu@connect.polyu.hk（港理工）。",
       ] },
     /* —— 兴趣 —— */
     { k: ["兴趣", "爱好", "喜欢做什么", "平时喜欢", "平时做什么", "周末", "空闲", "业余"],
       a: [
-        "他爱旅行、练书法，也爱摄影。这三件事让他既走得远，也能静得下心来。",
-        "平时他会旅行、写书法、拍照片——一个往外走，一个往内收，他说这样刚好平衡。",
+        "我爱旅行、练书法，也爱 Citywalk。这三件事让我既走得远，也能静得下心来。",
+        "平时我会旅行、写书法、在城市里走走——一个往外走，一个往内收，我觉得这样刚好平衡。",
       ] },
     { k: ["旅行", "旅游", "去过哪里", "去哪玩", "出行"],
       a: [
-        "旅行是他的爱好之一。他喜欢在世界里走走看看，把见闻变成自己的故事。",
-        "他爱旅行，喜欢到没去过的地方慢慢逛，也爱把路上的风景拍下来。",
+        "旅行是我的爱好之一。我喜欢在世界里走走看看，把见闻变成自己的故事。",
+        "我爱旅行，喜欢到没去过的地方慢慢逛，也爱把路上的风景拍下来。",
       ] },
     { k: ["书法", "写字", "练字"],
       a: [
-        "书法是他安静下来的方式。一笔一划之间，能和自己好好待一会儿。",
-        "他练书法，说那是让自己慢下来的仪式感。",
+        "书法是我安静下来的方式。一笔一划之间，能和自己好好待一会儿。",
+        "我练书法，这是让自己慢下来的仪式感。",
       ] },
-    { k: ["摄影", "拍照", "相机", "照片", "拍摄"],
+    { k: ["citywalk", "城市漫步", "散步", "逛街", "暴走"],
       a: [
-        "摄影是他记录世界的方式，喜欢用镜头捕捉身边的光影和日常。",
-        "他会拍照，觉得把瞬间留下来是件很温柔的事。",
+        "Citywalk 是我认识城市的方式：不赶景点，沿着街巷慢慢走，看看店招、树影和路人的日常。",
+        "我喜欢城市漫步，觉得用脚步量一座城市，比翻攻略更能记住它。",
       ] },
     /* —— 关于这个主页 / 分身 —— */
     { k: ["这个主页", "这个网站", "这个页面", "网站怎么", "页面怎么", "谁做的", "怎么做的", "搭建"],
       a: [
-        "这个主页是他自己动手搭的：原生 HTML + CSS + JS，没有用框架，连旅行页的 3D 地球也是自己配的。",
-        "页面是他亲手写的，风格走「水彩天空蓝 + 手帐感」，你看到的每个面板都是他自己安排的。",
+        "这个主页是我自己动手搭的：原生 HTML + CSS + JS，没有用框架，连旅行页的 3D 地球也是自己配的。",
+        "页面是我亲手写的，风格走「水彩天空蓝 + 手帐感」，你看到的每个面板都是我自己安排的。",
       ] },
     { k: ["你是不是真人", "你是真人吗", "你是不是ai", "你是ai", "机器人", "数字分身", "你是谁", "你叫什么", "介绍一下你"],
       a: [
-        "我不是真人，是刘孟涵的数字分身——基于他在这页上公开的信息整理的小助手。",
-        "我是他的数字分身，不是本人哦。学校、专业、兴趣这些问题我都能答。",
+        "我不是真人本人，是刘孟涵的数字分身——下面说的都用第一人称，但别把我和他本人搞混啦。",
+        "我是刘孟涵的数字分身，不是本人哦。学校、专业、兴趣这些问题我都能答。",
       ] },
     /* —— 未公开信息：诚实引导 —— */
     { k: ["家乡", "哪里人", "老家", "家在哪", "你家", "住哪", "住在哪", "几岁", "多大", "年龄", "生日", "星座"],
       a: [
-        "这些私人信息他还没在这页里公开，我就不好代答了。想了解的话，发邮件问他最直接。",
-        "这个他没公开，我不能乱说。你可以邮件联系他本人。",
+        "这些私人信息我还没在这页里公开，就不好多说啦。想了解的话，发邮件问我最直接。",
+        "这个我还没公开，不能乱说。你可以发邮件问我本人。",
       ] },
     { k: ["梦想", "目标", "未来", "打算", "规划", "以后想做"],
       a: [
-        "长远目标他还没在这里写下来。不过从他现在做的事看，方向大概率和「智能 + 医学」有关。",
-        "未来的规划他还没公开。要不直接发邮件问问他？",
+        "长远目标我还没在这里写下来。不过从我现在做的事看，方向大概率和「智能 + 医学」有关。",
+        "未来的规划我还没公开。要不直接发邮件问我？",
       ] },
     /* —— 社交礼节 —— */
     { k: ["你好", "您好", "hi", "hello", "hey", "嗨", "在吗", "在不在"],
       a: [
-        "你好呀！我是刘孟涵的数字分身。想聊他的学校、专业、兴趣还是近况？",
-        "嗨！很高兴见到你。关于他，你随便问。",
+        "你好呀！我是刘孟涵的数字分身，用第一人称跟你聊。想聊学校、专业、兴趣还是近况？",
+        "嗨！很高兴见到你。想了解我什么，随便问～",
       ] },
     { k: ["谢谢", "感谢", "多谢", "thanks", "thank you", "辛苦"],
       a: [
@@ -1141,18 +1204,18 @@
       ] },
     { k: ["再见", "拜拜", "走了", "byebye", "bye"],
       a: [
-        "再见啦，欢迎常来看看他的主页。",
+        "再见啦，欢迎常来看看我的主页。",
         "拜拜～有空再聊。",
       ] },
     { k: ["厉害", "好棒", "真棒", "牛", "优秀", "不错哦", "佩服"],
       a: [
-        "谢谢夸奖，我会转达给他的。",
-        "哈哈，他人确实挺认真的，谢谢你的肯定。",
+        "谢谢夸奖，很开心～",
+        "哈哈，我确实挺认真的，谢谢你的肯定。",
       ] },
     { k: ["建议", "意见", "反馈", "想对你说", "留言"],
       a: [
-        "想给他提建议的话，首页「给我建议」那张卡片可以直接留言，他会看到。",
-        "欢迎在「给我建议」里留言，也可以发邮件给他。",
+        "想给我提建议的话，首页「给我建议」那张卡片可以直接留言，我会看到。",
+        "欢迎在「给我建议」里留言，也可以发邮件给我。",
       ] },
     { k: ["还有呢", "然后呢", "展开", "继续说", "详细", "多一点", "不知道问什么", "你会什么", "能做什么", "能聊什么", "随便聊", "聊聊", "说点什么"],
       a: moreHint },
@@ -1323,6 +1386,8 @@
     });
     navLinks.forEach((a) => a.classList.toggle("active", a.dataset.panel === name));
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // 通知全站常驻的玻璃球重新落位（Home 贴欢迎语右侧，其他面板走右侧留白）
+    window.dispatchEvent(new CustomEvent("panelchange", { detail: { panel: name } }));
   }
 
   navLinks.forEach((a) => {
@@ -1370,6 +1435,587 @@
       setTimeout(() => { adviceDone.hidden = true; }, 3500);
     }, { loadMs: 850, okMs: 2000 });
   });
+</script>
+
+<!-- ============================================================
+     首页 Hero · 液态玻璃球
+     ------------------------------------------------------------
+     原创 WebGL2 实现：raymarching 隐式曲面（主球 + 若干小泡泡的平滑并集）、
+     棱镜色散折射、Beer–Lambert 吸收、菲涅尔与三点高光。
+     · 无任何外部依赖：背景是运行时程序化生成的天空蓝/淡粉渐变纹理，
+       因此 file:// 双击打开同样可用，也不违反「主页无外部依赖」约定
+     · 配色沿用主页水彩天空蓝体系（天空蓝 / 淡粉 / 白），不引入新色系
+     · 泡泡尺寸较参考作品整体调小（mainRadius 0.085，泡泡 0.018~0.042）
+     视觉思路参考 CodePen「Liquid Glass」by fand（该作品未声明任何许可，
+     这里只借鉴思路，着色器与逻辑均为独立实现，未复制原作代码）
+     ============================================================ -->
+<script>
+(function () {
+  const wrap = document.getElementById("heroGlass");
+  const canvas = document.getElementById("glassCanvas");
+  if (!wrap || !canvas) return;
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- 停靠点 + 全页跟随 ----
+     同一颗球在三个面板都在，并且**在整个页面范围内跟着鼠标跑**。
+     停靠点 home（指针离开窗口、或键盘切面板时球滑回的地方）：
+       Home  → 贴欢迎语右缘外侧（与改造前 Hero 里的位置逐像素一致）
+       其他  → 右侧留白处；尺寸与纵向位置都经过正文墨迹测量，不与卡片文字重叠
+     位置统一用「文档坐标」在渲染循环里缓动，再写成 transform：
+       指针活跃 → 目标是指针位置（换算成文档坐标）→ 球跟着指针跑遍整页
+       指针离开 → 目标是停靠点 → 球自己滑回去；切面板也是这套滑行，看得出是同一颗球
+     不用 CSS 过渡：跟随与滑行共用一套缓动，避免两套动画互相打架 */
+  const homePanel = document.getElementById("panel-home");
+  const SIDE_SIZE = () => Math.round(Math.min(210, Math.max(132, window.innerWidth * 0.164)));
+  const SIDE_RIGHT = () => Math.round(Math.max(6, Math.min(18, window.innerWidth * 0.014)));
+  const SIDE_TOP = (size) => Math.round(window.innerHeight * 0.54 - size / 2);
+  const MOBILE_Q = window.matchMedia("(max-width: 700px)");
+
+  const pos = { x: 0, y: 0 };                 // 球心（文档坐标），渲染循环里缓动
+  const home = { x: 0, y: 0 };                // 当前面板的停靠点（文档坐标）
+  const follow = { on: false, x: 0, y: 0 };   // 指针位置（视口坐标）
+  let docH = 0;                               // 文档高度（缓存，避免每帧触发布局）
+  let orbSize = 0;                            // 球的 CSS 尺寸（缓存）
+  let snapNext = true;                        // 首帧直接就位，避免球从原点飞进来
+
+  function placeOrb() {
+    const active = document.querySelector(".panel.active");
+    const panel = active ? active.id : "panel-home";
+    const welcome = homePanel && homePanel.querySelector(".welcome");
+    // 面板隐藏时 rect 全是 0，用宽度 > 2 判断「Home 真的可见」
+    const homeVisible = panel === "panel-home" && welcome && welcome.getBoundingClientRect().width > 2;
+
+    if (MOBILE_Q.matches) {
+      /* 窄屏：右侧留白不存在，触摸也不产生鼠标跟随。
+         Home → 把球放回欢迎语下方的文档流（= 改造前手机版观感，不压正文）；
+         About Me / Virtual Space → 直接藏球，避免浮层压住卡片文字。 */
+      follow.on = false;
+      wrap.style.transform = "";
+      if (homeVisible) {
+        if (wrap.parentElement !== welcome) welcome.appendChild(wrap);
+        wrap.style.width = "";
+        wrap.style.display = "";
+      } else {
+        wrap.style.display = "none";
+      }
+      return;
+    }
+
+    /* 桌面：全站同一颗球。布局盒钉在文档原点、真实位置由 transform 摆，
+       所以球和正文的相对位置只取决于「当前目标」，滚动不会让它漂到别处。 */
+    if (wrap.parentElement !== document.body) document.body.appendChild(wrap);
+    wrap.style.display = "";
+    if (homeVisible) {
+      wrap.style.width = "";                    // 交回 CSS 的 clamp(150px,20vw,236px)
+      orbSize = wrap.offsetWidth;               // 读回真实尺寸再算停靠点
+      const r = welcome.getBoundingClientRect();
+      // rect 是视口坐标，+scrollY 换成文档坐标（此时可能正在 smooth 滚动，这样换算才准）
+      home.x = window.innerWidth - Math.max(0, Math.round(window.innerWidth - r.right)) - orbSize / 2;
+      home.y = r.top + window.scrollY + r.height / 2;
+    } else {
+      orbSize = SIDE_SIZE();
+      wrap.style.width = orbSize + "px";
+      home.x = window.innerWidth - SIDE_RIGHT() - orbSize / 2;
+      home.y = SIDE_TOP(orbSize) + orbSize / 2;
+    }
+    docH = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+
+    if (!follow.on) applyOrb(true);             // 首屏 / 切面板（无指针）直接就位
+  }
+
+  /* 当前位置要追的目标（文档坐标）：有指针追指针，没指针回停靠点 */
+  function orbTarget() {
+    if (!follow.on) return home;
+    const half = orbSize / 2;
+    let x = follow.x;
+    let y = follow.y + window.scrollY;
+    // 球至少完整留在视口内（不让它被推出屏幕）
+    x = Math.min(Math.max(x, half), Math.max(window.innerWidth - half, half));
+    let vy = y - window.scrollY;
+    vy = Math.min(Math.max(vy, half), Math.max(window.innerHeight - half, half));
+    y = vy + window.scrollY;
+    // 也不把文档撑高（否则会多出一条滚动条）
+    y = Math.min(Math.max(y, half), Math.max(docH - half, half));
+    return { x, y };
+  }
+
+  function applyOrb(snap) {
+    if (MOBILE_Q.matches || orbSize < 2) return;
+    const half = orbSize / 2;
+    const t = orbTarget();
+    if (snap) { pos.x = t.x; pos.y = t.y; }
+    wrap.style.transform = "translate3d(" + Math.round(pos.x - half) + "px," + Math.round(pos.y - half) + "px,0)";
+  }
+
+  placeOrb();                       // 渲染循环启动前先就位（reduced motion 下也靠它定位）
+  window.addEventListener("resize", placeOrb, { passive: true });
+  window.addEventListener("panelchange", placeOrb);
+  window.addEventListener("load", placeOrb);
+
+  const gl = canvas.getContext("webgl2", { alpha: true, antialias: true, premultipliedAlpha: true });
+  if (!gl) { wrap.style.display = "none"; return; }
+
+  /* ---- 泡泡参数（较参考作品整体调小） ---- */
+  const MAIN_R = 0.085;
+  const BUBBLE_COUNT = 6;
+  const BUBBLE_MIN = 0.014;
+  const BUBBLE_MAX = 0.032;
+  const BUBBLE_SPEED = 0.7;
+  const N = BUBBLE_COUNT;
+
+  const VS = `#version 300 es
+const vec2 P[3] = vec2[3](vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
+void main(){ gl_Position = vec4(P[gl_VertexID], 0.0, 1.0); }`;
+
+  const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2  uRes;
+uniform vec2  uPointer;
+uniform float uTime;
+uniform float uClickTime;
+uniform int   uClickCount;
+uniform float uBubble[${N * 4}];
+out vec4 outColor;
+
+const float MAIN_R   = ${MAIN_R.toFixed(4)};
+const int   N_BUBBLE = ${N};
+const float SMOOTH_K = 0.016;   // 融合半径：太大会把小泡泡糊成葫芦形
+const float SCATTER  = 0.011;   // 边缘噪点（太大会把轮廓打散成点状）
+const float DISP     = 0.030;   // 色散强度
+const vec3  ABSORB   = vec3(1.0, 1.2, 2.0);   // 偏天空蓝的吸收色，让球体呈冰蓝玻璃
+
+mat2 rot2(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+float sdSphere(vec3 p, float r){ return length(p) - r; }
+float sdBox(vec3 p, float r){ vec3 q = abs(p) - vec3(r * 0.8) + 0.01; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - 0.01; }
+float sdRing(vec3 p, float R, float r){ float s = length(p.xy) - R; return length(vec2(s, p.z)) - r; }
+float blend(float a, float b, float k){ float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+
+float scene(vec3 p, vec3 c){
+  vec3 q = p - c;
+  float tt  = uClickTime * 5.0;
+  float pop = exp(-tt) * sin(tt) * 5.0 + (1.0 - exp(-tt));
+  float s   = pop * 0.5 + 0.5;
+  q /= s;
+  q.xz *= rot2(exp(-uClickTime * 3.0) * 8.0);
+
+  vec3 w = q;
+  w.y += sin(w.z * 29.0 + uTime * 6.5) * 0.01;
+  w.z += sin(w.x * 23.0 + w.y * 11.0 + uTime * 7.0) * 0.01;
+  w.xy *= rot2(uTime * 1.3);
+  w.xz *= rot2(uTime * 1.1);
+
+  float d;
+  int shape = uClickCount % 3;
+  if (shape == 0)      d = sdSphere(w, MAIN_R);
+  else if (shape == 1) d = sdBox(w, MAIN_R);
+  else                 d = sdRing(w, MAIN_R * 1.1, 0.015);
+
+  for (int i = 0; i < N_BUBBLE; i++){
+    int b = i * 4;
+    vec3 bp = vec3(uBubble[b], uBubble[b + 1], uBubble[b + 2]);
+    float br = max(uBubble[b + 3], 0.001);
+    d = blend(d, sdSphere(q - bp, br), SMOOTH_K);
+  }
+  return d * s;
+}
+
+vec3 calcNormal(vec3 p, vec3 c){
+  vec2 e = vec2(0.001, 0.0);
+  return normalize(vec3(
+    scene(p + e.xyy, c) - scene(p - e.xyy, c),
+    scene(p + e.yxy, c) - scene(p - e.yxy, c),
+    scene(p + e.yyx, c) - scene(p - e.yyx, c)
+  ));
+}
+
+vec3 prism(float t){
+  return clamp(vec3(
+    1.5 - abs(4.0 * t - 1.0),
+    1.5 - abs(4.0 * t - 2.0),
+    1.5 - abs(4.0 * t - 3.0)
+  ), 0.0, 1.0);
+}
+
+vec2 jitter(vec2 p){
+  vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.xx + q.yz) * q.zy) * 2.0 - 1.0;
+}
+
+vec4 srcAt(vec2 uv){ return texture(uTex, clamp(uv, 0.003, 0.997)); }
+
+// 假环境：天空渐变 + 一道窗光，用于掠射角的镜面反射（玻璃读感的关键）
+vec3 env(vec3 d){
+  float y = d.y * 0.5 + 0.5;
+  vec3 sky = mix(vec3(0.78, 0.88, 0.96), vec3(0.50, 0.68, 0.86), y);
+  float win = smoothstep(0.86, 0.995, dot(normalize(d), normalize(vec3(0.35, 0.55, 0.75))));
+  sky += win * 0.95;
+  float hi = smoothstep(0.90, 1.0, dot(normalize(d), normalize(vec3(-0.50, 0.30, 0.62))));
+  sky += hi * 0.55;
+  return sky;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float aspect = uRes.y / uRes.x;
+  vec2 sp = (uv - 0.5) * vec2(1.0, aspect);
+
+  // 球心：缓慢漂移 + 指针视差
+  vec2 mp = uPointer * 0.12;
+  mp += vec2(sin(uTime * 0.42) * 0.055, cos(uTime * 0.37) * 0.055);
+
+  vec3 ro = vec3(0.0, 0.0, -2.0);
+  vec3 rd = normalize(vec3(sp, 2.0));
+  vec3 center = vec3(mp, 0.0);
+
+  vec3 nFirst = vec3(0.0), nLast = vec3(0.0);
+  int hits = 0;
+  float thickness = 0.0, tEntry = 0.0, t = 0.0;
+  bool inside = false;
+
+  for (int i = 0; i < 50; i++){
+    if (t > 10.0) break;
+    vec3 pos = ro + rd * t;
+    float d = scene(pos, center);
+    float stepLen = inside ? -d : d;
+    if (stepLen < 3e-4){
+      vec3 nrm = calcNormal(pos, center);
+      if (hits == 0) nFirst = nrm;
+      nLast = nrm;
+      if (!inside) tEntry = t; else thickness += t - tEntry;
+      hits++;
+      if (hits >= 4) break;
+      inside = !inside;
+      t += 0.01;
+    } else {
+      t += stepLen;
+    }
+  }
+
+  if (hits == 0){ outColor = vec4(0.0); return; }   // 球体之外保持透明
+
+  vec2 baseDisp = -(nFirst.xy + nLast.xy) * 0.5 * DISP;
+  float NdotR = max(dot(nFirst, -rd), 0.0);
+  float scatter = pow(1.0 - NdotR, 2.0) * SCATTER;
+
+  vec3 acc = vec3(0.0), wsum = vec3(0.0);
+  for (int i = 0; i < 6; i++){
+    float wl = float(i) / 5.0;
+    float amp = wl * (1.3 + float(hits) * 0.2);
+    vec2 hh = jitter(uv * 1000.0 + float(i) * 7.13 + uTime) * scatter;
+    vec3 w = prism(wl);
+    acc += srcAt(uv + baseDisp * amp + hh).rgb * w;
+    wsum += w;
+  }
+  vec3 col = acc / wsum;
+
+  float fres = pow(1.0 - NdotR, 5.0);
+
+  // 体积吸收：Beer–Lambert（光程越长越偏冰蓝：中心最深、边缘最浅）
+  col *= exp(-ABSORB * min(thickness, 0.35));
+
+  // 三点高光
+  vec3 ld = normalize(vec3(0.5, 0.9, -0.3));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 200.0) * 3.0;
+  ld = normalize(vec3(-0.9, 0.4, -0.3));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 300.0) * 1.2;
+  ld = normalize(vec3(-0.1, -0.9, -0.1));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 30.0) * 0.25;
+
+  // 提对比：S 型曲线，让折射出的明暗结构可见（否则平均后会糊成一片白）
+  col = clamp(col, 0.0, 1.0);
+  col = col * col * (3.0 - 2.0 * col);
+
+  // 掠射角的镜面环境反射 + 边缘菲涅尔增亮（这两步决定「像不像玻璃」）
+  col = mix(col, env(reflect(rd, nFirst)), fres * 0.60);
+  col = mix(col, vec3(1.0), pow(fres, 1.8) * 0.35);
+  col = min(col, 1.0);
+  outColor = vec4(col, 1.0);
+}`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn("[hero-glass] shader error:", gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  const vs = compile(gl.VERTEX_SHADER, VS);
+  const fs = compile(gl.FRAGMENT_SHADER, FS);
+  if (!vs || !fs) { wrap.style.display = "none"; return; }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.warn("[hero-glass] link error:", gl.getProgramInfoLog(prog));
+    wrap.style.display = "none";
+    return;
+  }
+  gl.useProgram(prog);
+  gl.bindVertexArray(gl.createVertexArray());
+
+  const U = {
+    tex: gl.getUniformLocation(prog, "uTex"),
+    res: gl.getUniformLocation(prog, "uRes"),
+    pointer: gl.getUniformLocation(prog, "uPointer"),
+    time: gl.getUniformLocation(prog, "uTime"),
+    clickTime: gl.getUniformLocation(prog, "uClickTime"),
+    clickCount: gl.getUniformLocation(prog, "uClickCount"),
+    bubble: gl.getUniformLocation(prog, "uBubble[0]"),
+  };
+
+  /* ---- 程序化背景纹理：天空蓝 + 淡粉柔光 + 水彩点（全部取自主页色系） ---- */
+  function makeBackground() {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const x = c.getContext("2d");
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, "#eef7fe");
+    g.addColorStop(0.42, "#9dc6e8");
+    g.addColorStop(1, "#2f6d9e");
+    x.fillStyle = g;
+    x.fillRect(0, 0, 512, 512);
+
+    const glow = (cx, cy, r, color) => {
+      const rg = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      rg.addColorStop(0, color);
+      rg.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = rg;
+      x.fillRect(0, 0, 512, 512);
+    };
+    glow(410, 105, 265, "rgba(238, 150, 190, 0.95)");  // 淡粉（--pink）
+    glow(110, 90, 300, "rgba(255,255,255,0.95)");    // 左上白
+    glow(256, 480, 330, "rgba(70, 118, 164, 0.80)"); // 底部深蓝
+    glow(330, 300, 170, "rgba(255,255,255,0.40)");
+
+    // 一道亮带（类似地平线天光），让折射产生明显的明暗条纹
+    const band = x.createLinearGradient(0, 190, 0, 300);
+    band.addColorStop(0, "rgba(255,255,255,0)");
+    band.addColorStop(0.5, "rgba(255,255,255,0.85)");
+    band.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = band;
+    x.fillRect(0, 190, 512, 110);
+
+    // 几笔水彩点，让玻璃折射有内容可看
+    const dots = [[150, 180, 26], [360, 250, 34], [250, 380, 22], [90, 330, 30], [430, 400, 18]];
+    dots.forEach(([cx, cy, r]) => glow(cx, cy, r * 2.4, "rgba(255,255,255,0.70)"));
+
+    // 深蓝斑块：提供暗部，让折射有明显明暗结构（否则平均后糊成一片白）
+    glow(118, 432, 205, "rgba(38, 90, 136, 0.88)");
+    glow(455, 332, 150, "rgba(50, 106, 154, 0.78)");
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return tex;
+  }
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, makeBackground());
+  gl.uniform1i(U.tex, 0);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  /* ---- 尺寸 ---- */
+  let W = 0, H = 0, lastCssW = -1;
+  function resize() {
+    const cssW = wrap.clientWidth;
+    if (cssW < 2) return false;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(cssW * dpr);
+    if (w !== canvas.width || w !== canvas.height) {
+      canvas.width = w;
+      canvas.height = w;
+      gl.viewport(0, 0, w, w);
+    }
+    W = w; H = w; lastCssW = cssW;
+    return true;
+  }
+
+  /* ---- 泡泡轨道 ---- */
+  const bubbles = new Float32Array(N * 4);
+  const fract = (v) => v - Math.floor(v);
+  // 每颗泡泡被指针吸引后的位移（带各自滞后，形成拖尾）
+  const offX = new Float32Array(N);
+  const offY = new Float32Array(N);
+
+  function updateBubbles(time, dt) {
+    // 指针目标位移：局部单位（≈主球半径的 1.5 倍量级）
+    const gx = ptr.x * 0.13;
+    const gy = ptr.y * 0.11;
+
+    for (let i = 0; i < N; i++) {
+      const life = fract(time * BUBBLE_SPEED + i / N);
+      const orbitR = MAIN_R * (1.35 + life * 0.60);
+      const angle = time * (0.8 + fract(i * 0.618) * 0.7) + i * 1.256;
+
+      // 每颗泡泡跟随速度不同（1.6 ~ 4.6 / 秒）→ 有先后、有明显拖尾
+      const k = 1.6 + fract(i * 0.618) * 3.0;
+      const ease = dt > 0 ? 1 - Math.exp(-k * dt) : 0;
+      offX[i] += (gx - offX[i]) * ease;
+      offY[i] += (gy - offY[i]) * ease;
+
+      let bx = Math.cos(angle) * orbitR;
+      let by = 0;
+      let bz = Math.sin(angle) * orbitR;
+
+      let a = i * 2.3, cs = Math.cos(a), sn = Math.sin(a);
+      const nx = bx * cs - by * sn, ny = bx * sn + by * cs;
+      bx = nx; by = ny;
+      a = i * 1.8; cs = Math.cos(a); sn = Math.sin(a);
+      const ny2 = by * cs - bz * sn, nz2 = by * sn + bz * cs;
+      by = ny2; bz = nz2;
+
+      // 不再向上堆叠，改为环绕主球做三维轨道运动
+      bx += Math.sin(time * 2.7 + i * 4.1) * 0.008 * life;
+      bz += Math.cos(time * 3.1 + i * 3.7) * 0.008 * life;
+
+      // 指针吸引：越小的泡泡越轻、被带得越远
+      const lift = 1.0 - life * 0.35;
+      bx += offX[i] * lift;
+      by += offY[i] * lift;
+
+      const span = BUBBLE_MAX - BUBBLE_MIN;
+      const maxR = BUBBLE_MIN + span * fract(i * 0.618);
+
+      const j = i * 4;
+      bubbles[j] = bx;
+      bubbles[j + 1] = by;
+      bubbles[j + 2] = bz;
+      bubbles[j + 3] = maxR * Math.sin(life * Math.PI);
+    }
+  }
+
+  /* ---- 指针 / 点击 ----
+     监听整页指针：① 球本身朝指针追过去（在整个页面范围内跑）；
+     ② 球内泡泡再朝指针方向偏一点，让玻璃球「活」起来。 */
+  const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+  const MAX_PTR = 1.35; // 归一化位移上限，避免鼠标离得远时被拽飞
+  const clampPtr = (v) => Math.max(-MAX_PTR, Math.min(MAX_PTR, v));
+
+  window.addEventListener("pointermove", (e) => {
+    const r = wrap.getBoundingClientRect();
+    if (r.width < 2) return;
+    // ① 球走位：指针在哪，球就追到哪（窄屏没有鼠标 / 低动效偏好时不跟随）
+    if (!MOBILE_Q.matches && !reduced) {
+      follow.on = true;
+      follow.x = e.clientX;
+      follow.y = e.clientY;
+    }
+    // ② 球内泡泡：以 canvas 中心为原点归一化，半宽 ≈ 1.0，指针偏哪边泡泡就往哪边跑
+    ptr.tx = clampPtr((e.clientX - (r.left + r.width * 0.5)) / (r.width * 0.5));
+    ptr.ty = clampPtr(-(e.clientY - (r.top + r.height * 0.5)) / (r.height * 0.5));
+  }, { passive: true });
+
+  // 指针离开窗口 / 触碰设备抬手后：泡泡归位，球滑回当前面板的停靠点
+  const resetPtr = () => { ptr.tx = 0; ptr.ty = 0; follow.on = false; };
+  document.addEventListener("pointerleave", resetPtr, { passive: true });
+  window.addEventListener("blur", resetPtr);
+
+  let clickCount = 0;
+  let lastClickAt = performance.now() / 1000 - 100;
+  // 球现在 pointer-events:none（全站浮层不能拦点击），
+  // 所以改成在 window 上做「命中球体圆形区域」判定：点球依旧有涟漪，点别处完全不受影响
+  window.addEventListener("pointerdown", (e) => {
+    const r = wrap.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    if (dx * dx + dy * dy > (r.width / 2) * (r.width / 2)) return;
+    lastClickAt = performance.now() / 1000;
+    clickCount++;
+  }, { passive: true });
+
+  /* ---- 渲染循环（不可见 / 非 Home 面板时暂停，省电） ---- */
+  const t0 = performance.now() / 1000;
+  let running = false, raf = 0, lastT = 0;
+
+  function draw(time) {
+    const now = performance.now() / 1000;
+    // 与帧率无关的平滑（高刷屏上不会追得过分灵敏）
+    const dt = lastT ? Math.min(Math.max(time - lastT, 0), 0.05) : 0;
+    lastT = time;
+    const ease = 1 - Math.exp(-6.5 * dt);
+    ptr.x += (ptr.tx - ptr.x) * ease;
+    ptr.y += (ptr.ty - ptr.y) * ease;
+    updateBubbles(time, dt);
+
+    /* 球的走位：指针活跃时追指针（在整个页面范围内跑），否则滑回停靠点。
+       切面板的「滑过去」也是这套缓动，所以看上去始终是同一颗球。 */
+    const t = orbTarget();
+    const moveEase = snapNext ? 1 : 1 - Math.exp(-(follow.on ? 5.0 : 3.6) * dt);
+    snapNext = false;
+    pos.x += (t.x - pos.x) * moveEase;
+    pos.y += (t.y - pos.y) * moveEase;
+    applyOrb(false);
+
+    gl.uniform2f(U.res, W, H);
+    gl.uniform2f(U.pointer, ptr.x, ptr.y);
+    gl.uniform1f(U.time, time);
+    gl.uniform1f(U.clickTime, now - lastClickAt);
+    gl.uniform1i(U.clickCount, clickCount);
+    gl.uniform1fv(U.bubble, bubbles);
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function frame() {
+    if (!running) return;
+    if (wrap.clientWidth < 2) { running = false; return; }
+    if (wrap.clientWidth !== lastCssW) resize();
+    draw(performance.now() / 1000 - t0);
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (running || reduced) return;
+    if (!resize()) return;
+    running = true;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+
+  // 自检钩子：仅在 ?selftest=1 时暴露，正常访问不产生任何全局变量
+  if (location.search.indexOf("selftest") !== -1) {
+    window.__heroGlass = { ptr, offX, offY, bubbles };
+  }
+
+  if (reduced) {
+    if (resize()) { updateBubbles(3.2, 0); draw(3.2); }
+  } else {
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting) && !document.hidden) start();
+        else stop();
+      }, { threshold: 0.01 }).observe(wrap);
+    } else {
+      start();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stop();
+      else start();
+    });
+    window.addEventListener("resize", () => { if (reduced) { if (resize()) draw(3.2); } });
+    start();
+  }
+})();
 </script>
 </body>
 </html>
