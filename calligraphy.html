@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>书法 · Calligraphy — 刘孟涵</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<!--
+  书法作品页 · 可拖拽的宝丽来卡片堆
+  ------------------------------------------------------------------
+  · 交互：原生 pointer 事件 + requestAnimationFrame 物理循环
+      - 鼠标划过卡片 → 3D 倾斜（±25°）+ 高光扫过，像被手指轻碰
+      - 按住拖动 → 跟手、置顶、越界有橡皮筋阻力
+      - 甩一下松手 → 按速度惯性滑出，撞到画布边缘会回弹
+      - 双击卡片 → 归位；右上「重新摆放」→ 全部归位
+      - 摆放位置记在 localStorage（key: lmh_calligraphy_pos_v2）
+  · 物理参数借鉴 Aceternity UI 的 Draggable Card
+    （作者 Manu Arora，https://ui.aceternity.com/components/draggable-card）
+    该组件以 "Aceternity License" 发布，允许用于个人 / 客户的终端产品并允许修改，
+    仅禁止把组件源文件当模板或素材转售。
+    ⚠️ 本项目是纯原生实现（页面必须 file:// 双击可用、不引入任何依赖），
+       **没有复制其 React / motion 源码**，只沿用了它的可视化物理参数：
+         spring { stiffness:100, damping:20, mass:0.5 }
+         tilt  ±300px → ±25°
+         glare [-300,0,300] → [0.2,0,0.2]
+         hover scale 1.02、释放冲量系数 0.3、撞边界弹跳
+  · 作品照片在 assets/calligraphy/，对应关系见下面 WORKS 的 img 字段
+      - 卡片尺寸按图片真实宽高比反推，作品整幅完整显示、不裁切
+      - img 为空或加载失败 → 退回占位大字 glyph
+  · 调初始堆叠：nx / ny 是归一化位置（0~1，相对画布），rot 是旋转角度（deg），
+    h 是桌面基准高度（px，小屏会等比缩小）
+  ------------------------------------------------------------------
+-->
+<style>
+  /* ============ 设计系统（与 index.html 保持一致） ============ */
+  :root {
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+    --font-kai: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    padding: 0 clamp(12px, 3vw, 40px);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.05'/></svg>"),
+      radial-gradient(1100px 620px at 10% 4%, rgba(255,255,255,0.90), rgba(255,255,255,0) 62%),
+      radial-gradient(900px 560px at 92% 6%, rgba(244,199,214,0.30), rgba(244,199,214,0) 64%),
+      radial-gradient(1200px 760px at 50% 106%, rgba(180,212,236,0.60), rgba(180,212,236,0) 62%),
+      url("assets/bg.jpg");
+    background-size: 140px 140px, cover, cover, cover, cover;
+    background-position: left top, center top, right top, center bottom, center top;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 顶部导航 ==== */
+  .masthead {
+    position: sticky;
+    top: 14px;
+    z-index: 80;
+    display: flex;
+    justify-content: center;
+    padding: 14px 0 8px;
+  }
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+
+  /* ==== 栅格 ==== */
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(4px, 2vw, 24px) 80px; }
+  .section-gap { height: clamp(16px, 2.6vw, 26px); }
+
+  /* ==== 标题 ==== */
+  .cali-head { text-align: center; padding: clamp(16px, 3.4vw, 34px) 16px 0; }
+  .cali-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(38px, 8vw, 68px);
+    line-height: 1.2;
+    letter-spacing: 0.16em;
+    color: var(--ink-900);
+    text-shadow: 2px 3px 12px rgba(95,139,181,0.22);
+  }
+  .cali-title .en {
+    display: block;
+    margin-top: 6px;
+    font-family: "Caveat", cursive;
+    font-size: clamp(15px, 2.4vw, 21px);
+    letter-spacing: 0.24em;
+    color: var(--sky-600);
+  }
+  .cali-sub {
+    margin-top: 14px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(16px, 2.8vw, 22px);
+    letter-spacing: 0.14em;
+    color: var(--ink-500);
+  }
+  .cali-tip {
+    margin-top: 12px;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink-400);
+  }
+  .reset-btn {
+    margin-top: 16px;
+    padding: 7px 20px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-700);
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.95);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(95,139,181,0.14);
+    transition: transform .2s ease, box-shadow .2s ease, color .2s ease, background .2s ease;
+  }
+  .reset-btn:hover {
+    transform: translateY(-1px);
+    color: var(--ink-900);
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(95,139,181,0.24);
+  }
+
+  /* ==== 画布（宣纸桌面） ==== */
+  .stage-card { padding: clamp(10px, 1.6vw, 16px); }
+  .stage {
+    position: relative;
+    min-height: clamp(600px, 80vh, 880px);
+    border-radius: 18px;
+    overflow: hidden;
+    /* 3D 透视：卡片的倾斜才有"厚度"，数值与 Aceternity 一致 */
+    perspective: 3000px;
+    perspective-origin: 50% 50%;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.045'/></svg>"),
+      radial-gradient(circle at 50% 38%, rgba(255,255,255,0.96) 0%, rgba(231,242,251,0.5) 58%, rgba(231,242,251,0.16) 78%),
+      linear-gradient(160deg, rgba(210,236,251,0.34), rgba(255,255,255,0.62));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.9), inset 0 14px 40px rgba(95,139,181,0.08);
+  }
+
+  /* ==== 作品卡片（宝丽来相纸） ==== */
+  .work {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+    /* 宽高与负外边距由 JS 按图片真实比例写入，保证以中心为旋转轴 */
+    background: #ffffff;
+    padding: calc(12px * var(--sp, 1));
+    border-radius: 4px;
+    box-shadow:
+      0 18px 40px rgba(95,139,181,0.26),
+      0 4px 10px rgba(95,139,181,0.16),
+      inset 0 0 0 1px rgba(255,255,255,0.9);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    /* 让 tilt 真的呈 3D 而非平面压扁 */
+    transform-style: preserve-3d;
+    transform-origin: 50% 50%;
+    will-change: transform;
+    opacity: 0;
+    transition: opacity .5s ease, box-shadow .3s ease;
+  }
+  .work.in { opacity: 1; }
+  .work:hover {
+    box-shadow:
+      0 24px 52px rgba(95,139,181,0.30),
+      0 6px 14px rgba(95,139,181,0.18),
+      inset 0 0 0 1px rgba(255,255,255,0.9);
+  }
+  .work.dragging {
+    cursor: grabbing;
+    transition: opacity .5s ease;
+    box-shadow:
+      0 34px 68px rgba(95,139,181,0.38),
+      0 10px 22px rgba(95,139,181,0.22),
+      inset 0 0 0 1px rgba(255,255,255,0.9);
+  }
+  /* 反光层：随鼠标横向位置亮起，像相纸被光扫过 */
+  .work::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    pointer-events: none;
+    background: linear-gradient(115deg,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.40) 42%,
+      rgba(255,255,255,0.00) 72%);
+    opacity: var(--glare, 0);
+  }
+
+  .work-art {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 2px;
+    border: 1px dashed rgba(180,212,236,0.75);
+    background: linear-gradient(150deg, #fdfdfb, #f3f8fc);
+  }
+  /* 米字格辅助线（仅占位大字时可见） */
+  .work-art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(to right,
+        transparent calc(50% - 0.5px), rgba(180,212,236,0.6) calc(50% - 0.5px),
+        rgba(180,212,236,0.6) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+      linear-gradient(to bottom,
+        transparent calc(50% - 0.5px), rgba(180,212,236,0.6) calc(50% - 0.5px),
+        rgba(180,212,236,0.6) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  }
+  .work-art img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  /* 有照片时：去掉米字格辅助线与装饰印章，换成实线相框边 */
+  .work-art.has-photo { border: 1px solid rgba(217,232,244,0.95); background: #fff; }
+  .work-art.has-photo::before { display: none; }
+  .work-art.has-photo .seal { display: none; }
+  .work-glyph {
+    position: relative;
+    font-family: var(--font-kai);
+    font-size: clamp(42px, 7.6vw, 84px);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--ink-900);
+    opacity: 0.92;
+  }
+  .seal {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--pink);
+    color: #ffffff;
+    font-family: var(--font-serif);
+    font-size: 11.5px;
+    line-height: 1;
+    box-shadow: 0 2px 7px rgba(244,199,214,0.75);
+    pointer-events: none;
+  }
+
+  .foot {
+    text-align: center;
+    padding: 42px 16px 60px;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+  }
+
+  @media (max-width: 560px) {
+    .cali-tip { padding: 0 20px; }
+    .work-glyph { font-size: clamp(34px, 11vw, 54px); }
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <nav class="nav">
+      <a href="index.html">← Return to Home</a>
+      <a class="active" href="calligraphy.html">书法 Calligraphy</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="cali-head">
+      <h1 class="cali-title">墨<span class="en">Calligraphy</span></h1>
+      <p class="cali-sub">— 一笔一划，慢慢写 —</p>
+      <p class="cali-tip">鼠标划过会轻轻晃动 · 按住拖动，甩一下会飞出去 · 双击归位</p>
+      <button class="reset-btn" id="reset" type="button">重新摆放</button>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card stage-card">
+      <div class="stage" id="stage"></div>
+    </section>
+
+    <footer class="foot">刘孟涵 · 书法 Calligraphy</footer>
+  </main>
+
+<script>
+  /* ============ 作品数据 ============ */
+  /* 照片放在 assets/calligraphy/，填 img 字段即可 */
+  /* w 是预估值，图片载入后会按真实宽高比重算 */
+  const WORKS = [
+    { id: "yangcheng2023", img: "assets/calligraphy/praise-yangcheng-2023.jpg", glyph: "羊",
+      title: "咏羊城",          meta: "楷书 · 癸卯仲春", h: 240, w: 174, nx: 0.30, ny: 0.30, rot:  -8 },
+    { id: "chinadream",    img: "assets/calligraphy/china-dream.jpg", glyph: "梦",
+      title: "中国梦",          meta: "楷书 · 节选",     h: 240, w: 175, nx: 0.50, ny: 0.17, rot:   5 },
+    { id: "huiyangcheng",  img: "assets/calligraphy/hui-yangcheng-2022.jpg", glyph: "惠",
+      title: "惠羊城",          meta: "楷书 · 壬寅春月", h: 258, w: 143, nx: 0.67, ny: 0.32, rot:  -3 },
+    { id: "zhongnanshan",  img: "assets/calligraphy/zhong-nanshan-2020.jpg", glyph: "贤",
+      title: "赞钟南山院士",    meta: "楷书 · 庚子夏月", h: 320, w: 111, nx: 0.36, ny: 0.64, rot:   7 },
+    { id: "maoshi",        img: "assets/calligraphy/mao-zedong-poems.jpg", glyph: "词",
+      title: "毛泽东诗词选录",  meta: "楷书 · 壬寅初夏", h: 238, w: 174, nx: 0.54, ny: 0.62, rot:  -5 },
+    { id: "dada20",        img: "assets/calligraphy/20th-congress-2022.jpg", glyph: "庆",
+      title: "喜迎二十大诗六首", meta: "楷书 · 壬寅金秋", h: 262, w: 147, nx: 0.70, ny: 0.68, rot:  10 }
+  ];
+
+  /* v2：布局由「散落」改为「堆叠」，旧的位置存档不再适用 */
+  const KEY = "lmh_calligraphy_pos_v2";
+  const PAD = 12;                       /* 与 CSS 的 calc(12px * var(--sp)) 一致 */
+
+  const stage = document.getElementById("stage");
+  const resetBtn = document.getElementById("reset");
+  const items = [];
+  let scale = 1;
+  let topZ = 10;
+
+  const REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  /* ---- 物理常量（取自 Aceternity draggable-card） ---- */
+  const SPRING   = { k: 100, c: 20, m: 0.5 };  /* stiffness / damping / mass */
+  const TILT_MAX = 25;        /* deg */
+  const TILT_RANGE = 300;     /* px：指针离中心 ±300px 时达到最大倾角 */
+  const GLARE_MAX = 0.18;     /* 反光层最大不透明度（原组件为 0.2） */
+  const HOVER_SCALE = 1.02;
+  const FRICTION = 3.6;       /* 惯性衰减系数（1/s） */
+  const FLICK = 1.05;         /* 松手速度 → 惯性初速 */
+  const RESTITUTION = 0.55;   /* 撞边界回弹保留的速度比例 */
+  const WALL = 0.28;          /* 拖拽越界时的橡皮筋阻尼（原组件 dragElastic 0.2） */
+  const SPIN_K = 70;          /* 水平速度 → 卡片甩动倾角 */
+  const SPIN_MAX = 8;         /* deg */
+
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const easeTo = (rate, dt) => 1 - Math.exp(-rate * dt);
+
+  /* ---- 位置存档 ---- */
+  function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+  function persist() {
+    const out = {};
+    items.forEach(function (it) { out[it.work.id] = [Math.round(it.x), Math.round(it.y)]; });
+    try { localStorage.setItem(KEY, JSON.stringify(out)); } catch (e) {}
+  }
+
+  /* ---- 尺寸 ---- */
+  function computeScale() {
+    const w = stage.clientWidth || 1000;
+    /* 卡片整体放大约 1.4 倍（对齐 Aceternity `draggable-card` 里 `w-80` 的观感）；
+       窄屏仍保底 0.55，避免小屏上卡片互相压死 */
+    return Math.min(1.4, Math.max(0.68, (w / 1040) * 1.4));
+  }
+
+  function sizeCard(it) {
+    const w = Math.round(it.work.w * scale);
+    const h = Math.round(it.work.h * scale);
+    it.el.style.width = w + "px";
+    it.el.style.height = h + "px";
+    it.el.style.marginLeft = (-w / 2) + "px";
+    it.el.style.marginTop = (-h / 2) + "px";
+    it.el.style.setProperty("--sp", scale);
+    updateBase(it);
+  }
+
+  /* 卡片在画布里的实际占地半径。
+     ⚠️ 卡片带 rotateZ，旋转后的轴对齐包围盒比原始宽高更大
+     （10° 时宽度方向约多 25px），若按未旋转尺寸约束，
+     窄屏下旋转卡片会顶出画布边界，故这里按包围盒计算。 */
+  function halfExtent(it) {
+    const w = it.work.w * scale, h = it.work.h * scale;
+    const rot = Math.abs(it.rz || 0) * Math.PI / 180;
+    const c = Math.cos(rot), s = Math.sin(rot);
+    return { w: (w * c + h * s) / 2 + 4, h: (w * s + h * c) / 2 + 4 };
+  }
+
+  /* 归一化坐标 → 基准位移（相对画布中心） */
+  function basePos(it) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const he = halfExtent(it);
+    const ax = Math.max(0, W - he.w * 2);
+    const ay = Math.max(0, H - he.h * 2);
+    return { x: (it.work.nx - 0.5) * ax, y: (it.work.ny - 0.5) * ay };
+  }
+
+  /* 基准位移会随画布尺寸变化，缓存起来供每帧使用 */
+  function updateBase(it) { it.base = basePos(it); }
+
+  /* 卡片中心允许的位移范围（x/y 是相对 basePos 的偏移；按旋转后包围盒约束） */
+  function bounds(it) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    const he = halfExtent(it);
+    const b = it.base || basePos(it);
+    const cx = W / 2 + b.x, cy = H / 2 + b.y;
+    return {
+      minX: he.w + 6 - cx,
+      maxX: W - he.w - 6 - cx,
+      minY: he.h + 6 - cy,
+      maxY: H - he.h - 6 - cy
+    };
+  }
+
+  function hardClamp(it) {
+    const bd = bounds(it);
+    it.x = clamp(it.x, bd.minX, bd.maxX);
+    it.y = clamp(it.y, bd.minY, bd.maxY);
+  }
+
+  /* 拖拽中的橡皮筋软墙（越界仍跟手，但有阻尼） */
+  function softClamp(it) {
+    const bd = bounds(it);
+    if (it.x < bd.minX) it.x = bd.minX - (bd.minX - it.x) * WALL;
+    else if (it.x > bd.maxX) it.x = bd.maxX + (it.x - bd.maxX) * WALL;
+    if (it.y < bd.minY) it.y = bd.minY - (bd.minY - it.y) * WALL;
+    else if (it.y > bd.maxY) it.y = bd.maxY + (it.y - bd.maxY) * WALL;
+  }
+
+  /* 有照片的卡片：按图片真实宽高比反推卡片宽度，作品完整不裁切 */
+  function fitPhoto(it) {
+    const img = it.el.querySelector(".work-art img");
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+    const ratio = img.naturalWidth / img.naturalHeight;
+    const artH = Math.max(20, it.work.h - PAD * 2);
+    it.work.w = Math.max(50, artH * ratio + PAD * 2);
+    sizeCard(it);
+    hardClamp(it);
+    it.dirty = true;
+  }
+
+  /* ---- 渲染循环 ---- */
+  let running = false;
+  let lastT = 0;
+
+  function motionActive() {
+    for (let i = 0; i < items.length; i++) if (items[i].dirty) return true;
+    return false;
+  }
+
+  function ensureLoop() {
+    if (running || REDUCED) return;
+    running = true;
+    lastT = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function loop(t) {
+    let dt = (t - lastT) / 1000;
+    lastT = t;
+    if (!(dt > 0)) dt = 0.016;
+    if (dt > 0.033) dt = 0.033;          /* 切标签页回来时不要瞬移 */
+    step(dt);
+    if (motionActive()) requestAnimationFrame(loop);
+    else running = false;
+  }
+
+  function step(dt) {
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      let moving = false;
+
+      /* 1) 3D 倾斜弹簧（鼠标划过时的"轻微晃动"） */
+      if (!REDUCED) {
+        it.rvx += ((SPRING.k * (it.rxT - it.rx) - SPRING.c * it.rvx) / SPRING.m) * dt;
+        it.rvy += ((SPRING.k * (it.ryT - it.ry) - SPRING.c * it.rvy) / SPRING.m) * dt;
+        it.rx += it.rvx * dt;
+        it.ry += it.rvy * dt;
+
+        it.glare += (it.glareT - it.glare) * easeTo(9, dt);
+        it.cur += (it.sT - it.cur) * easeTo(14, dt);
+        it.rz += (it.rzT - it.rz) * easeTo(10, dt);
+
+        if (Math.abs(it.rxT - it.rx) > 0.05 || Math.abs(it.rvx) > 0.05 ||
+            Math.abs(it.ryT - it.ry) > 0.05 || Math.abs(it.rvy) > 0.05 ||
+            Math.abs(it.glareT - it.glare) > 0.002 ||
+            Math.abs(it.sT - it.cur) > 0.0004 ||
+            Math.abs(it.rzT - it.rz) > 0.02) moving = true;
+      }
+
+      /* 2) 惯性滑行 + 撞边界回弹 */
+      if (!it.drag && (it.vx || it.vy)) {
+        it.x += it.vx * dt;
+        it.y += it.vy * dt;
+        const f = Math.exp(-FRICTION * dt);
+        it.vx *= f;
+        it.vy *= f;
+
+        const bd = bounds(it);
+        if (it.x < bd.minX) { it.x = bd.minX - (bd.minX - it.x) * WALL; if (it.vx < 0) it.vx = -it.vx * RESTITUTION; }
+        else if (it.x > bd.maxX) { it.x = bd.maxX + (it.x - bd.maxX) * WALL; if (it.vx > 0) it.vx = -it.vx * RESTITUTION; }
+        if (it.y < bd.minY) { it.y = bd.minY - (bd.minY - it.y) * WALL; if (it.vy < 0) it.vy = -it.vy * RESTITUTION; }
+        else if (it.y > bd.maxY) { it.y = bd.maxY + (it.y - bd.maxY) * WALL; if (it.vy > 0) it.vy = -it.vy * RESTITUTION; }
+
+        /* 甩动时卡片顺着运动方向摆动 */
+        it.rzT = it.work.rot + clamp(-it.vx / SPIN_K, -SPIN_MAX, SPIN_MAX);
+
+        if (Math.abs(it.vx) < 2.5 && Math.abs(it.vy) < 2.5) {
+          it.vx = it.vy = 0;
+          hardClamp(it);                 /* 停下时归位到画布内，不留半截在外 */
+          it.rzT = it.work.rot;
+        }
+        moving = true;
+      }
+
+      /* 3) 写进 DOM（基准偏移 + 用户拖拽偏移） */
+      const bx = (it.base ? it.base.x : 0) + it.x;
+      const by = (it.base ? it.base.y : 0) + it.y;
+      it.el.style.transform =
+        "translate3d(" + bx.toFixed(2) + "px," + by.toFixed(2) + "px,0) " +
+        "rotateZ(" + it.rz.toFixed(2) + "deg) " +
+        "rotateX(" + it.rx.toFixed(2) + "deg) " +
+        "rotateY(" + it.ry.toFixed(2) + "deg) " +
+        "scale(" + it.cur.toFixed(4) + ")";
+      it.el.style.setProperty("--glare", it.glare.toFixed(3));
+
+      /* 已经完全静止 → 收掉循环 */
+      if (moving || it.dirtySum !== it.x + it.y) { it.dirtySum = it.x + it.y; it.dirty = true; }
+      else it.dirty = false;
+    }
+  }
+
+  function bringToFront(it) { it.el.style.zIndex = String(++topZ); }
+
+  /* ---- 倾斜：指针相对卡片中心 ---- */
+  function updateTilt(it, cx, cy) {
+    if (REDUCED) return;
+    const r = it.el.getBoundingClientRect();
+    const dx = cx - (r.left + r.width / 2);
+    const dy = cy - (r.top + r.height / 2);
+    /* 与原组件一致：mouseY → rotateX 取反，mouseX → rotateY 同向 */
+    it.rxT = clamp(dy / TILT_RANGE, -1, 1) * -TILT_MAX;
+    it.ryT = clamp(dx / TILT_RANGE, -1, 1) * TILT_MAX;
+    it.glareT = clamp(Math.abs(dx) / TILT_RANGE, 0, 1) * GLARE_MAX;
+    ensureLoop();
+  }
+
+  function resetTilt(it) {
+    it.rxT = 0;
+    it.ryT = 0;
+    it.glareT = 0;
+    ensureLoop();
+  }
+
+  /* ---- 拖拽 + 惯性 ---- */
+  function attachEvents(it) {
+    const el = it.el;
+
+    el.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      it.drag = {
+        px: e.clientX, py: e.clientY,
+        ox: it.x, oy: it.y,
+        lx: e.clientX, ly: e.clientY,
+        lt: performance.now(),
+        vx: 0, vy: 0,
+        moved: 0
+      };
+      it.vx = it.vy = 0;
+      el.classList.add("dragging");
+      bringToFront(it);
+      el.style.cursor = "grabbing";
+      ensureLoop();
+      e.preventDefault();
+    });
+
+    el.addEventListener("pointermove", function (e) {
+      updateTilt(it, e.clientX, e.clientY);
+      const d = it.drag;
+      if (!d) return;
+
+      const dx = e.clientX - d.px;
+      const dy = e.clientY - d.py;
+      it.x = d.ox + dx;
+      it.y = d.oy + dy;
+      d.moved = Math.max(d.moved, Math.sqrt(dx * dx + dy * dy));
+
+      /* 采样指针速度（px/s），供松手后的惯性使用 */
+      const now = performance.now();
+      const span = now - d.lt;
+      if (span > 10) {
+        d.vx = (e.clientX - d.lx) / (span / 1000);
+        d.vy = (e.clientY - d.ly) / (span / 1000);
+        d.lx = e.clientX; d.ly = e.clientY; d.lt = now;
+        it.rzT = it.work.rot + clamp(-d.vx / SPIN_K, -SPIN_MAX, SPIN_MAX);
+      }
+
+      softClamp(it);
+      ensureLoop();
+    });
+
+    function endDrag() {
+      const d = it.drag;
+      if (!d) return;
+      it.drag = null;
+      el.classList.remove("dragging");
+      el.style.cursor = "";
+      /* 松手 → 惯性甩出（速度 × FLICK，之后按 FRICTION 衰减） */
+      it.vx = d.vx * FLICK;
+      it.vy = d.vy * FLICK;
+      it.rzT = it.work.rot;
+      resetTilt(it);
+      if (d.moved > 3) persist();
+      ensureLoop();
+    }
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
+
+    el.addEventListener("pointerleave", function () {
+      if (it.drag) return;
+      resetTilt(it);
+    });
+
+    el.addEventListener("dblclick", function () {
+      it.x = 0; it.y = 0;
+      it.vx = it.vy = 0;
+      it.rzT = it.work.rot;
+      hardClamp(it);
+      bringToFront(it);
+      persist();
+      ensureLoop();
+    });
+  }
+
+  /* ---- 生成卡片 ---- */
+  function addGlyph(art, work) {
+    const span = document.createElement("span");
+    span.className = "work-glyph";
+    span.textContent = work.glyph;
+    art.appendChild(span);
+  }
+
+  function buildCard(work) {
+    const el = document.createElement("figure");
+    el.className = "work";
+    el.dataset.id = work.id;
+    /* 卡片不再显示文字，作品名只留给读屏与无障碍 */
+    el.setAttribute("aria-label", work.title + "，" + work.meta);
+
+    const art = document.createElement("div");
+    art.className = "work-art";
+
+    if (work.img) {
+      art.classList.add("has-photo");
+      const img = document.createElement("img");
+      img.src = work.img;
+      img.alt = work.title + " · 书法作品";
+      img.draggable = false;
+      img.addEventListener("error", function () {
+        art.classList.remove("has-photo");
+        img.remove();
+        addGlyph(art, work);
+      });
+      art.appendChild(img);
+    } else {
+      addGlyph(art, work);
+    }
+
+    const seal = document.createElement("span");
+    seal.className = "seal";
+    seal.textContent = "涵";
+    art.appendChild(seal);
+
+    el.appendChild(art);
+    return el;
+  }
+
+  /* ---- 初始化 ---- */
+  const saved = loadSaved();
+  scale = computeScale();
+
+  WORKS.forEach(function (work, i) {
+    const el = buildCard(work);
+    stage.appendChild(el);
+
+    const pos = saved[work.id] || [0, 0];
+    const it = {
+      work: work,
+      el: el,
+      x: Number(pos[0]) || 0,
+      y: Number(pos[1]) || 0,
+      vx: 0, vy: 0,
+      rot: work.rot,
+      rz: work.rot, rzT: work.rot,
+      rx: 0, ry: 0, rvx: 0, rvy: 0, rxT: 0, ryT: 0,
+      glare: 0, glareT: 0,
+      cur: 1, sT: 1,
+      drag: null,
+      dirty: true,
+      dirtySum: NaN
+    };
+    items.push(it);
+
+    sizeCard(it);
+    el.style.zIndex = String(i + 1);
+    hardClamp(it);
+    attachEvents(it);
+    it.el.style.transform =
+      "translate3d(" + (it.base.x + it.x).toFixed(2) + "px," + (it.base.y + it.y).toFixed(2) +
+      "px,0) rotateZ(" + it.rz + "deg)";
+
+    /* 照片解码完成 → 按真实宽高比重算卡片宽度 */
+    const photo = el.querySelector(".work-art img");
+    if (photo) {
+      if (photo.complete && photo.naturalWidth) fitPhoto(it);
+      else photo.addEventListener("load", function () { fitPhoto(it); });
+    }
+
+    /* 悬停放大 */
+    el.addEventListener("pointerenter", function (e) {
+      it.sT = HOVER_SCALE;
+      ensureLoop();
+    });
+    el.addEventListener("pointerleave", function () { it.sT = 1; ensureLoop(); });
+
+    /* 依次淡入 */
+    setTimeout(function () { el.classList.add("in"); }, 80 + i * 70);
+  });
+
+  /* ---- 归位 ---- */
+  resetBtn.addEventListener("click", function () {
+    items.forEach(function (it, i) {
+      it.x = 0; it.y = 0;
+      it.vx = it.vy = 0;
+      it.rxT = it.ryT = 0;
+      it.glareT = 0;
+      it.rzT = it.work.rot;
+      it.el.style.zIndex = String(i + 1);
+      ensureLoop();
+    });
+    topZ = items.length;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+  });
+
+  /* 字体加载完可能改变换行 → 重新校正尺寸 */
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(function () { items.forEach(fitPhoto); });
+  }
+
+  /* ---- 窗口尺寸变化 ---- */
+  let resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      const ns = computeScale();
+      if (Math.abs(ns - scale) > 0.001) {
+        scale = ns;
+        items.forEach(sizeCard);
+      }
+      items.forEach(function (it) {
+        const hasPhoto = it.el.querySelector(".work-art img");
+        if (hasPhoto) fitPhoto(it);
+        else { sizeCard(it); hardClamp(it); }
+      });
+      ensureLoop();
+    }, 120);
+  });
+
+  /* 给所有卡片一个初始坐标后再开循环（避免首帧跳动） */
+  ensureLoop();
+</script>
+</body>
+</html>

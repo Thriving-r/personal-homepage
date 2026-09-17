@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>刘孟涵 · 个人主页</title>
+  
+<!-- Supabase 客户端库 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ 设计系统（参照参考图） ============ */
+  :root {
+    /* 水彩天空蓝 */
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    /* 文字 */
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    /* 字体：标题衬线 / 正文无衬线 / 标语手写 */
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    /* 保证任何窗口宽度下都留有最小外距，避免内容贴边（尤其 1080~1200px 窗口） */
+    padding: 0 clamp(12px, 3vw, 40px);
+    /* 水彩天空背景：底图 + 多层柔光晕染 + 极淡纸纹，增加层次、减少单调 */
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.05'/></svg>"),
+      radial-gradient(1100px 620px at 10% 4%, rgba(255,255,255,0.90), rgba(255,255,255,0) 62%),
+      radial-gradient(900px 560px at 92% 6%, rgba(244,199,214,0.30), rgba(244,199,214,0) 64%),
+      radial-gradient(1200px 760px at 50% 106%, rgba(180,212,236,0.60), rgba(180,212,236,0) 62%),
+      url("assets/bg.jpg");
+    background-size: 140px 140px, cover, cover, cover, cover;
+    background-position: left top, center top, right top, center bottom, center top;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 像素蕾丝花边（分区装饰） ==== */
+  .lace {
+    height: 22px;
+    background-repeat: repeat-x;
+    background-position: center;
+  }
+  .lace-top {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 22 A11 11 0 0 1 22 22 A11 11 0 0 1 44 22' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='4' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='4' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+  .lace-bot {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 0 A11 11 0 0 0 22 0 A11 11 0 0 0 44 0' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='18' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='18' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+
+  /* ==== 顶部：胶囊导航 ==== */
+  .masthead {
+    text-align: center;
+    padding: clamp(30px, 6vw, 52px) 16px 8px;
+  }
+
+  /* ==== TAB 面板切换 ==== */
+  .panel { display: none; }
+  .panel.active { display: block; }
+  /* ==== 首页手绘标题 WELCOME TO MY UNIVERSE ==== */
+  .welcome {
+    text-align: center;
+    padding: clamp(26px, 5vw, 48px) 16px 0;
+  }
+  .welcome h1 {
+    font-family: "Permanent Marker", "Caveat", cursive;
+    font-weight: 400;
+    font-size: clamp(34px, 8vw, 78px);
+    line-height: 1.12;
+    letter-spacing: 0.03em;
+    color: #3d6c99;            /* 深一点的蓝 */
+    text-transform: uppercase;
+    transform: rotate(-1.6deg);
+    /* 浅一点蓝的多层阴影（右下） */
+    text-shadow:
+      1px 1px 0 #cfe4f5,
+      2px 2px 0 #bcd7ec,
+      3px 3px 0 #a9cbe6,
+      5px 6px 14px rgba(95,139,181,0.32);
+  }
+  .welcome .welcome-sub {
+    margin-top: 18px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(18px, 3.4vw, 26px);
+    letter-spacing: 0.34em;
+    color: var(--ink-500);
+  }
+
+  /* ==== 全站常驻的液态玻璃球（自包含 WebGL，无外部依赖） ====
+     同一颗球在 Home / About Me / Virtual Space 三个面板都在（桌面端），
+     并且**在整个页面范围内跟着鼠标跑**：指针移到哪，球就缓动追到哪。
+     停靠点（指针离开窗口 / 键盘切面板时球回到的地方）由脚本 placeOrb() 计算：
+     Home 面板贴在欢迎语右侧（保持原本的 Hero 观感），另外两个面板停在右侧留白处。
+     球的实际位置由渲染循环的缓动赋值给 transform，所以这里只固定「布局盒」。
+     窄屏（≤700px）没有右侧留白也没有鼠标跟随：Home 回落到欢迎语下方的文档流，
+     另外两个面板藏球，见 placeOrb()。
+     pointer-events:none → 它浮在正文之上，但绝不拦截点击、划选、滚轮。 */
+  .welcome { position: relative; }
+  .welcome h1, .welcome .welcome-sub { position: relative; z-index: 2; }
+  .hero-glass {
+    position: absolute;         /* 布局盒钉在文档原点，真实位置由 JS 用 transform 摆 */
+    top: 0;
+    left: 0;
+    width: clamp(150px, 20vw, 236px);
+    aspect-ratio: 1 / 1;
+    z-index: 15;                /* 正文之上、左侧图标条（20）之下 */
+    pointer-events: none;
+    will-change: transform;
+    /* 这里不再写 top/right 过渡：跟随与切面板滑行统一由渲染循环缓动，避免两套动画打架 */
+  }
+  /* canvas 本身带真实 alpha，drop-shadow 会沿着球体轮廓生成投影，
+     让半透明玻璃球在浅色云背景上「浮」起来 */
+  .hero-glass canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 12px 26px rgba(86, 128, 168, 0.30));
+  }
+  @media (max-width: 700px) {
+    /* 窄屏既没有「右侧留白」也没有鼠标跟随：球回到欢迎语下方的文档流里
+       （与改造前手机版观感一致，绝不压正文），另外两个面板由脚本直接藏球 */
+    .hero-glass {
+      position: static;
+      width: min(180px, 46vw);
+      margin: 18px auto 0;
+    }
+    .hero-glass canvas {
+      filter: drop-shadow(0 8px 18px rgba(86, 128, 168, 0.26));
+    }
+  }
+
+  .masthead .site-title {
+    font-family: var(--font-serif);
+    font-size: clamp(30px, 6.4vw, 56px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink-700);
+    text-shadow: 0 2px 12px rgba(255,255,255,0.6);
+  }
+  .masthead .site-title small {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: clamp(12px, 2vw, 15px);
+    letter-spacing: 0.28em;
+    color: var(--ink-500);
+    margin-top: 8px;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+  .masthead .site-title { display: none; }
+  .masthead .site-title small { display: none; }
+
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    margin-top: 0;
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active {
+    color: var(--ink-900);
+    background: var(--sky-100);
+  }
+
+  /* ==== 页面栅格 ==== */
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px) 90px;
+  }
+
+  /* ==== 冰蓝半透明卡片 ==== */
+  .card {
+    background: linear-gradient(160deg, rgba(210,236,251,0.66), rgba(255,255,255,0.86));
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 26px;
+    padding: clamp(24px, 4vw, 40px);
+    box-shadow: 0 18px 46px rgba(95,139,181,0.14);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--ink-700);
+    letter-spacing: 0.06em;
+    margin-bottom: 22px;
+  }
+  .card-title .en {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+  }
+
+  /* ==== 主视觉卡片（About me） ==== */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  @media (min-width: 640px) {
+    .about-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .about-item { min-width: 0; }
+  .about-item h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--sky-600);
+    letter-spacing: 0.12em;
+    margin-bottom: 9px;
+  }
+  .about-item h3 .en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .about-item p { font-size: 15.5px; color: var(--ink-700); }
+  .about-item p.en {
+    font-size: 12.5px;
+    color: var(--ink-500);
+    margin-top: 3px;
+    letter-spacing: 0.02em;
+  }
+  /* 行内文字外链（学校官网 / 专业详情页）：保持原有配色，仅加可点击提示 */
+  .school-link,
+  .major-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--line);
+    transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  }
+  .school-link:hover,
+  .school-link:focus-visible,
+  .major-link:hover,
+  .major-link:focus-visible {
+    color: var(--sky-600);
+    border-bottom-color: var(--sky-400);
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--sky-400);
+    display: inline-block;
+    flex: none;
+  }
+  .span-all { grid-column: 1 / -1; }
+
+  .interest-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 12px;
+  }
+  .pill {
+    padding: 6px 15px;
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    color: var(--ink-700);
+    font-size: 13.5px;
+    letter-spacing: 0.04em;
+    box-shadow: 0 3px 10px rgba(95,139,181,0.08);
+  }
+  .pill-en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.1em;
+    margin-left: 6px;
+  }
+  /* 可点击的 pill（例如「旅行」跳转到 travel.html） */
+  a.pill {
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+  }
+  a.pill:hover {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.95);
+    color: var(--ink-900);
+    box-shadow: 0 7px 18px rgba(95,139,181,0.22);
+  }
+  a.pill .pill-en { transition: color .2s ease; }
+  a.pill:hover .pill-en { color: var(--sky-600); }
+
+  /* ==== 头像 ==== */
+  .avatar-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 22px;
+    margin-top: 6px;
+  }
+  .avatar {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 26%, #ffffff 0%, transparent 42%),
+      linear-gradient(135deg, var(--sky-200), var(--sky-400));
+    border: 4px solid #fff;
+    box-shadow: 0 14px 30px rgba(95,139,181,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .avatar span {
+    font-family: var(--font-serif);
+    font-size: 48px;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(43,59,76,0.18);
+  }
+
+  .hero-intro { text-align: center; padding: 6px 12px 0; }
+  .name {
+    font-family: var(--font-serif);
+    font-size: clamp(30px, 5vw, 42px);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink-900);
+    line-height: 1.25;
+  }
+  .tagline {
+    margin-top: 12px;
+    font-family: var(--font-serif);
+    font-size: clamp(16px, 2.4vw, 20px);
+    color: var(--ink-700);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+  .hero-note {
+    margin-top: 14px;
+    font-size: 13.5px;
+    color: var(--ink-500);
+    letter-spacing: 0.05em;
+  }
+
+  .contact-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+  }
+  .contact-list a {
+    font-size: 14.5px;
+    color: var(--sky-600);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--sky-300);
+    padding-bottom: 1px;
+    transition: color .2s ease, border-color .2s ease;
+  }
+  .contact-list a:hover { color: var(--ink-900); border-color: var(--ink-400); }
+  .contact-tag {
+    font-size: 10.5px;
+    color: var(--ink-500);
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    letter-spacing: 0.04em;
+  }
+
+  /* ==== 旅行照片轮播区 ==== */
+  .journey {
+    margin-top: clamp(30px, 5vw, 50px);
+  }
+  .stage {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 22px 50px rgba(95,139,181,0.22);
+    border: 6px solid rgba(255,255,255,0.75);
+    aspect-ratio: 16 / 8;
+  }
+  .stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity .8s ease, transform .8s ease;
+    transform: scale(1.04);
+  }
+  .stage img.show { opacity: 1; transform: scale(1); }
+
+  .season-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0 14px;
+    color: var(--ink-700);
+    font-family: var(--font-serif);
+    font-size: 20px;
+    letter-spacing: 0.22em;
+  }
+  .season-label .arrow {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--ink-500);
+    user-select: none;
+    border: none;
+    background: none;
+    padding: 4px 8px;
+    transition: color .2s ease;
+  }
+  .season-label .arrow:hover { color: var(--ink-900); }
+
+  .thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .thumbs img {
+    width: 110px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.85);
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.16);
+  }
+  .thumbs img:hover { transform: translateY(-3px); }
+  .thumbs img.current { box-shadow: 0 0 0 3px var(--sky-400), 0 8px 20px rgba(95,139,181,0.26); }
+
+  .journey-caption {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-500);
+    letter-spacing: 0.08em;
+  }
+
+  /* ==== 标语：手写英文 ==== */
+  .motto-wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 26px;
+    align-items: center;
+    padding: clamp(28px,5vw,48px) 6px;
+    position: relative;
+  }
+  @media (min-width: 760px) { .motto-wrap { grid-template-columns: 1fr 1.1fr; } }
+  .motto {
+    font-family: var(--font-hand);
+    font-size: clamp(22px, 3.4vw, 32px);
+    line-height: 1.7;
+    color: var(--ink-700);
+    text-align: center;
+  }
+  .motto .flower {
+    display: block;
+    margin: 0 auto 14px;
+    width: 40px;
+  }
+  .motto-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-500);
+  }
+
+  /* ==== 左侧白色竖排圆形图标条 ==== */
+  .side-dock {
+    position: fixed;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 20;
+  }
+  .side-dock a {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: var(--ink-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.18);
+    transition: transform .2s ease, color .2s ease;
+  }
+  .side-dock a:hover { transform: translateY(-2px); color: var(--sky-600); }
+  @media (max-width: 720px) { .side-dock { display: none; } }
+
+  /* ==== 数字分身聊天 ==== */
+  .chat { display: flex; flex-direction: column; min-height: 380px; }
+  .chat-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(217,232,244,0.8);
+    margin-bottom: 4px;
+  }
+  .chat-head .mini {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--sky-200), var(--sky-400));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    flex: none;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.2);
+    overflow: hidden;
+  }
+  .chat-head .mini img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .chat-head .who strong {
+    font-family: var(--font-serif);
+    font-size: 16.5px;
+    display: block;
+    color: var(--ink-900);
+    letter-spacing: 0.04em;
+  }
+  .chat-head .who span { font-size: 11.5px; color: var(--ink-400); }
+  .online {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--sky-600);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .online::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #7aa77a; }
+
+  .quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 0 4px;
+  }
+  .quick button {
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.7);
+    color: var(--ink-700);
+    transition: all .2s ease;
+    box-shadow: 0 3px 8px rgba(95,139,181,0.08);
+  }
+  .quick button:hover { background: var(--sky-200); }
+
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 8px 2px;
+    scroll-behavior: smooth;
+  }
+  .msg { display: flex; gap: 10px; max-width: 100%; }
+  .msg .bubble {
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .msg.me { justify-content: flex-end; }
+  .msg.me .bubble {
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.2);
+  }
+  .msg.digital .bubble {
+    background: rgba(255,255,255,0.88);
+    border: 1px solid rgba(255,255,255,0.9);
+    color: var(--ink-700);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 4px 12px rgba(95,139,181,0.1);
+  }
+  .msg .avatar-tag {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 14px;
+    color: #fff;
+    margin-top: 2px;
+    background: linear-gradient(135deg, var(--sky-200), var(--sky-400));
+  }
+  .msg.me .avatar-tag { display: none; }
+
+  .typed::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--sky-600); }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .input-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(217,232,244,0.8);
+  }
+  .input-bar input {
+    flex: 1;
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background: rgba(255,255,255,0.85);
+    outline: none;
+    transition: border-color .2s ease;
+  }
+  .input-bar input:focus { border-color: var(--sky-400); }
+  .chat-foot {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--ink-400);
+    text-align: center;
+  }
+
+  /* ==== 页脚 ==== */
+  .footer {
+    margin-top: 46px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.06em;
+  }
+
+  /* ==== 给我建议 ==== */
+  .advice-into {
+    font-size: 14px;
+    color: var(--ink-500);
+    letter-spacing: 0.02em;
+    margin: -6px 0 22px;
+  }
+  .advice-form { display: flex; flex-direction: column; gap: 20px; }
+  .field label {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--sky-600);
+    letter-spacing: 0.1em;
+    margin-bottom: 9px;
+  }
+  .field label .en {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .field input,
+  .field textarea {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    color: var(--ink-900);
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 14px;
+    padding: 13px 16px;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease;
+    resize: vertical;
+  }
+  .field input::placeholder,
+  .field textarea::placeholder { color: var(--ink-400); }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: var(--sky-400);
+    box-shadow: 0 0 0 3px rgba(147,188,221,0.16);
+  }
+  .advice-actions { display: flex; justify-content: flex-end; }
+
+  /* ==== Stateful Button（交互借鉴 Aceternity UI · MIT） ==== */
+  .stateful-btn {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--sky-400), var(--sky-600));
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(95,139,181,0.24);
+    transition: width .42s cubic-bezier(.65, 0, .35, 1),
+                box-shadow .2s ease,
+                opacity .2s ease,
+                transform .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stateful-btn:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-2px);
+    /* hover 外环：2px 间隙 + 2px 环（对照 Aceternity 的 hover:ring-2 ring-offset-2） */
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 4px var(--sky-400),
+      0 8px 20px rgba(95,139,181,0.24);
+  }
+  .stateful-btn:focus-visible { outline: 2px solid var(--sky-600); outline-offset: 3px; }
+  .stateful-btn:disabled { cursor: default; }
+
+  /* loading / success：文字隐去，按钮收缩为圆形，图标居中 */
+  .stateful-btn.is-loading,
+  .stateful-btn.is-success {
+    width: 48px;
+    transform: none;
+  }
+  .stateful-btn .sb-label,
+  .stateful-btn .sb-icon {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .18s ease;
+  }
+  .stateful-btn .sb-icon { opacity: 0; }
+  .stateful-btn.is-loading .sb-label { opacity: 0; }
+  .stateful-btn.is-loading .sb-spinner { opacity: 1; }
+  .stateful-btn.is-success .sb-label,
+  .stateful-btn.is-success .sb-spinner { opacity: 0; }
+  .stateful-btn.is-success .sb-check { opacity: 1; }
+
+  .stateful-btn .sb-icon > svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 旋转圆环 */
+  .sb-spinner > svg { animation: sb-spin .65s linear infinite; }
+  @keyframes sb-spin { to { transform: rotate(360deg); } }
+
+  /* 对勾描边动画 */
+  .sb-check > svg path { stroke-dasharray: 26; stroke-dashoffset: 26; }
+  .stateful-btn.is-success .sb-check > svg path { animation: sb-draw .4s ease .1s forwards; }
+  @keyframes sb-draw { to { stroke-dashoffset: 0; } }
+
+  .advice-done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--sky-600);
+    background: rgba(210,236,251,0.5);
+    border: 1px solid rgba(217,232,244,0.9);
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  .advice-done[hidden] { display: none; }
+  .advice-done .advice-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #7aa77a;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex: none;
+  }
+
+  .section-gap { height: clamp(30px, 6vw, 56px); }
+</style>
+</head>
+<body>
+
+  <!-- 左侧白色竖排圆形图标条 -->
+  <div class="side-dock">
+    <a href="#top" title="首页">⌂</a>
+    <a href="#about" title="关于我">人</a>
+    <a href="#contact" title="联系">✉</a>
+  </div>
+
+  <div class="page" id="top">
+    <!-- 顶部：胶囊导航（面板切换） -->
+    <header class="masthead">
+      <nav class="nav" id="nav">
+        <a href="#about" data-panel="about" class="active">About Me</a>
+        <a href="#home" data-panel="home">Home</a>
+        <a href="#chat" data-panel="chat">Virtual Space</a>
+      </nav>
+    </header>
+
+    <div class="lace lace-top"></div>
+
+    <!-- ============== HOME 面板 ============== -->
+    <section class="panel" id="panel-home">
+      <!-- 手绘主标题 -->
+      <section class="welcome">
+        <h1>Welcome to<br />My Universe</h1>
+        <div class="welcome-sub">— Menghan Liu · Personal Homepage —</div>
+      </section>
+
+      <div class="section-gap"></div>
+
+      <!-- 旅行照片轮播区 -->
+      <section class="journey">
+        <div class="stage">
+          <img id="main" src="assets/tour-1.jpg" alt="旅行风景" />
+        </div>
+        <div class="season-label">
+          <button class="arrow" id="prev" aria-label="上一张">◀</button>
+          <span id="season">EXPLORE</span>
+          <button class="arrow" id="next" aria-label="下一张">▶</button>
+        </div>
+        <div class="thumbs" id="thumbs">
+          <img src="assets/tour-1.jpg" data-season="SUMMER" alt="夏·海边栈道" class="current" />
+          <img src="assets/tour-2.jpg" data-season="CITY" alt="地中海小镇" />
+          <img src="assets/tour-3.jpg" data-season="INK" alt="书法 · 墨" />
+        </div>
+        <div class="journey-caption" id="caption">夏 · 海边的栈道和遮阳伞</div>
+        <div class="lace lace-bot"></div>
+      </section>
+
+      <div class="section-gap"></div>
+
+      <!-- 手写英文标语 -->
+      <section class="motto-wrap">
+        <div>
+          <svg class="flower" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <g fill="#f4c7d6">
+              <circle cx="24" cy="14" r="7"/>
+              <circle cx="34" cy="24" r="7"/>
+              <circle cx="24" cy="34" r="7"/>
+              <circle cx="14" cy="24" r="7"/>
+            </g>
+            <circle cx="24" cy="24" r="5" fill="#ffffff"/>
+          </svg>
+          <p class="motto">Slow down, breathe deeply,<br/>and appreciate the simple joys<br/>that make life so beautiful.</p>
+        </div>
+        <div>
+          <div class="motto-note" style="margin-bottom:16px;">这也是我想过的生活：慢慢走，深深呼吸，认真感受。</div>
+          <div class="card" style="padding:24px;">
+            <div class="mini-list">
+              <p style="font-size:14px; color:var(--ink-700);">也许你也喜欢——</p>
+              <div class="interest-pills" style="margin-top:10px;">
+                <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
+                <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
+                <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 给我建议 -->
+      <section id="advice-section">
+        <div class="card">
+          <div class="card-title">给我建议 <span class="en">Advice &amp; Feedback</span></div>
+          <p class="advice-into">欢迎留下你的想法、建议或想对我说的话，我会认真看的。</p>
+          <form id="advice-form" class="advice-form" novalidate>
+            <div class="field">
+              <label for="nick">你的昵称 <span class="en">Your Name</span></label>
+              <input id="nick" type="text" name="nick" placeholder="怎么称呼你？（选填）" autocomplete="nickname" />
+            </div>
+            <div class="field">
+              <label for="relation">与我的关系 <span class="en">Your Relation</span></label>
+              <select id="relation" name="relation" required>
+                <option value="">请选择</option>
+                <option value="同学">同学</option>
+                <option value="老师">老师</option>
+                <option value="家人">家人</option>
+                <option value="朋友">朋友</option>
+                <option value="同事">同事</option>
+                <option value="其他">其他</option>
+                <option value="不便透露">不便透露</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="device">设备 <span class="en">Device</span></label>
+              <select id="device" name="device" required>
+                <option value="">请选择</option>
+                <option value="电脑">电脑</option>
+                <option value="手机">手机</option>
+                <option value="平板">平板</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="advice">填写建议 <span class="en">Your Suggestion</span></label>
+              <textarea id="advice" name="advice" rows="5" placeholder="把你想说的写在这里吧……请具体描述问题或建议。" required></textarea>
+            </div>
+            <div class="advice-actions">
+              <button type="submit" class="stateful-btn" id="advice-send">
+                <span class="sb-icon sb-spinner" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                </span>
+                <span class="sb-icon sb-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                </span>
+                <span class="sb-label">Send</span>
+              </button>
+            </div>
+            <div class="advice-done" id="advice-done" hidden>
+              <span class="advice-check">✓</span> 感谢你的反馈，我已经收到！
+            </div>
+          </form>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============== ABOUT ME 面板 ============== -->
+    <section class="panel" id="panel-about">
+      <!-- 主视觉：头像 + 介绍 + 关于我 -->
+      <section id="about">
+      <div class="card" style="text-align:center; padding-bottom: 34px;">
+        <div class="avatar-row"><div class="avatar"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div></div>
+        <div class="hero-intro">
+          <div class="name">刘孟涵</div>
+          <p class="tagline">把日子过成自己喜欢的样子</p>
+          <p class="hero-note">大一在读 · 在深圳慢慢长大 · 记录生活的人</p>
+        </div>
+
+        <div style="height:26px;"></div>
+
+        <div class="card-title" style="justify-content:center; margin-bottom:14px;">
+          关于我 <span class="en">About Me</span>
+        </div>
+
+        <div class="about-grid" style="text-align:left;">
+          <div class="about-item">
+            <h3><span class="dot"></span>学校 <span class="en">School</span></h3>
+            <p><a class="school-link" href="https://sz.tju.edu.cn/" target="_blank" rel="noopener">天津大学香港理工大学深圳未来技术学院</a></p>
+            <p class="en"><a class="school-link" href="https://sz.tju.edu.cn/" target="_blank" rel="noopener">TJU-PolyU Shenzhen Institute of Future Technology</a></p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>专业 <span class="en">Major</span></h3>
+            <p><a class="major-link" href="bci.html">智能医学工程（脑机接口方向）</a></p>
+            <p class="en"><a class="major-link" href="bci.html">Intelligent Medical Engineering · BCI</a></p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>身份 <span class="en">Status</span></h3>
+            <p>大一学生</p>
+            <p class="en">Freshman undergraduate</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>最近在做 <span class="en">Now</span></h3>
+            <p>打磨这个主页 · 上大一必修课 · 用脚步认识深圳</p>
+            <p class="en">Building this page · Studying · Exploring Shenzhen</p>
+          </div>
+          <div class="about-item">
+            <h3><span class="dot"></span>兴趣 <span class="en">Interests</span></h3>
+            <div class="interest-pills">
+              <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
+              <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
+              <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
+            </div>
+          </div>
+          <div class="about-item span-all" id="contact">
+            <h3><span class="dot"></span>联系方式 <span class="en">Contact</span></h3>
+            <div class="contact-list">
+              <a href="mailto:lmh_2007@tju.edu.cn">lmh_2007@tju.edu.cn</a>
+              <span class="contact-tag">天大 TJU</span>
+              <a href="mailto:menghan.liu@connect.polyu.hk">menghan.liu@connect.polyu.hk</a>
+              <span class="contact-tag">港理工 PolyU</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    </section>
+
+    <!-- ============== VIRTUAL SPACE 面板 ============== -->
+    <section class="panel" id="panel-chat">
+      <div class="lace"></div>
+
+      <!-- 数字分身 -->
+      <section id="chat">
+        <div class="card">
+          <div class="card-title">数字分身 · 和我聊聊 <span class="en">Virtual Space</span></div>
+          <div class="chat">
+            <div class="chat-head">
+              <div class="mini"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div>
+              <div class="who">
+                <strong>刘孟涵的数字分身</strong>
+                <span>基于主人的公开信息 · 本地原型</span>
+              </div>
+              <div class="online">在线</div>
+            </div>
+            <div class="quick" id="quick">
+              <button data-q="你是谁？">你是谁？</button>
+              <button data-q="你在学什么？">你在学什么？</button>
+              <button data-q="平时喜欢做什么？">平时喜欢做什么？</button>
+              <button data-q="怎么联系你？">怎么联系你？</button>
+            </div>
+            <div class="log" id="log"></div>
+            <div class="input-bar">
+              <input id="input" type="text" placeholder="随便聊聊，比如「你最近在做什么？」" />
+              <button id="send" class="stateful-btn" type="button">
+                <span class="sb-icon sb-spinner" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                </span>
+                <span class="sb-icon sb-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                </span>
+                <span class="sb-label">Send</span>
+              </button>
+            </div>
+            <div class="chat-foot">本地规则引擎原型 · 之后可接入真实 AI</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <footer class="footer">
+      刘孟涵 · 个人主页 · 天津大学香港理工大学深圳未来技术学院
+    </footer>
+  </div>
+
+<!-- 全站常驻的液态玻璃球：三个面板共用同一颗，脚本按当前面板计算落点 -->
+<div class="hero-glass" id="heroGlass" aria-hidden="true">
+  <canvas id="glassCanvas"></canvas>
+</div>
+
+<script>
+  /* ---- 可配置资料：想补充信息时只改这里，分身会自动用上 ---- */
+  const profile = {
+    name: "刘孟涵",
+    en: "Menghan Liu",
+    role: "大一学生",
+    major: "智能医学工程（脑机接口方向）",
+    school: "天津大学香港理工大学深圳未来技术学院",
+    interests: ["旅行", "书法", "Citywalk"],
+    doing: "搭个人主页、学习大一必修课、探索深圳",
+    email: {
+      tju: "lmh_2007@tju.edu.cn",
+      polyu: "menghan.liu@connect.polyu.hk",
+    },
+    /* 以下留空 = 暂未公开：分身会诚实说明，并引导到邮件，不编造 */
+    city: "深圳",
+    hometown: "",
+    goal: "",
+  };
+
+  const greeting = "嗨，我是刘孟涵的数字分身——接下来我都用第一人称跟你聊。这页里公开的信息我都记得：学校、专业、兴趣、近况，随便问。";
+  const fallback = [
+    "这个我还没在这页里公开，不能瞎编。要不问问：我现在在做什么？学的什么专业？怎么联系我？",
+    "唔，这个问题超出我掌握的范围了。你可以换个问法，或者直接发邮件给我。",
+    "这个我暂时答不上来。试试问我：我的学校、专业、爱好，或者最近在忙什么？",
+  ];
+  const moreHint = [
+    "你想了解哪一方面？学校、专业、兴趣、近况、联系方式，我都能聊。",
+    "还可以问我：我现在在做什么、学什么专业、平时喜欢什么、怎么联系我。",
+  ];
+
+  const rules = [
+    /* —— 近况 —— */
+    { k: ["现在在做什么", "在做什么", "在做什么呢", "忙什么", "最近在干嘛", "最近在干嘛呢", "最近忙", "近况", "最近怎么样", "最近如何", "过得怎么样", "最近干啥"],
+      a: [
+        "我最近主要忙三件事：亲手搭这个个人主页、学习大一必修课、抽空探索深圳。日子过得挺充实。",
+        "最近我挺满的：一边打磨这个主页，一边应付大一必修课，空下来就爱在深圳的大街小巷转悠。",
+      ] },
+    /* —— 专业 / 学业 —— */
+    { k: ["专业", "什么专业", "学的什么", "学什么", "学啥", "学习什么", "课程", "上什么课", "智能医学", "脑机接口", "脑机", "医学工程"],
+      a: [
+        "我读的是智能医学工程，方向是脑机接口，在天津大学香港理工大学深圳未来技术学院。说白了，是把智能技术用在守护健康这件事上。",
+        "我的专业是智能医学工程（脑机接口方向），对「用大脑信号去控制外部设备」这类前沿方向特别有兴趣。",
+      ] },
+    { k: ["为什么选", "为什么学", "当初为什么", "怎么会选", "怎么想到学"],
+      a: [
+        "我选这个方向，是觉得「智能 + 医学」既前沿又实在，能真正帮到人。脑机接口尤其让我好奇。",
+        "我想做点能落地、又能帮到人的事，所以选了智能医学工程里的脑机接口方向。",
+      ] },
+    { k: ["大一", "大学生活", "大学感受", "刚上大学", "适应", "宿舍"],
+      a: [
+        "我刚上大一，还在适应大学节奏——课程比高中更自主，也更需要自己安排时间。整体感觉新鲜又充实。",
+        "大一对我来说是新起点：一边补基础课，一边慢慢找到自己真正想做的东西。",
+      ] },
+    /* —— 学校 —— */
+    { k: ["学校", "哪个学校", "什么学校", "就读", "在哪读", "哪所大学", "天津大学", "港理工", "香港理工", "未来技术学院"],
+      a: [
+        "我就读于天津大学香港理工大学深圳未来技术学院，校区在深圳——一座特别有活力的城市。",
+        "我的学校是天津大学和香港理工大学合办的深圳未来技术学院，我很喜欢这边的氛围。",
+      ] },
+    { k: ["深圳"],
+      a: [
+        "我在深圳读书。这座城市年轻、节奏快，又靠海，我挺喜欢在这里探索。",
+        "深圳是我现在的城市，开放、有活力，周末总能找到新地方逛。",
+      ] },
+    /* —— 联系方式 —— */
+    { k: ["联系", "怎么找到", "怎么联系", "联系方式", "微信", "邮箱", "email", "邮件", "加你", "找你", "写信", "发消息"],
+      a: [
+        "发邮件找我最方便：天大邮箱 lmh_2007@tju.edu.cn，港理工邮箱 menghan.liu@connect.polyu.hk。",
+        "可以通过邮件找到我——lmh_2007@tju.edu.cn（天大）或 menghan.liu@connect.polyu.hk（港理工）。",
+      ] },
+    /* —— 兴趣 —— */
+    { k: ["兴趣", "爱好", "喜欢做什么", "平时喜欢", "平时做什么", "周末", "空闲", "业余"],
+      a: [
+        "我爱旅行、练书法，也爱 Citywalk。这三件事让我既走得远，也能静得下心来。",
+        "平时我会旅行、写书法、在城市里走走——一个往外走，一个往内收，我觉得这样刚好平衡。",
+      ] },
+    { k: ["旅行", "旅游", "去过哪里", "去哪玩", "出行"],
+      a: [
+        "旅行是我的爱好之一。我喜欢在世界里走走看看，把见闻变成自己的故事。",
+        "我爱旅行，喜欢到没去过的地方慢慢逛，也爱把路上的风景拍下来。",
+      ] },
+    { k: ["书法", "写字", "练字"],
+      a: [
+        "书法是我安静下来的方式。一笔一划之间，能和自己好好待一会儿。",
+        "我练书法，这是让自己慢下来的仪式感。",
+      ] },
+    { k: ["citywalk", "城市漫步", "散步", "逛街", "暴走"],
+      a: [
+        "Citywalk 是我认识城市的方式：不赶景点，沿着街巷慢慢走，看看店招、树影和路人的日常。",
+        "我喜欢城市漫步，觉得用脚步量一座城市，比翻攻略更能记住它。",
+      ] },
+    /* —— 关于这个主页 / 分身 —— */
+    { k: ["这个主页", "这个网站", "这个页面", "网站怎么", "页面怎么", "谁做的", "怎么做的", "搭建"],
+      a: [
+        "这个主页是我自己动手搭的：原生 HTML + CSS + JS，没有用框架，连旅行页的 3D 地球也是自己配的。",
+        "页面是我亲手写的，风格走「水彩天空蓝 + 手帐感」，你看到的每个面板都是我自己安排的。",
+      ] },
+    { k: ["你是不是真人", "你是真人吗", "你是不是ai", "你是ai", "机器人", "数字分身", "你是谁", "你叫什么", "介绍一下你"],
+      a: [
+        "我不是真人本人，是刘孟涵的数字分身——下面说的都用第一人称，但别把我和他本人搞混啦。",
+        "我是刘孟涵的数字分身，不是本人哦。学校、专业、兴趣这些问题我都能答。",
+      ] },
+    /* —— 未公开信息：诚实引导 —— */
+    { k: ["家乡", "哪里人", "老家", "家在哪", "你家", "住哪", "住在哪", "几岁", "多大", "年龄", "生日", "星座"],
+      a: [
+        "这些私人信息我还没在这页里公开，就不好多说啦。想了解的话，发邮件问我最直接。",
+        "这个我还没公开，不能乱说。你可以发邮件问我本人。",
+      ] },
+    { k: ["梦想", "目标", "未来", "打算", "规划", "以后想做"],
+      a: [
+        "长远目标我还没在这里写下来。不过从我现在做的事看，方向大概率和「智能 + 医学」有关。",
+        "未来的规划我还没公开。要不直接发邮件问我？",
+      ] },
+    /* —— 社交礼节 —— */
+    { k: ["你好", "您好", "hi", "hello", "hey", "嗨", "在吗", "在不在"],
+      a: [
+        "你好呀！我是刘孟涵的数字分身，用第一人称跟你聊。想聊学校、专业、兴趣还是近况？",
+        "嗨！很高兴见到你。想了解我什么，随便问～",
+      ] },
+    { k: ["谢谢", "感谢", "多谢", "thanks", "thank you", "辛苦"],
+      a: [
+        "不客气～有任何想了解的，继续问我就好。",
+        "不用谢！能帮上忙就好。",
+      ] },
+    { k: ["再见", "拜拜", "走了", "byebye", "bye"],
+      a: [
+        "再见啦，欢迎常来看看我的主页。",
+        "拜拜～有空再聊。",
+      ] },
+    { k: ["厉害", "好棒", "真棒", "牛", "优秀", "不错哦", "佩服"],
+      a: [
+        "谢谢夸奖，很开心～",
+        "哈哈，我确实挺认真的，谢谢你的肯定。",
+      ] },
+    { k: ["建议", "意见", "反馈", "想对你说", "留言"],
+      a: [
+        "想给我提建议的话，首页「给我建议」那张卡片可以直接留言，我会看到。",
+        "欢迎在「给我建议」里留言，也可以发邮件给我。",
+      ] },
+    { k: ["还有呢", "然后呢", "展开", "继续说", "详细", "多一点", "不知道问什么", "你会什么", "能做什么", "能聊什么", "随便聊", "聊聊", "说点什么"],
+      a: moreHint },
+  ];
+
+
+  /* ============ 对话逻辑 ============ */
+  const logEl = document.getElementById("log");
+  const inputEl = document.getElementById("input");
+  const sendBtn = document.getElementById("send");
+
+  function makeDigitalBubble(text) {
+    const wrap = document.createElement("div");
+    wrap.className = "msg digital";
+    const tag = document.createElement("div");
+    tag.className = "avatar-tag";
+    tag.textContent = "刘";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    wrap.appendChild(tag);
+    wrap.appendChild(bubble);
+    logEl.appendChild(wrap);
+    logEl.scrollTop = logEl.scrollHeight;
+    return bubble;
+  }
+
+  function typeOut(bubble, text) {
+    let i = 0;
+    bubble.textContent = "";
+    bubble.classList.add("typed");
+    const step = () => {
+      bubble.textContent = text.slice(0, ++i);
+      logEl.scrollTop = logEl.scrollHeight;
+      if (i < text.length) setTimeout(step, 14);
+      else bubble.classList.remove("typed");
+    };
+    step();
+  }
+
+  function pick(arr) {
+    return Array.isArray(arr) ? arr[Math.floor(Math.random() * arr.length)] : arr;
+  }
+
+  /* 关键词命中打分：命中的词越长越具体，优先级越高；同长则看命中数量 */
+  function scoreRule(q, r) {
+    let longest = 0;
+    let hits = 0;
+    for (const kw of r.k) {
+      const k = kw.toLowerCase();
+      let hit = false;
+      if (/^[a-z0-9 ]+$/.test(k)) {
+        // 英文/数字关键词按词边界匹配，避免 "hi" 命中 "this"
+        const esc = k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        hit = new RegExp("(^|[^a-z0-9])" + esc + "([^a-z0-9]|$)").test(q);
+      } else {
+        hit = q.indexOf(k) >= 0;
+      }
+      if (hit) {
+        hits++;
+        if (k.length > longest) longest = k.length;
+      }
+    }
+    return longest * 10 + hits;
+  }
+
+  function answer(q) {
+    q = String(q || "").toLowerCase().trim();
+    if (!q) return pick(fallback);
+    let best = null;
+    let top = 0;
+    for (const r of rules) {
+      const s = scoreRule(q, r);
+      if (s > top) { top = s; best = r; }
+    }
+    return pick(best ? best.a : fallback);
+  }
+
+  function send(text) {
+    const t = text.trim();
+    if (!t) return;
+    const me = document.createElement("div");
+    me.className = "msg me";
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = t;
+    me.appendChild(b);
+    logEl.appendChild(me);
+    logEl.scrollTop = logEl.scrollHeight;
+    const reply = answer(t);
+    // 稍作停顿再回答，更接近真人聊天的节奏
+    setTimeout(() => typeOut(makeDigitalBubble(""), reply), 280 + Math.random() * 420);
+  }
+
+  /* ---- Stateful Button 状态机 ---- */
+  function runStateful(btn, onSuccess, opts) {
+    if (!btn || btn.classList.contains("is-loading") || btn.classList.contains("is-success")) return;
+    const loadMs = (opts && opts.loadMs) || 650;
+    const okMs = (opts && opts.okMs) || 2000;
+    btn.classList.add("is-loading");
+    btn.setAttribute("aria-busy", "true");
+    setTimeout(() => {
+      btn.classList.remove("is-loading");
+      btn.classList.add("is-success");
+      btn.removeAttribute("aria-busy");
+      if (onSuccess) onSuccess();
+      setTimeout(() => btn.classList.remove("is-success"), okMs);
+    }, loadMs);
+  }
+
+  function submitChat() {
+    const t = inputEl.value.trim();
+    if (!t) { inputEl.focus(); return; }
+    inputEl.value = "";
+    runStateful(sendBtn, () => send(t), { loadMs: 550, okMs: 2000 });
+  }
+
+  sendBtn.addEventListener("click", submitChat);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); submitChat(); }
+  });
+  document.getElementById("quick").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    send(btn.getAttribute("data-q"));
+  });
+
+  window.addEventListener("load", () => typeOut(makeDigitalBubble(""), greeting));
+
+  /* ============ 旅行轮播 ============ */
+  const slides = [
+    { src: "assets/tour-1.jpg", season: "SUMMER", caption: "夏 · 海边的栈道和遮阳伞" },
+    { src: "assets/tour-2.jpg", season: "CITY", caption: "地中海 · 蓝白小镇的街角" },
+    { src: "assets/tour-3.jpg", season: "INK", caption: "书 · 一笔一划的安静时刻" },
+  ];
+  let cur = 0;
+  const mainImg = document.getElementById("main");
+  const seasonEl = document.getElementById("season");
+  const captionEl = document.getElementById("caption");
+  const thumbs = document.getElementById("thumbs").querySelectorAll("img");
+
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    mainImg.classList.remove("show");
+    setTimeout(() => {
+      mainImg.src = slides[cur].src;
+      mainImg.classList.add("show");
+    }, 180);
+    seasonEl.textContent = slides[cur].season;
+    captionEl.textContent = slides[cur].caption;
+    thumbs.forEach((t, idx) => t.classList.toggle("current", idx === cur));
+  }
+  document.getElementById("next").addEventListener("click", () => show(cur + 1));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
+  thumbs.forEach((t, idx) => t.addEventListener("click", () => show(idx)));
+  show(0);
+
+  /* ============ TAB 面板切换 ============ */
+  const panels = {
+    home: document.getElementById("panel-home"),
+    about: document.getElementById("panel-about"),
+    chat: document.getElementById("panel-chat"),
+  };
+  const navLinks = document.querySelectorAll("#nav a");
+
+  function activate(name) {
+    Object.keys(panels).forEach((k) => {
+      panels[k].classList.toggle("active", k === name);
+    });
+    navLinks.forEach((a) => a.classList.toggle("active", a.dataset.panel === name));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // 通知全站常驻的玻璃球重新落位（Home 贴欢迎语右侧，其他面板走右侧留白）
+    window.dispatchEvent(new CustomEvent("panelchange", { detail: { panel: name } }));
+  }
+
+  navLinks.forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      activate(a.dataset.panel);
+    });
+  });
+
+  // 默认显示 HOME 面板（欢迎语 + 旅行）
+  activate("home");
+
+  /* ============ 给我建议 ============ */
+  const adviceForm = document.getElementById("advice-form");
+  const adviceDone = document.getElementById("advice-done");
+  const nickInput = document.getElementById("nick");
+  const relationInput = document.getElementById("relation");
+  const deviceInput = document.getElementById("device");
+  const adviceInput = document.getElementById("advice");
+
+  // Supabase 配置
+  const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_HsEycjdTPw04jdKUkP2a0w_ku8lZncC';
+  
+  // 创建 Supabase 客户端
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const adviceSendBtn = document.getElementById("advice-send");
+
+  adviceForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nick = nickInput.value.trim();
+    const relation = relationInput.value.trim();
+    const device = deviceInput.value.trim();
+    const text = adviceInput.value.trim();
+    
+    if (!relation || !device || !text) {
+      if (!relation) relationInput.focus();
+      else if (!device) deviceInput.focus();
+      else adviceInput.focus();
+      return;
+    }
+
+    runStateful(adviceSendBtn, async () => {
+      try {
+        // 提交反馈到 Supabase
+        const { data, error } = await supabase
+          .from('feedback')
+          .insert({
+            name: nick || '匿名',
+            relation: relation,
+            device: device,
+            message: text,
+            version: 'V3'
+          });
+
+        if (error) {
+          console.error('提交失败:', error);
+          throw new Error('提交失败，请稍后重试');
+        }
+
+        // 成功提示 + 清空表单
+        adviceDone.hidden = false;
+        adviceInput.value = "";
+        nickInput.value = "";
+        relationInput.value = "";
+        deviceInput.value = "";
+        adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        setTimeout(() => { adviceDone.hidden = true; }, 3500);
+        
+      } catch (err) {
+        alert('提交失败：' + err.message);
+      }
+    }, { loadMs: 850, okMs: 2000 });
+  });
+</script>
+
+<!-- ============================================================
+     首页 Hero · 液态玻璃球
+     ------------------------------------------------------------
+     原创 WebGL2 实现：raymarching 隐式曲面（主球 + 若干小泡泡的平滑并集）、
+     棱镜色散折射、Beer–Lambert 吸收、菲涅尔与三点高光。
+     · 无任何外部依赖：背景是运行时程序化生成的天空蓝/淡粉渐变纹理，
+       因此 file:// 双击打开同样可用，也不违反「主页无外部依赖」约定
+     · 配色沿用主页水彩天空蓝体系（天空蓝 / 淡粉 / 白），不引入新色系
+     · 泡泡尺寸较参考作品整体调小（mainRadius 0.085，泡泡 0.018~0.042）
+     视觉思路参考 CodePen「Liquid Glass」by fand（该作品未声明任何许可，
+     这里只借鉴思路，着色器与逻辑均为独立实现，未复制原作代码）
+     ============================================================ -->
+<script>
+(function () {
+  const wrap = document.getElementById("heroGlass");
+  const canvas = document.getElementById("glassCanvas");
+  if (!wrap || !canvas) return;
+
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- 停靠点 + 全页跟随 ----
+     同一颗球在三个面板都在，并且**在整个页面范围内跟着鼠标跑**。
+     停靠点 home（指针离开窗口、或键盘切面板时球滑回的地方）：
+       Home  → 贴欢迎语右缘外侧（与改造前 Hero 里的位置逐像素一致）
+       其他  → 右侧留白处；尺寸与纵向位置都经过正文墨迹测量，不与卡片文字重叠
+     位置统一用「文档坐标」在渲染循环里缓动，再写成 transform：
+       指针活跃 → 目标是指针位置（换算成文档坐标）→ 球跟着指针跑遍整页
+       指针离开 → 目标是停靠点 → 球自己滑回去；切面板也是这套滑行，看得出是同一颗球
+     不用 CSS 过渡：跟随与滑行共用一套缓动，避免两套动画互相打架 */
+  const homePanel = document.getElementById("panel-home");
+  const SIDE_SIZE = () => Math.round(Math.min(210, Math.max(132, window.innerWidth * 0.164)));
+  const SIDE_RIGHT = () => Math.round(Math.max(6, Math.min(18, window.innerWidth * 0.014)));
+  const SIDE_TOP = (size) => Math.round(window.innerHeight * 0.54 - size / 2);
+  const MOBILE_Q = window.matchMedia("(max-width: 700px)");
+
+  const pos = { x: 0, y: 0 };                 // 球心（文档坐标），渲染循环里缓动
+  const home = { x: 0, y: 0 };                // 当前面板的停靠点（文档坐标）
+  const follow = { on: false, x: 0, y: 0 };   // 指针位置（视口坐标）
+  let docH = 0;                               // 文档高度（缓存，避免每帧触发布局）
+  let orbSize = 0;                            // 球的 CSS 尺寸（缓存）
+  let snapNext = true;                        // 首帧直接就位，避免球从原点飞进来
+  let lastScrollY = window.scrollY;           // 上一帧滚动位置（滚动量要「直通」球的文档坐标）
+
+  function placeOrb() {
+    const active = document.querySelector(".panel.active");
+    const panel = active ? active.id : "panel-home";
+    const welcome = homePanel && homePanel.querySelector(".welcome");
+    // 面板隐藏时 rect 全是 0，用宽度 > 2 判断「Home 真的可见」
+    const homeVisible = panel === "panel-home" && welcome && welcome.getBoundingClientRect().width > 2;
+
+    if (MOBILE_Q.matches) {
+      /* 窄屏：右侧留白不存在，触摸也不产生鼠标跟随。
+         Home → 把球放回欢迎语下方的文档流（= 改造前手机版观感，不压正文）；
+         About Me / Virtual Space → 直接藏球，避免浮层压住卡片文字。 */
+      follow.on = false;
+      wrap.style.transform = "";
+      if (homeVisible) {
+        if (wrap.parentElement !== welcome) welcome.appendChild(wrap);
+        wrap.style.width = "";
+        wrap.style.display = "";
+      } else {
+        wrap.style.display = "none";
+      }
+      return;
+    }
+
+    /* 桌面：全站同一颗球。布局盒钉在文档原点、真实位置由 transform 摆，
+       所以球和正文的相对位置只取决于「当前目标」，滚动不会让它漂到别处。 */
+    if (wrap.parentElement !== document.body) document.body.appendChild(wrap);
+    wrap.style.display = "";
+    if (homeVisible) {
+      wrap.style.width = "";                    // 交回 CSS 的 clamp(150px,20vw,236px)
+      orbSize = wrap.offsetWidth;               // 读回真实尺寸再算停靠点
+      const r = welcome.getBoundingClientRect();
+      // rect 是视口坐标，+scrollY 换成文档坐标（此时可能正在 smooth 滚动，这样换算才准）
+      home.x = window.innerWidth - Math.max(0, Math.round(window.innerWidth - r.right)) - orbSize / 2;
+      home.y = r.top + window.scrollY + r.height / 2;
+    } else {
+      orbSize = SIDE_SIZE();
+      wrap.style.width = orbSize + "px";
+      home.x = window.innerWidth - SIDE_RIGHT() - orbSize / 2;
+      home.y = SIDE_TOP(orbSize) + orbSize / 2;
+    }
+    docH = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+
+    if (!follow.on) { applyOrb(true); lastScrollY = window.scrollY; }  // 首屏 / 切面板（无指针）直接就位
+  }
+
+  /* 当前位置要追的目标（文档坐标）：有指针追指针，没指针回停靠点 */
+  function orbTarget() {
+    if (!follow.on) return home;
+    const half = orbSize / 2;
+    let x = follow.x;
+    let y = follow.y + window.scrollY;
+    // 球至少完整留在视口内（不让它被推出屏幕）
+    x = Math.min(Math.max(x, half), Math.max(window.innerWidth - half, half));
+    let vy = y - window.scrollY;
+    vy = Math.min(Math.max(vy, half), Math.max(window.innerHeight - half, half));
+    y = vy + window.scrollY;
+    // 也不把文档撑高（否则会多出一条滚动条）
+    y = Math.min(Math.max(y, half), Math.max(docH - half, half));
+    return { x, y };
+  }
+
+  function applyOrb(snap) {
+    if (MOBILE_Q.matches || orbSize < 2) return;
+    const half = orbSize / 2;
+    const t = orbTarget();
+    if (snap) { pos.x = t.x; pos.y = t.y; }
+    wrap.style.transform = "translate3d(" + Math.round(pos.x - half) + "px," + Math.round(pos.y - half) + "px,0)";
+  }
+
+  placeOrb();                       // 渲染循环启动前先就位（reduced motion 下也靠它定位）
+  window.addEventListener("resize", placeOrb, { passive: true });
+  window.addEventListener("panelchange", placeOrb);
+  window.addEventListener("load", placeOrb);
+
+  const gl = canvas.getContext("webgl2", { alpha: true, antialias: true, premultipliedAlpha: true });
+  if (!gl) { wrap.style.display = "none"; return; }
+
+  /* ---- 泡泡参数（较参考作品整体调小） ---- */
+  const MAIN_R = 0.085;
+  const BUBBLE_COUNT = 6;
+  const BUBBLE_MIN = 0.014;
+  const BUBBLE_MAX = 0.032;
+  const BUBBLE_SPEED = 0.7;
+  const N = BUBBLE_COUNT;
+
+  const VS = `#version 300 es
+const vec2 P[3] = vec2[3](vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
+void main(){ gl_Position = vec4(P[gl_VertexID], 0.0, 1.0); }`;
+
+  const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2  uRes;
+uniform vec2  uPointer;
+uniform float uTime;
+uniform float uClickTime;
+uniform int   uClickCount;
+uniform float uBubble[${N * 4}];
+out vec4 outColor;
+
+const float MAIN_R   = ${MAIN_R.toFixed(4)};
+const int   N_BUBBLE = ${N};
+const float SMOOTH_K = 0.016;   // 融合半径：太大会把小泡泡糊成葫芦形
+const float SCATTER  = 0.011;   // 边缘噪点（太大会把轮廓打散成点状）
+const float DISP     = 0.030;   // 色散强度
+const vec3  ABSORB   = vec3(1.0, 1.2, 2.0);   // 偏天空蓝的吸收色，让球体呈冰蓝玻璃
+
+mat2 rot2(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+float sdSphere(vec3 p, float r){ return length(p) - r; }
+float sdBox(vec3 p, float r){ vec3 q = abs(p) - vec3(r * 0.8) + 0.01; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - 0.01; }
+float sdRing(vec3 p, float R, float r){ float s = length(p.xy) - R; return length(vec2(s, p.z)) - r; }
+float blend(float a, float b, float k){ float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+
+float scene(vec3 p, vec3 c){
+  vec3 q = p - c;
+  float tt  = uClickTime * 5.0;
+  float pop = exp(-tt) * sin(tt) * 5.0 + (1.0 - exp(-tt));
+  float s   = pop * 0.5 + 0.5;
+  q /= s;
+  q.xz *= rot2(exp(-uClickTime * 3.0) * 8.0);
+
+  vec3 w = q;
+  w.y += sin(w.z * 29.0 + uTime * 6.5) * 0.01;
+  w.z += sin(w.x * 23.0 + w.y * 11.0 + uTime * 7.0) * 0.01;
+  w.xy *= rot2(uTime * 1.3);
+  w.xz *= rot2(uTime * 1.1);
+
+  float d;
+  int shape = uClickCount % 3;
+  if (shape == 0)      d = sdSphere(w, MAIN_R);
+  else if (shape == 1) d = sdBox(w, MAIN_R);
+  else                 d = sdRing(w, MAIN_R * 1.1, 0.015);
+
+  for (int i = 0; i < N_BUBBLE; i++){
+    int b = i * 4;
+    vec3 bp = vec3(uBubble[b], uBubble[b + 1], uBubble[b + 2]);
+    float br = max(uBubble[b + 3], 0.001);
+    d = blend(d, sdSphere(q - bp, br), SMOOTH_K);
+  }
+  return d * s;
+}
+
+vec3 calcNormal(vec3 p, vec3 c){
+  vec2 e = vec2(0.001, 0.0);
+  return normalize(vec3(
+    scene(p + e.xyy, c) - scene(p - e.xyy, c),
+    scene(p + e.yxy, c) - scene(p - e.yxy, c),
+    scene(p + e.yyx, c) - scene(p - e.yyx, c)
+  ));
+}
+
+vec3 prism(float t){
+  return clamp(vec3(
+    1.5 - abs(4.0 * t - 1.0),
+    1.5 - abs(4.0 * t - 2.0),
+    1.5 - abs(4.0 * t - 3.0)
+  ), 0.0, 1.0);
+}
+
+vec2 jitter(vec2 p){
+  vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.xx + q.yz) * q.zy) * 2.0 - 1.0;
+}
+
+vec4 srcAt(vec2 uv){ return texture(uTex, clamp(uv, 0.003, 0.997)); }
+
+// 假环境：天空渐变 + 一道窗光，用于掠射角的镜面反射（玻璃读感的关键）
+vec3 env(vec3 d){
+  float y = d.y * 0.5 + 0.5;
+  vec3 sky = mix(vec3(0.78, 0.88, 0.96), vec3(0.50, 0.68, 0.86), y);
+  float win = smoothstep(0.86, 0.995, dot(normalize(d), normalize(vec3(0.35, 0.55, 0.75))));
+  sky += win * 0.95;
+  float hi = smoothstep(0.90, 1.0, dot(normalize(d), normalize(vec3(-0.50, 0.30, 0.62))));
+  sky += hi * 0.55;
+  return sky;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float aspect = uRes.y / uRes.x;
+  vec2 sp = (uv - 0.5) * vec2(1.0, aspect);
+
+  // 球心：缓慢漂移 + 指针视差
+  vec2 mp = uPointer * 0.12;
+  mp += vec2(sin(uTime * 0.42) * 0.055, cos(uTime * 0.37) * 0.055);
+
+  vec3 ro = vec3(0.0, 0.0, -2.0);
+  vec3 rd = normalize(vec3(sp, 2.0));
+  vec3 center = vec3(mp, 0.0);
+
+  vec3 nFirst = vec3(0.0), nLast = vec3(0.0);
+  int hits = 0;
+  float thickness = 0.0, tEntry = 0.0, t = 0.0;
+  bool inside = false;
+
+  for (int i = 0; i < 50; i++){
+    if (t > 10.0) break;
+    vec3 pos = ro + rd * t;
+    float d = scene(pos, center);
+    float stepLen = inside ? -d : d;
+    if (stepLen < 3e-4){
+      vec3 nrm = calcNormal(pos, center);
+      if (hits == 0) nFirst = nrm;
+      nLast = nrm;
+      if (!inside) tEntry = t; else thickness += t - tEntry;
+      hits++;
+      if (hits >= 4) break;
+      inside = !inside;
+      t += 0.01;
+    } else {
+      t += stepLen;
+    }
+  }
+
+  if (hits == 0){ outColor = vec4(0.0); return; }   // 球体之外保持透明
+
+  vec2 baseDisp = -(nFirst.xy + nLast.xy) * 0.5 * DISP;
+  float NdotR = max(dot(nFirst, -rd), 0.0);
+  float scatter = pow(1.0 - NdotR, 2.0) * SCATTER;
+
+  vec3 acc = vec3(0.0), wsum = vec3(0.0);
+  for (int i = 0; i < 6; i++){
+    float wl = float(i) / 5.0;
+    float amp = wl * (1.3 + float(hits) * 0.2);
+    vec2 hh = jitter(uv * 1000.0 + float(i) * 7.13 + uTime) * scatter;
+    vec3 w = prism(wl);
+    acc += srcAt(uv + baseDisp * amp + hh).rgb * w;
+    wsum += w;
+  }
+  vec3 col = acc / wsum;
+
+  float fres = pow(1.0 - NdotR, 5.0);
+
+  // 体积吸收：Beer–Lambert（光程越长越偏冰蓝：中心最深、边缘最浅）
+  col *= exp(-ABSORB * min(thickness, 0.35));
+
+  // 三点高光
+  vec3 ld = normalize(vec3(0.5, 0.9, -0.3));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 200.0) * 3.0;
+  ld = normalize(vec3(-0.9, 0.4, -0.3));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 300.0) * 1.2;
+  ld = normalize(vec3(-0.1, -0.9, -0.1));
+  col += pow(max(dot(reflect(-ld, nFirst), -rd), 0.0), 30.0) * 0.25;
+
+  // 提对比：S 型曲线，让折射出的明暗结构可见（否则平均后会糊成一片白）
+  col = clamp(col, 0.0, 1.0);
+  col = col * col * (3.0 - 2.0 * col);
+
+  // 掠射角的镜面环境反射 + 边缘菲涅尔增亮（这两步决定「像不像玻璃」）
+  col = mix(col, env(reflect(rd, nFirst)), fres * 0.60);
+  col = mix(col, vec3(1.0), pow(fres, 1.8) * 0.35);
+  col = min(col, 1.0);
+  outColor = vec4(col, 1.0);
+}`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn("[hero-glass] shader error:", gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  const vs = compile(gl.VERTEX_SHADER, VS);
+  const fs = compile(gl.FRAGMENT_SHADER, FS);
+  if (!vs || !fs) { wrap.style.display = "none"; return; }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.warn("[hero-glass] link error:", gl.getProgramInfoLog(prog));
+    wrap.style.display = "none";
+    return;
+  }
+  gl.useProgram(prog);
+  gl.bindVertexArray(gl.createVertexArray());
+
+  const U = {
+    tex: gl.getUniformLocation(prog, "uTex"),
+    res: gl.getUniformLocation(prog, "uRes"),
+    pointer: gl.getUniformLocation(prog, "uPointer"),
+    time: gl.getUniformLocation(prog, "uTime"),
+    clickTime: gl.getUniformLocation(prog, "uClickTime"),
+    clickCount: gl.getUniformLocation(prog, "uClickCount"),
+    bubble: gl.getUniformLocation(prog, "uBubble[0]"),
+  };
+
+  /* ---- 程序化背景纹理：天空蓝 + 淡粉柔光 + 水彩点（全部取自主页色系） ---- */
+  function makeBackground() {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 512;
+    const x = c.getContext("2d");
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, "#eef7fe");
+    g.addColorStop(0.42, "#9dc6e8");
+    g.addColorStop(1, "#2f6d9e");
+    x.fillStyle = g;
+    x.fillRect(0, 0, 512, 512);
+
+    const glow = (cx, cy, r, color) => {
+      const rg = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      rg.addColorStop(0, color);
+      rg.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = rg;
+      x.fillRect(0, 0, 512, 512);
+    };
+    glow(410, 105, 265, "rgba(238, 150, 190, 0.95)");  // 淡粉（--pink）
+    glow(110, 90, 300, "rgba(255,255,255,0.95)");    // 左上白
+    glow(256, 480, 330, "rgba(70, 118, 164, 0.80)"); // 底部深蓝
+    glow(330, 300, 170, "rgba(255,255,255,0.40)");
+
+    // 一道亮带（类似地平线天光），让折射产生明显的明暗条纹
+    const band = x.createLinearGradient(0, 190, 0, 300);
+    band.addColorStop(0, "rgba(255,255,255,0)");
+    band.addColorStop(0.5, "rgba(255,255,255,0.85)");
+    band.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = band;
+    x.fillRect(0, 190, 512, 110);
+
+    // 几笔水彩点，让玻璃折射有内容可看
+    const dots = [[150, 180, 26], [360, 250, 34], [250, 380, 22], [90, 330, 30], [430, 400, 18]];
+    dots.forEach(([cx, cy, r]) => glow(cx, cy, r * 2.4, "rgba(255,255,255,0.70)"));
+
+    // 深蓝斑块：提供暗部，让折射有明显明暗结构（否则平均后糊成一片白）
+    glow(118, 432, 205, "rgba(38, 90, 136, 0.88)");
+    glow(455, 332, 150, "rgba(50, 106, 154, 0.78)");
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return tex;
+  }
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, makeBackground());
+  gl.uniform1i(U.tex, 0);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  /* ---- 尺寸 ---- */
+  let W = 0, H = 0, lastCssW = -1;
+  function resize() {
+    const cssW = wrap.clientWidth;
+    if (cssW < 2) return false;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(cssW * dpr);
+    if (w !== canvas.width || w !== canvas.height) {
+      canvas.width = w;
+      canvas.height = w;
+      gl.viewport(0, 0, w, w);
+    }
+    W = w; H = w; lastCssW = cssW;
+    return true;
+  }
+
+  /* ---- 泡泡轨道 ---- */
+  const bubbles = new Float32Array(N * 4);
+  const fract = (v) => v - Math.floor(v);
+  // 每颗泡泡被指针吸引后的位移（带各自滞后，形成拖尾）
+  const offX = new Float32Array(N);
+  const offY = new Float32Array(N);
+
+  function updateBubbles(time, dt) {
+    // 指针目标位移：局部单位（≈主球半径的 1.5 倍量级）
+    const gx = ptr.x * 0.13;
+    const gy = ptr.y * 0.11;
+
+    for (let i = 0; i < N; i++) {
+      const life = fract(time * BUBBLE_SPEED + i / N);
+      const orbitR = MAIN_R * (1.35 + life * 0.60);
+      const angle = time * (0.8 + fract(i * 0.618) * 0.7) + i * 1.256;
+
+      // 每颗泡泡跟随速度不同（1.6 ~ 4.6 / 秒）→ 有先后、有明显拖尾
+      const k = 1.6 + fract(i * 0.618) * 3.0;
+      const ease = dt > 0 ? 1 - Math.exp(-k * dt) : 0;
+      offX[i] += (gx - offX[i]) * ease;
+      offY[i] += (gy - offY[i]) * ease;
+
+      let bx = Math.cos(angle) * orbitR;
+      let by = 0;
+      let bz = Math.sin(angle) * orbitR;
+
+      let a = i * 2.3, cs = Math.cos(a), sn = Math.sin(a);
+      const nx = bx * cs - by * sn, ny = bx * sn + by * cs;
+      bx = nx; by = ny;
+      a = i * 1.8; cs = Math.cos(a); sn = Math.sin(a);
+      const ny2 = by * cs - bz * sn, nz2 = by * sn + bz * cs;
+      by = ny2; bz = nz2;
+
+      // 不再向上堆叠，改为环绕主球做三维轨道运动
+      bx += Math.sin(time * 2.7 + i * 4.1) * 0.008 * life;
+      bz += Math.cos(time * 3.1 + i * 3.7) * 0.008 * life;
+
+      // 指针吸引：越小的泡泡越轻、被带得越远
+      const lift = 1.0 - life * 0.35;
+      bx += offX[i] * lift;
+      by += offY[i] * lift;
+
+      const span = BUBBLE_MAX - BUBBLE_MIN;
+      const maxR = BUBBLE_MIN + span * fract(i * 0.618);
+
+      const j = i * 4;
+      bubbles[j] = bx;
+      bubbles[j + 1] = by;
+      bubbles[j + 2] = bz;
+      bubbles[j + 3] = maxR * Math.sin(life * Math.PI);
+    }
+  }
+
+  /* ---- 指针 / 点击 ----
+     监听整页指针：① 球本身朝指针追过去（在整个页面范围内跑）；
+     ② 球内泡泡再朝指针方向偏一点，让玻璃球「活」起来。 */
+  const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+  const MAX_PTR = 1.35; // 归一化位移上限，避免鼠标离得远时被拽飞
+  const clampPtr = (v) => Math.max(-MAX_PTR, Math.min(MAX_PTR, v));
+
+  window.addEventListener("pointermove", (e) => {
+    const r = wrap.getBoundingClientRect();
+    if (r.width < 2) return;
+    // ① 球走位：指针在哪，球就追到哪（窄屏没有鼠标 / 低动效偏好时不跟随）
+    if (!MOBILE_Q.matches && !reduced) {
+      follow.on = true;
+      follow.x = e.clientX;
+      follow.y = e.clientY;
+      // 循环可能因为球一时不在视口内被停掉：指针一回到页面就立刻复活，杜绝「球永久冻住」
+      if (!running) start();
+    }
+    // ② 球内泡泡：以 canvas 中心为原点归一化，半宽 ≈ 1.0，指针偏哪边泡泡就往哪边跑
+    ptr.tx = clampPtr((e.clientX - (r.left + r.width * 0.5)) / (r.width * 0.5));
+    ptr.ty = clampPtr(-(e.clientY - (r.top + r.height * 0.5)) / (r.height * 0.5));
+  }, { passive: true });
+
+  // 指针离开窗口 / 触碰设备抬手后：泡泡归位，球滑回当前面板的停靠点
+  const resetPtr = () => { ptr.tx = 0; ptr.ty = 0; follow.on = false; };
+  document.addEventListener("pointerleave", resetPtr, { passive: true });
+  window.addEventListener("blur", resetPtr);
+
+  let clickCount = 0;
+  let lastClickAt = performance.now() / 1000 - 100;
+  // 球现在 pointer-events:none（全站浮层不能拦点击），
+  // 所以改成在 window 上做「命中球体圆形区域」判定：点球依旧有涟漪，点别处完全不受影响
+  window.addEventListener("pointerdown", (e) => {
+    const r = wrap.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    if (dx * dx + dy * dy > (r.width / 2) * (r.width / 2)) return;
+    lastClickAt = performance.now() / 1000;
+    clickCount++;
+  }, { passive: true });
+
+  /* ---- 渲染循环（不可见 / 非 Home 面板时暂停，省电） ---- */
+  const t0 = performance.now() / 1000;
+  let running = false, raf = 0, lastT = 0;
+  let orbVisible = false;   // 球当前是否在视口内（IO 上报；跟随时不作为停循环的依据）
+
+  function draw(time) {
+    const now = performance.now() / 1000;
+    // 与帧率无关的平滑（高刷屏上不会追得过分灵敏）
+    const dt = lastT ? Math.min(Math.max(time - lastT, 0), 0.05) : 0;
+    lastT = time;
+    const ease = 1 - Math.exp(-6.5 * dt);
+    ptr.x += (ptr.tx - ptr.x) * ease;
+    ptr.y += (ptr.ty - ptr.y) * ease;
+    updateBubbles(time, dt);
+
+    /* 球的走位：指针活跃时追指针（在整个页面范围内跑），否则滑回停靠点。
+       切面板的「滑过去」也是这套缓动，所以看上去始终是同一颗球。 */
+    const sy = window.scrollY;
+    /* ⚠️ 滚动量必须「直通」球的文档坐标：球是跟着指针在**视口**里跑的，页面滚动时它的
+       视口位置就不该变（滚动量由页面自己施加）。若把滚动也交给缓动去吃，每滚一帧就欠一截，
+       快速滚动时球会落后几百像素 —— 这就是「跟丢」的成因之一。 */
+    if (follow.on) pos.y += sy - lastScrollY;
+    lastScrollY = sy;
+    const t = orbTarget();
+    /* ⚠️ 固定增益的稳态滞后 ≈ 速度/k（k=5 时 1500px/s 就落后 300px）。
+       让增益随差距连续放大：近处仍柔和（4.5），差距大时最高 38，把滞后压到约一个球半径内。 */
+    const gap = Math.hypot(t.x - pos.x, t.y - pos.y);
+    const k = follow.on ? Math.min(4.5 + gap * 0.5, 38) : 3.6;
+    const moveEase = snapNext ? 1 : 1 - Math.exp(-k * dt);
+    snapNext = false;
+    pos.x += (t.x - pos.x) * moveEase;
+    pos.y += (t.y - pos.y) * moveEase;
+    /* ⚠️ 极端甩动最后再兜一道：给「球与指针的距离」一个硬上限（约半个球身）。
+       缓动再快也是渐近的，超高速甩动（数千~上万 px/s）仍会拉开一两个球身，
+       肉眼就是「球跟丢了」。这里只截掉超出的部分：不改变常态手感、不会抖动，
+       且一停指针就继续按缓动收拢到球心压指针。 */
+    if (follow.on) {
+      const lx = t.x - pos.x, ly = t.y - pos.y, ll = Math.hypot(lx, ly);
+      const maxLag = Math.max(orbSize * 0.45, 60);
+      if (ll > maxLag) { const f = maxLag / ll; pos.x = t.x - lx * f; pos.y = t.y - ly * f; }
+    }
+    applyOrb(false);
+    // 只有在「停靠完成 + 球确实不在视口内」时才省电停循环（跟随时绝不走这里）
+    if (!follow.on && !orbVisible && gap < 0.5) stop();
+
+    gl.uniform2f(U.res, W, H);
+    gl.uniform2f(U.pointer, ptr.x, ptr.y);
+    gl.uniform1f(U.time, time);
+    gl.uniform1f(U.clickTime, now - lastClickAt);
+    gl.uniform1i(U.clickCount, clickCount);
+    gl.uniform1fv(U.bubble, bubbles);
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function frame() {
+    if (!running) return;
+    if (wrap.clientWidth < 2) { running = false; return; }
+    if (wrap.clientWidth !== lastCssW) resize();
+    draw(performance.now() / 1000 - t0);
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (running || reduced) return;
+    if (!resize()) return;
+    running = true;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+
+  // 自检钩子：仅在 ?selftest=1 时暴露，正常访问不产生任何全局变量
+  if (location.search.indexOf("selftest") !== -1) {
+    window.__heroGlass = { ptr, offX, offY, bubbles,
+      state: () => ({ running, followOn: follow.on, visible: orbVisible, orbSize,
+        pos: { x: Math.round(pos.x), y: Math.round(pos.y) },
+        home: { x: Math.round(home.x), y: Math.round(home.y) }, scrollY: Math.round(window.scrollY) }) };
+  }
+
+  if (reduced) {
+    if (resize()) { updateBubbles(3.2, 0); draw(3.2); }
+  } else {
+    /* ⚠️ 循环生死不能只看「球自己在不在视口内」：球的布局盒钉在文档原点、位置靠 transform 摆，
+       一旦被甩出视口（快速滚动/甩动造成滞后几百像素就会发生），IO 报不可见 → stop()，
+       而位置又只有这个循环会更新 → 球永久冻住、再也回不来 —— 这就是用户报的「跟丢」。
+       所以：**跟随时绝不因不可见而停**；且指针一动就重新 start()（见 pointermove），保证没有死角。 */
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        orbVisible = entries.some((e) => e.isIntersecting);
+        if (!document.hidden && (orbVisible || follow.on)) start();
+        else stop();
+      }, { threshold: 0.01 }).observe(wrap);
+    } else {
+      start();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stop();
+      else start();
+    });
+    window.addEventListener("resize", () => { if (reduced) { if (resize()) draw(3.2); } });
+    start();
+  }
+})();
+</script>
+</body>
+</html>
