@@ -1,0 +1,98 @@
+name: Deploy personal homepage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Supabase public client
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "index.html": [
+                  (
+                      "const SUPABASE_URL = 'https://your-project.supabase.co';",
+                      "const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';",
+                  ),
+                  (
+                      "const SUPABASE_KEY = 'your-public-key';",
+                      "const SUPABASE_KEY = 'sb_publishable_HsEycjdTPw04jdKUkP2a0w_ku8lZncC';",
+                  ),
+              ],
+              "test-feedback.html": [
+                  (
+                      "const SUPABASE_URL = 'https://your-project.supabase.co';",
+                      "const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';",
+                  ),
+                  (
+                      "const SUPABASE_KEY = 'your-public-key';",
+                      "const SUPABASE_KEY = 'sb_publishable_HsEycjdTPw04jdKUkP2a0w_ku8lZncC';",
+                  ),
+              ],
+          }
+
+          changed = []
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              updated = text
+              for old, new in pairs:
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding="utf-8")
+                  changed.append(filename)
+
+          Path(".pages-config-changed").write_text("\n".join(changed), encoding="utf-8")
+          PY
+
+      - name: Commit published configuration
+        run: |
+          if [ -s .pages-config-changed ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html test-feedback.html
+            git commit -m "Configure Supabase public client"
+            git push
+          fi
+
+      - name: Prepare static site
+        run: |
+          mkdir -p dist
+          cp index.html bci.html calligraphy.html travel.html dist/
+          cp -R assets dist/
+          touch dist/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
