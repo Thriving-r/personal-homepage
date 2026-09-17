@@ -160,45 +160,91 @@
     letter-spacing: 0;
   }
 
-  /* ==== 标记 ==== */
+  /* ==== 地球上的照片标记 ====
+     形式借鉴 Aceternity UI《3D Globe》——标记本身就是贴在地球经纬度上的图片
+     （该组件 GlobeMarker 即 { lat, lng, src, label, size }），悬停出 tooltip。
+     本项目零依赖 + file:// 双击可用，故用原生 DOM 投屏独立实现，未复制其源码。 */
   .marker-layer { position: absolute; inset: 0; pointer-events: none; }
-  .marker {
+  .globe-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .globe-links line {
+    stroke: rgba(122,168,207,0.9);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    stroke-linecap: round;
+  }
+  .globe-links circle {
+    fill: #fff;
+    stroke: rgba(122,168,207,0.95);
+    stroke-width: 1.5;
+  }
+
+  .gmarker {
     position: absolute;
     left: 0; top: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 5px 12px 5px 8px;
-    border: 1px solid rgba(255,255,255,0.95);
-    border-radius: 999px;
-    background: rgba(255,255,255,0.9);
-    box-shadow: 0 4px 14px rgba(95,139,181,0.28);
-    color: var(--ink-700);
-    font-family: var(--font-sans);
-    font-size: 12.5px;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
+    width: var(--msize, 42px);
+    height: var(--msize, 42px);
+    padding: 0;
+    border: none;
+    background: transparent;
     cursor: pointer;
     pointer-events: auto;
-    backdrop-filter: blur(4px);
-    transition: background .2s ease, box-shadow .2s ease, color .2s ease;
+    will-change: transform;
   }
-  .marker-dot {
-    width: 10px; height: 10px;
+  .gmarker-ring {
+    position: absolute;
+    inset: 0;
+    display: block;
     border-radius: 50%;
-    background: var(--sky-500);
-    box-shadow: 0 0 0 3px rgba(147,188,221,0.32);
-    flex: none;
-    transition: background .2s ease, box-shadow .2s ease;
+    overflow: hidden;
+    background: var(--sky-200);
+    border: 2.5px solid rgba(255,255,255,0.97);
+    box-shadow: 0 4px 12px rgba(95,139,181,0.32);
+    transition: box-shadow .25s ease, transform .25s ease;
   }
-  .marker:hover, .marker.active {
-    background: #fff;
-    color: var(--ink-900);
-    box-shadow: 0 7px 22px rgba(95,139,181,0.42);
+  .gmarker-ring img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 45%;
   }
-  .marker:hover .marker-dot, .marker.active .marker-dot {
-    background: var(--pink);
-    box-shadow: 0 0 0 4px rgba(244,199,214,0.5);
+  .gmarker:hover .gmarker-ring,
+  .gmarker:focus-visible .gmarker-ring,
+  .gmarker.active .gmarker-ring {
+    transform: scale(1.16);
+    box-shadow: 0 8px 20px rgba(95,139,181,0.48), 0 0 0 3px rgba(244,199,214,0.55);
+  }
+  .gmarker-tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 9px);
+    transform: translate(-50%, 5px);
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 6px 18px rgba(95,139,181,0.26);
+    color: var(--ink-700);
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .gmarker-tip em {
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+    margin-left: 5px;
+  }
+  .gmarker:hover .gmarker-tip,
+  .gmarker:focus-visible .gmarker-tip,
+  .gmarker.active .gmarker-tip {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 
   /* ==== 照片面板 ==== */
@@ -238,6 +284,9 @@
   }
   .photo-close:hover { background: #fff; color: var(--ink-900); }
   .photo-frame {
+    width: fit-content;           /* 框跟着照片比例收窄，竖版照片两边不留大片空色块 */
+    max-width: 100%;
+    margin: 0 auto;
     border-radius: 18px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.9);
@@ -245,10 +294,10 @@
     background: var(--sky-100);
   }
   .photo-frame img {
-    width: 100%;
     display: block;
-    max-height: 62vh;
-    object-fit: cover;
+    width: auto;
+    max-width: 100%;
+    max-height: 74vh;             /* 竖版照片完整看，不裁 */
   }
   .photo-note { margin-top: 14px; font-size: 13.5px; color: var(--ink-500); letter-spacing: 0.02em; }
 
@@ -283,6 +332,7 @@
     <section class="card">
       <div class="globe-stage">
         <div id="globe"></div>
+        <svg class="globe-links" id="globe-links" aria-hidden="true"></svg>
         <div class="marker-layer" id="marker-layer"></div>
         <div class="globe-loading" id="globe-loading">正在加载地球…</div>
       </div>
@@ -318,12 +368,102 @@
        旅游地点数据
        以后加城市：往数组里加一条就行
        { city:"城市", en:"City", lat:纬度, lng:经度,
-         photo:"assets/travel/xxx.jpg", note:"一句话" }
+         thumb:"assets/travel/xxx-thumb.jpg",  ← 地球上那枚圆形照片（小图）
+         photo:"assets/travel/xxx.jpg",        ← 点开看的大图
+         note:"一句话" }
        ============================================================ */
     const TRAVELS = [
-      { city: "深圳", en: "Shenzhen", lat: 22.54, lng: 114.06, photo: "assets/tour-1.jpg", note: "示例地点 · 等你的照片来替换" },
-      { city: "尼斯", en: "Nice", lat: 43.71, lng: 7.26, photo: "assets/tour-2.jpg", note: "示例地点 · 等你的照片来替换" },
-      { city: "京都", en: "Kyoto", lat: 35.01, lng: 135.77, photo: "assets/tour-3.jpg", note: "示例地点 · 等你的照片来替换" }
+      {
+        city: "大阪", en: "Osaka",
+        lat: 34.6873, lng: 135.5259,          // 大阪城天守閣
+        thumb: "assets/travel/osaka-castle-thumb.jpg",
+        photo: "assets/travel/osaka-castle.jpg",
+        note: "大阪城天守閣 · 庭园池塘里的城堡倒影"
+      },
+      {
+        city: "京都", en: "Kyoto",
+        lat: 34.9671, lng: 135.7727,          // 伏见稻荷大社
+        thumb: "assets/travel/kyoto-fushimi-inari-thumb.jpg",
+        photo: "assets/travel/kyoto-fushimi-inari.jpg",
+        note: "伏见稻荷大社 · 千本鸟居"
+      },
+      {
+        city: "东京", en: "Tokyo",
+        lat: 35.6717, lng: 139.7650,          // 银座
+        thumb: "assets/travel/tokyo-ginza-thumb.jpg",
+        photo: "assets/travel/tokyo-ginza.jpg",
+        note: "银座 · 午后的商业街"
+      },
+      {
+        city: "北京", en: "Beijing",
+        lat: 39.9163, lng: 116.3972,          // 故宫神武门
+        thumb: "assets/travel/beijing-forbidden-city-thumb.jpg",
+        photo: "assets/travel/beijing-forbidden-city.jpg",
+        note: "故宫神武门 · 晴空下的朱红宫墙"
+      },
+      {
+        city: "天津", en: "Tianjin",
+        lat: 39.1518, lng: 117.2146,          // 天津之眼（永乐桥）
+        thumb: "assets/travel/tianjin-eye-thumb.jpg",
+        photo: "assets/travel/tianjin-eye.jpg",
+        note: "天津之眼 · 海河上的摩天轮"
+      },
+      {
+        city: "香港", en: "Hong Kong",
+        lat: 22.3129, lng: 114.0413,          // 香港迪士尼乐园
+        thumb: "assets/travel/hongkong-disney-thumb.jpg",
+        photo: "assets/travel/hongkong-disney.jpg",
+        note: "迪士尼 · 城堡上空的烟花"
+      },
+      {
+        city: "澳门", en: "Macau",
+        lat: 22.1459, lng: 113.5605,          // 澳门威尼斯人
+        thumb: "assets/travel/macau-venetian-thumb.jpg",
+        photo: "assets/travel/macau-venetian.jpg",
+        note: "威尼斯人 · 室内运河的贡多拉"
+      },
+      {
+        city: "仙本那", en: "Semporna",
+        lat: 4.4778, lng: 118.6111,           // 沙巴仙本那
+        thumb: "assets/travel/semporna-sea-thumb.jpg",
+        photo: "assets/travel/semporna-sea.jpg",
+        note: "仙本那 · 安静的海和防波堤"
+      },
+      {
+        city: "杭州", en: "Hangzhou",
+        lat: 30.2639, lng: 120.1210,          // 浙江大学玉泉校区
+        thumb: "assets/travel/hangzhou-university-thumb.jpg",
+        photo: "assets/travel/hangzhou-university.jpg",
+        note: "浙江大学 · 求是创新的校门"
+      },
+      {
+        city: "苏州", en: "Suzhou",
+        lat: 31.3230, lng: 120.6295,          // 拙政园一带
+        thumb: "assets/travel/suzhou-garden-thumb.jpg",
+        photo: "assets/travel/suzhou-garden.jpg",
+        note: "苏州园林 · 池塘曲桥与假山"
+      },
+      {
+        city: "济南", en: "Jinan",
+        lat: 36.6653, lng: 117.0190,          // 大明湖
+        thumb: "assets/travel/jinan-daming-lake-thumb.jpg",
+        photo: "assets/travel/jinan-daming-lake.jpg",
+        note: "大明湖 · 垂柳掩映的楼阁"
+      },
+      {
+        city: "武汉", en: "Wuhan",
+        lat: 30.5449, lng: 114.3045,          // 黄鹤楼
+        thumb: "assets/travel/wuhan-yellow-crane-thumb.jpg",
+        photo: "assets/travel/wuhan-yellow-crane.jpg",
+        note: "黄鹤楼 · 楚天极目"
+      },
+      {
+        city: "新加坡", en: "Singapore",
+        lat: 1.2834, lng: 103.8636,           // 滨海湾花园云雾林
+        thumb: "assets/travel/singapore-cloud-forest-thumb.jpg",
+        photo: "assets/travel/singapore-cloud-forest.jpg",
+        note: "滨海湾花园 · 云雾林的室内瀑布"
+      }
     ];
 
     /* ============================================================
@@ -373,7 +513,12 @@
     /* ---------- 场景 ---------- */
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    camera.position.set(0, 0.35, 7);
+    /* 初始机位对准「东亚 + 东南亚」的中心（北纬 25.5 / 东经 119）：
+       13 座城市全部落在 28° 视锥内，一进页面就能看到所有照片。
+       用默认的 (0, 0.35, 7) 是对着大西洋，这些城市全在球背面，
+       要等缓慢自转很久才转出来，用户会以为「照片没显示」。 */
+    camera.position.copy(latLngToVec3(25.5, 119.0, 7));
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -542,38 +687,140 @@
       );
     }
 
-    /* ---------- 标记 ---------- */
+    /* ---------- 地球上的照片标记 ----------
+       每个地点 = 一枚贴在地表经纬度上的圆形照片 + 悬停城市名 tooltip，
+       点击在地球下方的卡片里看大图。 */
+    const FACING_MIN = 0.12;   // 朝向系数低于此值 = 在球的背面，隐藏
+    let MSIZE = 42;            // 照片直径（px），窄屏会调小
+                               // （52 → 42：13 张照片同屏时 52px 显得挤、地球被盖住，
+                               //   缩小后相对地球的比例更舒服，间距仍由 GAP 保证）
+
+    const SVGNS = "http://www.w3.org/2000/svg";
+    const linkSvg = document.getElementById("globe-links");
+
+    // 地表真实位置的小圆点
+    const dots = TRAVELS.map(() => {
+      const c = document.createElementNS(SVGNS, "circle");
+      c.setAttribute("r", "3");
+      c.setAttribute("opacity", "0");
+      linkSvg.appendChild(c);
+      return c;
+    });
+
+    // 「真实位置 → 照片」的虚线（照片被挤开时才显示）
+    const links = TRAVELS.map(() => {
+      const l = document.createElementNS(SVGNS, "line");
+      l.setAttribute("opacity", "0");
+      linkSvg.appendChild(l);
+      return l;
+    });
+
     const markers = TRAVELS.map((t, i) => {
       const el = document.createElement("button");
       el.type = "button";
-      el.className = "marker";
-      el.innerHTML = '<span class="marker-dot"></span><span class="marker-name">' + t.city + "</span>";
+      el.className = "gmarker";
+      el.style.setProperty("--msize", MSIZE + "px");
+      el.setAttribute("aria-label", t.city + " · " + t.en + "，点击查看照片");
+      el.innerHTML =
+        '<span class="gmarker-ring"><img src="' + t.thumb + '" alt="' + t.city + '"></span>' +
+        '<span class="gmarker-tip">' + t.city + "<em>" + t.en + "</em></span>";
       el.addEventListener("click", () => openPhoto(i));
       layer.appendChild(el);
       return el;
     });
 
+    function applyMarkerSize() {
+      MSIZE = stage.clientWidth < 640 ? 32 : 42;
+      markers.forEach((el) => el.style.setProperty("--msize", MSIZE + "px"));
+    }
+
     const tmp = new THREE.Vector3();
+    const camDir = new THREE.Vector3();
+
     function updateMarkers() {
       const w = stage.clientWidth;
       const h = stage.clientHeight;
-      const camDir = camera.position.clone().normalize();
+      camDir.copy(camera.position).normalize();
 
+      /* 1) 地表锚点 → 屏幕坐标 */
+      const pts = [];
       for (let i = 0; i < TRAVELS.length; i++) {
-        const el = markers[i];
-        tmp.copy(latLngToVec3(TRAVELS[i].lat, TRAVELS[i].lng, RADIUS * 1.01));
+        tmp.copy(latLngToVec3(TRAVELS[i].lat, TRAVELS[i].lng, RADIUS * 1.005));
         globe.localToWorld(tmp);
-
         const facing = tmp.clone().normalize().dot(camDir);
-        if (facing < 0.12) { el.style.display = "none"; continue; }
+        tmp.project(camera);
+        pts.push({
+          facing: facing,
+          x: (tmp.x * 0.5 + 0.5) * w,
+          y: (-tmp.y * 0.5 + 0.5) * h,
+          sx: 0,
+          sy: 0
+        });
+      }
+
+      /* 2) 屏幕空间做一次「最小分离」：
+            东亚 + 东南亚这 13 座城市投影到屏幕上挤在 ~120px 的范围内
+            （1px ≈ 30km），照片直接压在锚点上会糊成一团。
+            两两推开到 GAP 以上，位移封顶（照片不会飞离所在城市太远），
+            再用虚线连回真实位置。
+            迭代轮数要够多：4 轮时 13 个点的推挤会互相传导、收敛不充分
+            （实测有两枚只剩 0.2px 余量），10 轮后就均匀了。 */
+      const GAP = MSIZE * 1.12;
+      for (let pass = 0; pass < 10; pass++) {
+        for (let i = 0; i < pts.length; i++) {
+          if (pts[i].facing < FACING_MIN) continue;
+          for (let j = i + 1; j < pts.length; j++) {
+            if (pts[j].facing < FACING_MIN) continue;
+            let dx = pts[j].x + pts[j].sx - (pts[i].x + pts[i].sx);
+            let dy = pts[j].y + pts[j].sy - (pts[i].y + pts[i].sy);
+            let d = Math.hypot(dx, dy);
+            if (d >= GAP) continue;
+            if (d < 0.01) { dx = 0; dy = -1; d = 0.01; }   // 完全重合时先朝上分
+            const push = (GAP - d) / 2;
+            const ux = dx / d, uy = dy / d;
+            pts[i].sx -= ux * push; pts[i].sy -= uy * push;
+            pts[j].sx += ux * push; pts[j].sy += uy * push;
+          }
+        }
+      }
+      const CAP = MSIZE * 1.6;
+      for (const p of pts) {
+        const m = Math.hypot(p.sx, p.sy);
+        if (m > CAP) { p.sx = p.sx / m * CAP; p.sy = p.sy / m * CAP; }
+      }
+
+      /* 3) 写回 DOM */
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const el = markers[i];
+
+        if (p.facing < FACING_MIN) {
+          el.style.display = "none";
+          links[i].setAttribute("opacity", "0");
+          dots[i].setAttribute("opacity", "0");
+          continue;
+        }
+
+        const s = 0.64 + 0.36 * Math.min(1, p.facing);   // 越靠球缘越小，模拟球面透视
+        const x = p.x + p.sx;
+        const y = p.y + p.sy;
 
         el.style.display = "";
-        el.style.opacity = String(Math.min(1, (facing - 0.12) * 4.5));
+        el.style.opacity = String(Math.min(1, (p.facing - FACING_MIN) * 5));
+        el.style.zIndex = String(100 + Math.round(p.facing * 100));
+        el.style.transform =
+          "translate(-50%, -50%) translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" + s.toFixed(3) + ")";
 
-        tmp.project(camera);
-        const x = (tmp.x * 0.5 + 0.5) * w;
-        const y = (-tmp.y * 0.5 + 0.5) * h;
-        el.style.transform = "translate(-50%, -50%) translate(" + x + "px, " + y + "px)";
+        dots[i].setAttribute("cx", p.x.toFixed(1));
+        dots[i].setAttribute("cy", p.y.toFixed(1));
+        dots[i].setAttribute("opacity", "1");
+
+        const moved = Math.hypot(p.sx, p.sy);
+        links[i].setAttribute("x1", p.x.toFixed(1));
+        links[i].setAttribute("y1", p.y.toFixed(1));
+        links[i].setAttribute("x2", x.toFixed(1));
+        links[i].setAttribute("y2", y.toFixed(1));
+        links[i].setAttribute("opacity", moved > 4 ? String(Math.min(0.85, moved / 30)) : "0");
       }
     }
 
@@ -584,6 +831,7 @@
       renderer.setSize(w, h, true);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      applyMarkerSize();
     }
 
     /* ---------- 交互：拖动旋转 / 滚轮缩放 / 自动缓慢旋转 ---------- */

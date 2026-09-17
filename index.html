@@ -1478,6 +1478,7 @@
   let docH = 0;                               // 文档高度（缓存，避免每帧触发布局）
   let orbSize = 0;                            // 球的 CSS 尺寸（缓存）
   let snapNext = true;                        // 首帧直接就位，避免球从原点飞进来
+  let lastScrollY = window.scrollY;           // 上一帧滚动位置（滚动量要「直通」球的文档坐标）
 
   function placeOrb() {
     const active = document.querySelector(".panel.active");
@@ -1521,7 +1522,7 @@
     }
     docH = Math.max(document.documentElement.scrollHeight, window.innerHeight);
 
-    if (!follow.on) applyOrb(true);             // 首屏 / 切面板（无指针）直接就位
+    if (!follow.on) { applyOrb(true); lastScrollY = window.scrollY; }  // 首屏 / 切面板（无指针）直接就位
   }
 
   /* 当前位置要追的目标（文档坐标）：有指针追指针，没指针回停靠点 */
@@ -1913,6 +1914,8 @@ void main(){
       follow.on = true;
       follow.x = e.clientX;
       follow.y = e.clientY;
+      // 循环可能因为球一时不在视口内被停掉：指针一回到页面就立刻复活，杜绝「球永久冻住」
+      if (!running) start();
     }
     // ② 球内泡泡：以 canvas 中心为原点归一化，半宽 ≈ 1.0，指针偏哪边泡泡就往哪边跑
     ptr.tx = clampPtr((e.clientX - (r.left + r.width * 0.5)) / (r.width * 0.5));
@@ -1940,6 +1943,7 @@ void main(){
   /* ---- 渲染循环（不可见 / 非 Home 面板时暂停，省电） ---- */
   const t0 = performance.now() / 1000;
   let running = false, raf = 0, lastT = 0;
+  let orbVisible = false;   // 球当前是否在视口内（IO 上报；跟随时不作为停循环的依据）
 
   function draw(time) {
     const now = performance.now() / 1000;
@@ -1953,12 +1957,33 @@ void main(){
 
     /* 球的走位：指针活跃时追指针（在整个页面范围内跑），否则滑回停靠点。
        切面板的「滑过去」也是这套缓动，所以看上去始终是同一颗球。 */
+    const sy = window.scrollY;
+    /* ⚠️ 滚动量必须「直通」球的文档坐标：球是跟着指针在**视口**里跑的，页面滚动时它的
+       视口位置就不该变（滚动量由页面自己施加）。若把滚动也交给缓动去吃，每滚一帧就欠一截，
+       快速滚动时球会落后几百像素 —— 这就是「跟丢」的成因之一。 */
+    if (follow.on) pos.y += sy - lastScrollY;
+    lastScrollY = sy;
     const t = orbTarget();
-    const moveEase = snapNext ? 1 : 1 - Math.exp(-(follow.on ? 5.0 : 3.6) * dt);
+    /* ⚠️ 固定增益的稳态滞后 ≈ 速度/k（k=5 时 1500px/s 就落后 300px）。
+       让增益随差距连续放大：近处仍柔和（4.5），差距大时最高 38，把滞后压到约一个球半径内。 */
+    const gap = Math.hypot(t.x - pos.x, t.y - pos.y);
+    const k = follow.on ? Math.min(4.5 + gap * 0.5, 38) : 3.6;
+    const moveEase = snapNext ? 1 : 1 - Math.exp(-k * dt);
     snapNext = false;
     pos.x += (t.x - pos.x) * moveEase;
     pos.y += (t.y - pos.y) * moveEase;
+    /* ⚠️ 极端甩动最后再兜一道：给「球与指针的距离」一个硬上限（约半个球身）。
+       缓动再快也是渐近的，超高速甩动（数千~上万 px/s）仍会拉开一两个球身，
+       肉眼就是「球跟丢了」。这里只截掉超出的部分：不改变常态手感、不会抖动，
+       且一停指针就继续按缓动收拢到球心压指针。 */
+    if (follow.on) {
+      const lx = t.x - pos.x, ly = t.y - pos.y, ll = Math.hypot(lx, ly);
+      const maxLag = Math.max(orbSize * 0.45, 60);
+      if (ll > maxLag) { const f = maxLag / ll; pos.x = t.x - lx * f; pos.y = t.y - ly * f; }
+    }
     applyOrb(false);
+    // 只有在「停靠完成 + 球确实不在视口内」时才省电停循环（跟随时绝不走这里）
+    if (!follow.on && !orbVisible && gap < 0.5) stop();
 
     gl.uniform2f(U.res, W, H);
     gl.uniform2f(U.pointer, ptr.x, ptr.y);
@@ -1994,15 +2019,23 @@ void main(){
 
   // 自检钩子：仅在 ?selftest=1 时暴露，正常访问不产生任何全局变量
   if (location.search.indexOf("selftest") !== -1) {
-    window.__heroGlass = { ptr, offX, offY, bubbles };
+    window.__heroGlass = { ptr, offX, offY, bubbles,
+      state: () => ({ running, followOn: follow.on, visible: orbVisible, orbSize,
+        pos: { x: Math.round(pos.x), y: Math.round(pos.y) },
+        home: { x: Math.round(home.x), y: Math.round(home.y) }, scrollY: Math.round(window.scrollY) }) };
   }
 
   if (reduced) {
     if (resize()) { updateBubbles(3.2, 0); draw(3.2); }
   } else {
+    /* ⚠️ 循环生死不能只看「球自己在不在视口内」：球的布局盒钉在文档原点、位置靠 transform 摆，
+       一旦被甩出视口（快速滚动/甩动造成滞后几百像素就会发生），IO 报不可见 → stop()，
+       而位置又只有这个循环会更新 → 球永久冻住、再也回不来 —— 这就是用户报的「跟丢」。
+       所以：**跟随时绝不因不可见而停**；且指针一动就重新 start()（见 pointermove），保证没有死角。 */
     if ("IntersectionObserver" in window) {
       new IntersectionObserver((entries) => {
-        if (entries.some((e) => e.isIntersecting) && !document.hidden) start();
+        orbVisible = entries.some((e) => e.isIntersecting);
+        if (!document.hidden && (orbVisible || follow.on)) start();
         else stop();
       }, { threshold: 0.01 }).observe(wrap);
     } else {
