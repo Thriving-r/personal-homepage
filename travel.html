@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行 · Travel — 刘孟涵</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============ 设计系统（与 index.html 保持一致） ============ */
+  :root {
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    background-image: url("assets/bg.jpg");
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 蕾丝花边 ==== */
+  .lace { height: 22px; background-repeat: repeat-x; background-position: center; }
+  .lace-top {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='22' viewBox='0 0 44 22'><path d='M0 22 A11 11 0 0 1 22 22 A11 11 0 0 1 44 22' fill='rgba(255,255,255,0.9)'/><circle cx='11' cy='4' r='3' fill='rgba(147,188,221,0.7)'/><circle cx='33' cy='4' r='3' fill='rgba(147,188,221,0.7)'/></svg>");
+  }
+
+  /* ==== 顶部导航 ==== */
+  .masthead { text-align: center; padding: clamp(30px, 6vw, 52px) 16px 8px; }
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+
+  /* ==== 栅格 ==== */
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 90px; }
+  .section-gap { height: clamp(24px, 4vw, 42px); }
+
+  /* ==== 卡片 ==== */
+  .card {
+    background: linear-gradient(160deg, rgba(210,236,251,0.66), rgba(255,255,255,0.86));
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 26px;
+    padding: clamp(20px, 3.4vw, 34px);
+    box-shadow: 0 18px 46px rgba(95,139,181,0.14);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ==== 标题 ==== */
+  .travel-head { text-align: center; padding: clamp(20px, 4vw, 40px) 16px 0; }
+  .travel-head h1 {
+    font-family: "Permanent Marker", "Caveat", cursive;
+    font-weight: 400;
+    font-size: clamp(32px, 7vw, 66px);
+    line-height: 1.14;
+    letter-spacing: 0.03em;
+    color: #3d6c99;
+    text-transform: uppercase;
+    transform: rotate(-1.4deg);
+    text-shadow:
+      1px 1px 0 #cfe4f5,
+      2px 2px 0 #bcd7ec,
+      3px 3px 0 #a9cbe6,
+      5px 6px 14px rgba(95,139,181,0.32);
+  }
+  .travel-sub {
+    margin-top: 16px;
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: clamp(17px, 3vw, 24px);
+    letter-spacing: 0.16em;
+    color: var(--ink-500);
+  }
+
+  /* ==== 地球舞台 ==== */
+  .globe-stage {
+    position: relative;
+    width: 100%;
+    height: clamp(340px, 60vh, 600px);
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255,255,255,0.9) 0%, rgba(231,242,251,0.35) 46%, rgba(231,242,251,0) 72%),
+      linear-gradient(165deg, rgba(210,236,251,0.35), rgba(255,255,255,0.5));
+  }
+  #globe { position: absolute; inset: 0; }
+  #globe canvas { display: block; touch-action: none; }
+
+  .globe-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 28px;
+    text-align: center;
+    line-height: 1.95;
+    font-size: 13.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-400);
+    pointer-events: none;
+    transition: opacity .5s ease;
+  }
+  .globe-loading.hide { opacity: 0; }
+  .globe-loading b { color: var(--sky-600); font-weight: 600; }
+  .globe-loading code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1px 6px;
+    color: var(--ink-700);
+    letter-spacing: 0;
+  }
+
+  /* ==== 地球上的照片标记 ====
+     形式借鉴 Aceternity UI《3D Globe》——标记本身就是贴在地球经纬度上的图片
+     （该组件 GlobeMarker 即 { lat, lng, src, label, size }），悬停出 tooltip。
+     本项目零依赖 + file:// 双击可用，故用原生 DOM 投屏独立实现，未复制其源码。 */
+  .marker-layer { position: absolute; inset: 0; pointer-events: none; }
+  .globe-links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .globe-links line {
+    stroke: rgba(122,168,207,0.9);
+    stroke-width: 1;
+    stroke-dasharray: 2 3;
+    stroke-linecap: round;
+  }
+  .globe-links circle {
+    fill: #fff;
+    stroke: rgba(122,168,207,0.95);
+    stroke-width: 1.5;
+  }
+
+  .gmarker {
+    position: absolute;
+    left: 0; top: 0;
+    width: var(--msize, 42px);
+    height: var(--msize, 42px);
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    will-change: transform;
+  }
+  .gmarker-ring {
+    position: absolute;
+    inset: 0;
+    display: block;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--sky-200);
+    border: 2.5px solid rgba(255,255,255,0.97);
+    box-shadow: 0 4px 12px rgba(95,139,181,0.32);
+    transition: box-shadow .25s ease, transform .25s ease;
+  }
+  .gmarker-ring img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center 45%;
+  }
+  .gmarker:hover .gmarker-ring,
+  .gmarker:focus-visible .gmarker-ring,
+  .gmarker.active .gmarker-ring {
+    transform: scale(1.16);
+    box-shadow: 0 8px 20px rgba(95,139,181,0.48), 0 0 0 3px rgba(244,199,214,0.55);
+  }
+  .gmarker-tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 9px);
+    transform: translate(-50%, 5px);
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.97);
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow: 0 6px 18px rgba(95,139,181,0.26);
+    color: var(--ink-700);
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .gmarker-tip em {
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+    margin-left: 5px;
+  }
+  .gmarker:hover .gmarker-tip,
+  .gmarker:focus-visible .gmarker-tip,
+  .gmarker.active .gmarker-tip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  /* ==== 照片面板 ==== */
+  [hidden] { display: none !important; }
+  .photo-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .photo-city {
+    font-family: var(--font-serif);
+    font-size: clamp(22px, 3.4vw, 28px);
+    color: var(--ink-900);
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+  }
+  .photo-en {
+    margin-top: 4px;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+  }
+  .photo-close {
+    flex: none;
+    width: 34px; height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    color: var(--ink-500);
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(95,139,181,0.15);
+    transition: background .2s ease, color .2s ease;
+  }
+  .photo-close:hover { background: #fff; color: var(--ink-900); }
+  .photo-frame {
+    width: fit-content;           /* 框跟着照片比例收窄，竖版照片两边不留大片空色块 */
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.9);
+    box-shadow: 0 12px 30px rgba(95,139,181,0.18);
+    background: var(--sky-100);
+  }
+  .photo-frame img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: 74vh;             /* 竖版照片完整看，不裁 */
+  }
+  .photo-note { margin-top: 14px; font-size: 13.5px; color: var(--ink-500); letter-spacing: 0.02em; }
+
+  .foot {
+    text-align: center;
+    padding: 46px 16px 60px;
+    font-size: 12px;
+    color: var(--ink-400);
+    letter-spacing: 0.16em;
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <nav class="nav">
+      <a href="index.html">← Return to Home</a>
+      <a class="active" href="travel.html">旅行 Travel</a>
+    </nav>
+  </header>
+
+  <div class="lace lace-top"></div>
+
+  <main class="page">
+    <section class="travel-head">
+      <h1>My Travel Map</h1>
+      <p class="travel-sub">— 想去的地方 天气好的时候就出发吧 —</p>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card">
+      <div class="globe-stage">
+        <div id="globe"></div>
+        <svg class="globe-links" id="globe-links" aria-hidden="true"></svg>
+        <div class="marker-layer" id="marker-layer"></div>
+        <div class="globe-loading" id="globe-loading">正在加载地球…</div>
+      </div>
+    </section>
+
+    <div class="section-gap"></div>
+
+    <section class="card" id="photo-panel" hidden>
+      <div class="photo-head">
+        <div>
+          <div class="photo-city" id="photo-city"></div>
+          <div class="photo-en" id="photo-en"></div>
+        </div>
+        <button class="photo-close" id="photo-close" type="button" aria-label="关闭照片">✕</button>
+      </div>
+      <div class="photo-frame"><img id="photo-img" alt="" /></div>
+      <p class="photo-note" id="photo-note"></p>
+    </section>
+  </main>
+
+  <div class="foot">MENGHAN LIU · TRAVEL</div>
+
+  <!-- three.js 与 OrbitControls 用的是「普通脚本」版（由 ESM 版转换而来），
+       地球贴图也内联成 data URI，所以直接双击 travel.html（file:// 协议）
+       就能看到地球，不再需要本地服务器。 -->
+  <script src="./assets/lib/three.global.js"></script>
+  <script src="./assets/lib/OrbitControls.global.js"></script>
+  <script src="./assets/earth-texture.js"></script>
+
+  <script>
+
+    /* ============================================================
+       旅游地点数据
+       以后加城市：往数组里加一条就行
+       { city:"城市", en:"City", lat:纬度, lng:经度,
+         thumb:"assets/travel/xxx-thumb.jpg",  ← 地球上那枚圆形照片（小图）
+         photo:"assets/travel/xxx.jpg",        ← 点开看的大图
+         note:"一句话" }
+       ============================================================ */
+    const TRAVELS = [
+      {
+        city: "大阪", en: "Osaka",
+        lat: 34.6873, lng: 135.5259,          // 大阪城天守閣
+        thumb: "assets/travel/osaka-castle-thumb.jpg",
+        photo: "assets/travel/osaka-castle.jpg",
+        note: "大阪城天守閣 · 庭园池塘里的城堡倒影"
+      },
+      {
+        city: "京都", en: "Kyoto",
+        lat: 34.9671, lng: 135.7727,          // 伏见稻荷大社
+        thumb: "assets/travel/kyoto-fushimi-inari-thumb.jpg",
+        photo: "assets/travel/kyoto-fushimi-inari.jpg",
+        note: "伏见稻荷大社 · 千本鸟居"
+      },
+      {
+        city: "东京", en: "Tokyo",
+        lat: 35.6717, lng: 139.7650,          // 银座
+        thumb: "assets/travel/tokyo-ginza-thumb.jpg",
+        photo: "assets/travel/tokyo-ginza.jpg",
+        note: "银座 · 午后的商业街"
+      },
+      {
+        city: "北京", en: "Beijing",
+        lat: 39.9163, lng: 116.3972,          // 故宫神武门
+        thumb: "assets/travel/beijing-forbidden-city-thumb.jpg",
+        photo: "assets/travel/beijing-forbidden-city.jpg",
+        note: "故宫神武门 · 晴空下的朱红宫墙"
+      },
+      {
+        city: "天津", en: "Tianjin",
+        lat: 39.1518, lng: 117.2146,          // 天津之眼（永乐桥）
+        thumb: "assets/travel/tianjin-eye-thumb.jpg",
+        photo: "assets/travel/tianjin-eye.jpg",
+        note: "天津之眼 · 海河上的摩天轮"
+      },
+      {
+        city: "香港", en: "Hong Kong",
+        lat: 22.3129, lng: 114.0413,          // 香港迪士尼乐园
+        thumb: "assets/travel/hongkong-disney-thumb.jpg",
+        photo: "assets/travel/hongkong-disney.jpg",
+        note: "迪士尼 · 城堡上空的烟花"
+      },
+      {
+        city: "澳门", en: "Macau",
+        lat: 22.1459, lng: 113.5605,          // 澳门威尼斯人
+        thumb: "assets/travel/macau-venetian-thumb.jpg",
+        photo: "assets/travel/macau-venetian.jpg",
+        note: "威尼斯人 · 室内运河的贡多拉"
+      },
+      {
+        city: "仙本那", en: "Semporna",
+        lat: 4.4778, lng: 118.6111,           // 沙巴仙本那
+        thumb: "assets/travel/semporna-sea-thumb.jpg",
+        photo: "assets/travel/semporna-sea.jpg",
+        note: "仙本那 · 安静的海和防波堤"
+      },
+      {
+        city: "杭州", en: "Hangzhou",
+        lat: 30.2639, lng: 120.1210,          // 浙江大学玉泉校区
+        thumb: "assets/travel/hangzhou-university-thumb.jpg",
+        photo: "assets/travel/hangzhou-university.jpg",
+        note: "浙江大学 · 求是创新的校门"
+      },
+      {
+        city: "苏州", en: "Suzhou",
+        lat: 31.3230, lng: 120.6295,          // 拙政园一带
+        thumb: "assets/travel/suzhou-garden-thumb.jpg",
+        photo: "assets/travel/suzhou-garden.jpg",
+        note: "苏州园林 · 池塘曲桥与假山"
+      },
+      {
+        city: "济南", en: "Jinan",
+        lat: 36.6653, lng: 117.0190,          // 大明湖
+        thumb: "assets/travel/jinan-daming-lake-thumb.jpg",
+        photo: "assets/travel/jinan-daming-lake.jpg",
+        note: "大明湖 · 垂柳掩映的楼阁"
+      },
+      {
+        city: "武汉", en: "Wuhan",
+        lat: 30.5449, lng: 114.3045,          // 黄鹤楼
+        thumb: "assets/travel/wuhan-yellow-crane-thumb.jpg",
+        photo: "assets/travel/wuhan-yellow-crane.jpg",
+        note: "黄鹤楼 · 楚天极目"
+      },
+      {
+        city: "新加坡", en: "Singapore",
+        lat: 1.2834, lng: 103.8636,           // 滨海湾花园云雾林
+        thumb: "assets/travel/singapore-cloud-forest-thumb.jpg",
+        photo: "assets/travel/singapore-cloud-forest.jpg",
+        note: "滨海湾花园 · 云雾林的室内瀑布"
+      }
+    ];
+
+    /* ============================================================
+       地表调色（海洋 + 陆地，都在浏览器端 canvas 完成）
+       配色依据用户提供的参考图，实测目标值：
+         海洋  #C9E1F5  H207 L0.875
+         陆地  整体 H93.5 S0.19 L0.55（绿:黄褐 ≈ 2:1；深绿 H124 + 黄绿 H76）
+       海洋：抬明度 + 调饱和 + 色相靠向目标蓝
+       陆地：抬明度 + 调饱和 + 色相靠向目标绿，让植被绿成为主色
+       冰雪：明度 >0.86 且饱和 <0.18 的像素保持原样，不参与调色
+       ---- 海洋参数 ----
+       lift 明度抬升量 | span 明度缩放（对比强弱）| sat 饱和度倍数
+       hue 目标色相（角度制）| hmix 靠拢程度 0~1 | cap 明度上限
+       现场试海洋：travel.html?lift=0.84&span=0.18&sat=0.85&hue=206&hmix=1&cap=0.96
+       切回宝蓝  ：travel.html?lift=0.42&span=0.72&sat=1.22&hue=207&hmix=0
+       ---- 陆地参数（URL 前缀 l，避免与海洋撞名）----
+       现场试陆地：travel.html?lhue=130&lhmix=0.5&lsat=0.7&llift=0.34&lspan=0.92&lcap=0.93
+       ============================================================ */
+    const Q = new URLSearchParams(location.search);
+    const qnum = (k, def) => {
+      const v = parseFloat(Q.get(k));
+      return Number.isFinite(v) ? v : def;
+    };
+    const OCEAN = {
+      lift: qnum("lift", 0.84),
+      span: qnum("span", 0.18),
+      sat: qnum("sat", 0.85),
+      hue: qnum("hue", 206),
+      hmix: qnum("hmix", 1),
+      cap: qnum("cap", 0.96)
+    };
+    const LAND = {
+      lift: qnum("llift", 0.34),
+      span: qnum("lspan", 0.92),
+      sat: qnum("lsat", 0.70),
+      hue: qnum("lhue", 130),
+      hmix: qnum("lhmix", 0.50),
+      cap: qnum("lcap", 0.93)
+    };
+
+    const RADIUS = 2;
+
+    const stage = document.getElementById("globe");
+    const layer = document.getElementById("marker-layer");
+    const loadingEl = document.getElementById("globe-loading");
+
+    /* ---------- 场景 ---------- */
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    /* 初始机位对准「东亚 + 东南亚」的中心（北纬 25.5 / 东经 119）：
+       13 座城市全部落在 28° 视锥内，一进页面就能看到所有照片。
+       用默认的 (0, 0.35, 7) 是对着大西洋，这些城市全在球背面，
+       要等缓慢自转很久才转出来，用户会以为「照片没显示」。 */
+    camera.position.copy(latLngToVec3(25.5, 119.0, 7));
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    stage.appendChild(renderer.domElement);
+
+    /* ---------- 光照 ----------
+       海洋贴图已调成高明度淡冰蓝（L≈0.87）。想让受光面正好呈现出贴图本身的蓝，
+       需要的有效光照系数 ≈ 1.0；而 three.js 新版物理光照会除以 π，
+       所以强度要按 π 来配：ambient(2.80) + key(0.82)×平均NdotL(≈0.5) ≈ 3.21 → /π ≈ 1.02。
+       （旧值 0.48/0.75 只给到 0.27，会把淡蓝压成暗灰蓝。） */
+    scene.add(new THREE.AmbientLight(0xffffff, 2.80));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.82);
+    keyLight.position.set(5, 2.5, 5);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0xd7e9f8, 0.22);
+    rimLight.position.set(-5, 1.5, -4);
+    scene.add(rimLight);
+
+    /* ---------- 地球 ---------- */
+    const globe = new THREE.Group();
+    scene.add(globe);
+
+    const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0 });
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 64, 64), sphereMat);
+    globe.add(sphere);
+
+    /* ---------- 大气微光（柔化边缘） ---------- */
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0xffffff) },
+        uIntensity: { value: 0.5 },
+        uPower: { value: 2.8 }
+      },
+      vertexShader: `
+        varying vec3 vN;
+        varying vec3 vP;
+        void main() {
+          vN = normalize(normalMatrix * normal);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vP = mv.xyz;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uIntensity;
+        uniform float uPower;
+        varying vec3 vN;
+        varying vec3 vP;
+        void main() {
+          float fres = pow(1.0 - abs(dot(vN, normalize(-vP))), uPower);
+          gl_FragColor = vec4(uColor, fres * uIntensity);
+        }
+      `,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false
+    });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(RADIUS * 1.1, 64, 64), atmoMat));
+
+    /* ---------- 加载地球纹理 + 调浅海洋 ---------- */
+    const loader = new THREE.TextureLoader();
+    // 优先用 earth-texture.js 里的 data URI：file:// 下用它画 canvas 才不会被判跨域污染
+    const TEX_SRC = window.__EARTH_TEXTURE_DATA || "./assets/earth-texture.jpg";
+    loader.load(
+      TEX_SRC,
+      (tex) => {
+        const lightTex = new THREE.CanvasTexture(tintEarth(tex.image));
+        lightTex.colorSpace = THREE.SRGBColorSpace;
+        lightTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        sphereMat.map = lightTex;
+        sphereMat.needsUpdate = true;
+        loadingEl.classList.add("hide");
+      },
+      undefined,
+      () => { loadingEl.textContent = "地球纹理加载失败，请检查 assets/earth-texture.js"; }
+    );
+
+    function tintEarth(img) {
+      const c = document.createElement("canvas");
+      c.width = img.width;
+      c.height = img.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, c.width, c.height);
+      const d = imgData.data;
+
+      // 色相往目标靠拢（角度制，走最短弧，避免跨越 0/360 绕远路）
+      const toward = (h, target, amount) => {
+        let dh = target - h;
+        if (dh > 180) dh -= 360;
+        if (dh < -180) dh += 360;
+        return (h + dh * amount + 360) % 360;
+      };
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const hsl = rgbToHsl(r, g, b);
+        const h0 = hsl[0], s0 = hsl[1], l0 = hsl[2];
+        let h, s, l;
+
+        if (b > r + 6 && b >= g) {
+          // 海洋：蓝色分量最强，且明显高于红色（陆地/沙漠/冰雪不满足）
+          h = toward(h0, OCEAN.hue, OCEAN.hmix);
+          l = Math.min(OCEAN.cap, OCEAN.lift + l0 * OCEAN.span);  // 抬明度，保留深浅层次
+          s = Math.min(1, s0 * OCEAN.sat);                        // 收饱和，贴近水彩感
+        } else if (l0 > 0.86 && s0 < 0.18) {
+          continue;                                              // 冰雪保持原样，不染色
+        } else {
+          // 陆地：色相靠向目标绿 + 抬明度，让植被绿成为主色（沙漠变黄绿，仍与雨林可区分）
+          h = toward(h0, LAND.hue, LAND.hmix);
+          l = Math.min(LAND.cap, LAND.lift + l0 * LAND.span);
+          s = Math.min(1, s0 * LAND.sat);
+        }
+
+        const rgb = hslToRgb(h, s, l);
+        d[i] = rgb[0];
+        d[i + 1] = rgb[1];
+        d[i + 2] = rgb[2];
+      }
+      ctx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const l = (max + min) / 2;
+      const delta = max - min;
+      let h = 0, s = 0;
+      if (delta !== 0) {
+        s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+        if (max === r) h = (g - b) / delta + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / delta + 2;
+        else h = (r - g) / delta + 4;
+        h *= 60;
+      }
+      return [h, s, l];
+    }
+
+    function hslToRgb(h, s, l) {
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const hp = h / 60;
+      const x = c * (1 - Math.abs((hp % 2) - 1));
+      let r = 0, g = 0, b = 0;
+      if (hp < 1) { r = c; g = x; }
+      else if (hp < 2) { r = x; g = c; }
+      else if (hp < 3) { g = c; b = x; }
+      else if (hp < 4) { g = x; b = c; }
+      else if (hp < 5) { r = x; b = c; }
+      else { r = c; b = x; }
+      const m = l - c / 2;
+      return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+    }
+
+    /* ---------- 经纬度 → 三维坐标 ---------- */
+    function latLngToVec3(lat, lng, r) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (lng + 180) * Math.PI / 180;
+      return new THREE.Vector3(
+        -(r * Math.sin(phi) * Math.cos(theta)),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+
+    /* ---------- 地球上的照片标记 ----------
+       每个地点 = 一枚贴在地表经纬度上的圆形照片 + 悬停城市名 tooltip，
+       点击在地球下方的卡片里看大图。 */
+    const FACING_MIN = 0.12;   // 朝向系数低于此值 = 在球的背面，隐藏
+    let MSIZE = 42;            // 照片直径（px），窄屏会调小
+                               // （52 → 42：13 张照片同屏时 52px 显得挤、地球被盖住，
+                               //   缩小后相对地球的比例更舒服，间距仍由 GAP 保证）
+
+    const SVGNS = "http://www.w3.org/2000/svg";
+    const linkSvg = document.getElementById("globe-links");
+
+    // 地表真实位置的小圆点
+    const dots = TRAVELS.map(() => {
+      const c = document.createElementNS(SVGNS, "circle");
+      c.setAttribute("r", "3");
+      c.setAttribute("opacity", "0");
+      linkSvg.appendChild(c);
+      return c;
+    });
+
+    // 「真实位置 → 照片」的虚线（照片被挤开时才显示）
+    const links = TRAVELS.map(() => {
+      const l = document.createElementNS(SVGNS, "line");
+      l.setAttribute("opacity", "0");
+      linkSvg.appendChild(l);
+      return l;
+    });
+
+    const markers = TRAVELS.map((t, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "gmarker";
+      el.style.setProperty("--msize", MSIZE + "px");
+      el.setAttribute("aria-label", t.city + " · " + t.en + "，点击查看照片");
+      el.innerHTML =
+        '<span class="gmarker-ring"><img src="' + t.thumb + '" alt="' + t.city + '"></span>' +
+        '<span class="gmarker-tip">' + t.city + "<em>" + t.en + "</em></span>";
+      el.addEventListener("click", () => openPhoto(i));
+      layer.appendChild(el);
+      return el;
+    });
+
+    function applyMarkerSize() {
+      MSIZE = stage.clientWidth < 640 ? 32 : 42;
+      markers.forEach((el) => el.style.setProperty("--msize", MSIZE + "px"));
+    }
+
+    const tmp = new THREE.Vector3();
+    const camDir = new THREE.Vector3();
+
+    function updateMarkers() {
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      camDir.copy(camera.position).normalize();
+
+      /* 1) 地表锚点 → 屏幕坐标 */
+      const pts = [];
+      for (let i = 0; i < TRAVELS.length; i++) {
+        tmp.copy(latLngToVec3(TRAVELS[i].lat, TRAVELS[i].lng, RADIUS * 1.005));
+        globe.localToWorld(tmp);
+        const facing = tmp.clone().normalize().dot(camDir);
+        tmp.project(camera);
+        pts.push({
+          facing: facing,
+          x: (tmp.x * 0.5 + 0.5) * w,
+          y: (-tmp.y * 0.5 + 0.5) * h,
+          sx: 0,
+          sy: 0
+        });
+      }
+
+      /* 2) 屏幕空间做一次「最小分离」：
+            东亚 + 东南亚这 13 座城市投影到屏幕上挤在 ~120px 的范围内
+            （1px ≈ 30km），照片直接压在锚点上会糊成一团。
+            两两推开到 GAP 以上，位移封顶（照片不会飞离所在城市太远），
+            再用虚线连回真实位置。
+            迭代轮数要够多：4 轮时 13 个点的推挤会互相传导、收敛不充分
+            （实测有两枚只剩 0.2px 余量），10 轮后就均匀了。 */
+      const GAP = MSIZE * 1.12;
+      for (let pass = 0; pass < 10; pass++) {
+        for (let i = 0; i < pts.length; i++) {
+          if (pts[i].facing < FACING_MIN) continue;
+          for (let j = i + 1; j < pts.length; j++) {
+            if (pts[j].facing < FACING_MIN) continue;
+            let dx = pts[j].x + pts[j].sx - (pts[i].x + pts[i].sx);
+            let dy = pts[j].y + pts[j].sy - (pts[i].y + pts[i].sy);
+            let d = Math.hypot(dx, dy);
+            if (d >= GAP) continue;
+            if (d < 0.01) { dx = 0; dy = -1; d = 0.01; }   // 完全重合时先朝上分
+            const push = (GAP - d) / 2;
+            const ux = dx / d, uy = dy / d;
+            pts[i].sx -= ux * push; pts[i].sy -= uy * push;
+            pts[j].sx += ux * push; pts[j].sy += uy * push;
+          }
+        }
+      }
+      const CAP = MSIZE * 1.6;
+      for (const p of pts) {
+        const m = Math.hypot(p.sx, p.sy);
+        if (m > CAP) { p.sx = p.sx / m * CAP; p.sy = p.sy / m * CAP; }
+      }
+
+      /* 3) 写回 DOM */
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        const el = markers[i];
+
+        if (p.facing < FACING_MIN) {
+          el.style.display = "none";
+          links[i].setAttribute("opacity", "0");
+          dots[i].setAttribute("opacity", "0");
+          continue;
+        }
+
+        const s = 0.64 + 0.36 * Math.min(1, p.facing);   // 越靠球缘越小，模拟球面透视
+        const x = p.x + p.sx;
+        const y = p.y + p.sy;
+
+        el.style.display = "";
+        el.style.opacity = String(Math.min(1, (p.facing - FACING_MIN) * 5));
+        el.style.zIndex = String(100 + Math.round(p.facing * 100));
+        el.style.transform =
+          "translate(-50%, -50%) translate3d(" + x.toFixed(1) + "px," + y.toFixed(1) + "px,0) scale(" + s.toFixed(3) + ")";
+
+        dots[i].setAttribute("cx", p.x.toFixed(1));
+        dots[i].setAttribute("cy", p.y.toFixed(1));
+        dots[i].setAttribute("opacity", "1");
+
+        const moved = Math.hypot(p.sx, p.sy);
+        links[i].setAttribute("x1", p.x.toFixed(1));
+        links[i].setAttribute("y1", p.y.toFixed(1));
+        links[i].setAttribute("x2", x.toFixed(1));
+        links[i].setAttribute("y2", y.toFixed(1));
+        links[i].setAttribute("opacity", moved > 4 ? String(Math.min(0.85, moved / 30)) : "0");
+      }
+    }
+
+    /* ---------- 尺寸自适应 ---------- */
+    function resize() {
+      const w = stage.clientWidth || 1;
+      const h = stage.clientHeight || 1;
+      renderer.setSize(w, h, true);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      applyMarkerSize();
+    }
+
+    /* ---------- 交互：拖动旋转 / 滚轮缩放 / 自动缓慢旋转 ---------- */
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false;
+    controls.enableZoom = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 12;
+    controls.rotateSpeed = 0.45;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    /* 用户开始拖动时暂停自动旋转，松手后恢复 */
+    controls.addEventListener("start", () => { controls.autoRotate = false; });
+    controls.addEventListener("end", () => {
+      clearTimeout(window.__autoRotateTimer);
+      window.__autoRotateTimer = setTimeout(() => { controls.autoRotate = true; }, 2200);
+    });
+
+    /* ---------- 照片面板 ---------- */
+    function openPhoto(i) {
+      const t = TRAVELS[i];
+      document.getElementById("photo-city").textContent = t.city;
+      document.getElementById("photo-en").textContent = t.en || "";
+      document.getElementById("photo-note").textContent = t.note || "";
+
+      const img = document.getElementById("photo-img");
+      img.src = t.photo;
+      img.alt = t.city;
+
+      const panel = document.getElementById("photo-panel");
+      panel.hidden = false;
+      markers.forEach((m, k) => m.classList.toggle("active", k === i));
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    document.getElementById("photo-close").addEventListener("click", () => {
+      document.getElementById("photo-panel").hidden = true;
+      markers.forEach((m) => m.classList.remove("active"));
+    });
+
+    /* ---------- 主循环 ---------- */
+    function tick() {
+      controls.update();
+      updateMarkers();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    tick();
+    window.__globeReady = true;
+  </script>
+
+  <!-- 加载失败诊断：把真实原因直接显示在页面中央，不用去翻控制台 -->
+  <script>
+    (function () {
+      var el = document.getElementById("globe-loading");
+      var globeBox = document.getElementById("globe");
+      function show(html) {
+        if (!el || !globeBox) return;
+        el.classList.remove("hide");
+        el.innerHTML = html;
+      }
+      // 双击（file://）和本地服务器（http://）都支持，5 秒还没起来就报出当前地址
+      setTimeout(function () {
+        if (window.__globeReady) return;
+        show(
+          "<span>地球没能启动。<br>当前地址：<code>" + location.href + "</code><br>" +
+          "请确认 travel.html 旁边的 <b>assets/</b> 文件夹完整（尤其 assets/lib/ 与 assets/earth-texture.js）。<br>" +
+          "按 <b>F12</b> 打开控制台，把红色报错发我。</span>"
+        );
+      }, 5000);
+    })();
+  </script>
+</body>
+</html>
