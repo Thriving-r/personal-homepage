@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>刘孟涵 · 个人主页</title>
+  
+<!-- Supabase 客户端库 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
@@ -940,8 +943,31 @@
               <input id="nick" type="text" name="nick" placeholder="怎么称呼你？（选填）" autocomplete="nickname" />
             </div>
             <div class="field">
+              <label for="relation">与我的关系 <span class="en">Your Relation</span></label>
+              <select id="relation" name="relation" required>
+                <option value="">请选择</option>
+                <option value="同学">同学</option>
+                <option value="老师">老师</option>
+                <option value="家人">家人</option>
+                <option value="朋友">朋友</option>
+                <option value="同事">同事</option>
+                <option value="其他">其他</option>
+                <option value="不便透露">不便透露</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="device">设备 <span class="en">Device</span></label>
+              <select id="device" name="device" required>
+                <option value="">请选择</option>
+                <option value="电脑">电脑</option>
+                <option value="手机">手机</option>
+                <option value="平板">平板</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="field">
               <label for="advice">填写建议 <span class="en">Your Suggestion</span></label>
-              <textarea id="advice" name="advice" rows="5" placeholder="把你想说的写在这里吧……" required></textarea>
+              <textarea id="advice" name="advice" rows="5" placeholder="把你想说的写在这里吧……请具体描述问题或建议。" required></textarea>
             </div>
             <div class="advice-actions">
               <button type="submit" class="stateful-btn" id="advice-send">
@@ -955,7 +981,7 @@
               </button>
             </div>
             <div class="advice-done" id="advice-done" hidden>
-              <span class="advice-check">✓</span> 谢谢你的建议，我已经收到了！
+              <span class="advice-check">✓</span> 感谢你的反馈，我已经收到！
             </div>
           </form>
         </div>
@@ -1404,35 +1430,63 @@
   const adviceForm = document.getElementById("advice-form");
   const adviceDone = document.getElementById("advice-done");
   const nickInput = document.getElementById("nick");
+  const relationInput = document.getElementById("relation");
+  const deviceInput = document.getElementById("device");
   const adviceInput = document.getElementById("advice");
 
-  // 把提交保存到 localStorage，便于用户本人回看（本机）
-  function loadAdvices() {
-    try { return JSON.parse(localStorage.getItem("lmh_advices") || "[]"); }
-    catch (e) { return []; }
-  }
+  // Supabase 配置 - 注意：在实际部署时请使用环境变量存储密钥
+  const SUPABASE_URL = 'https://your-project.supabase.co';
+  const SUPABASE_KEY = 'your-public-key';
+  
+  // 创建 Supabase 客户端
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const adviceSendBtn = document.getElementById("advice-send");
 
-  adviceForm.addEventListener("submit", (e) => {
+  adviceForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const nick = nickInput.value.trim();
+    const relation = relationInput.value.trim();
+    const device = deviceInput.value.trim();
     const text = adviceInput.value.trim();
-    if (!text) {
-      adviceInput.focus();
+    
+    if (!relation || !device || !text) {
+      if (!relation) relationInput.focus();
+      else if (!device) deviceInput.focus();
+      else adviceInput.focus();
       return;
     }
 
-    runStateful(adviceSendBtn, () => {
-      const list = loadAdvices();
-      list.push({ nick: nick || "匿名", text, time: new Date().toLocaleString() });
-      try { localStorage.setItem("lmh_advices", JSON.stringify(list)); } catch (e) {}
+    runStateful(adviceSendBtn, async () => {
+      try {
+        // 提交反馈到 Supabase
+        const { data, error } = await supabase
+          .from('feedback')
+          .insert({
+            name: nick || '匿名',
+            relation: relation,
+            device: device,
+            message: text,
+            version: 'V3'
+          });
 
-      // 成功提示 + 清空
-      adviceDone.hidden = false;
-      adviceInput.value = "";
-      adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      setTimeout(() => { adviceDone.hidden = true; }, 3500);
+        if (error) {
+          console.error('提交失败:', error);
+          throw new Error('提交失败，请稍后重试');
+        }
+
+        // 成功提示 + 清空表单
+        adviceDone.hidden = false;
+        adviceInput.value = "";
+        nickInput.value = "";
+        relationInput.value = "";
+        deviceInput.value = "";
+        adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        setTimeout(() => { adviceDone.hidden = true; }, 3500);
+        
+      } catch (err) {
+        alert('提交失败：' + err.message);
+      }
     }, { loadMs: 850, okMs: 2000 });
   });
 </script>
