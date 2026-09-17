@@ -27,6 +27,10 @@ jobs:
           replacements = {
               "index.html": [
                   (
+                      "// Supabase 配置 - 注意：在实际部署时请使用环境变量存储密钥",
+                      "// Supabase 配置",
+                  ),
+                  (
                       "const SUPABASE_URL = 'https://your-project.supabase.co';",
                       "const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';",
                   ),
@@ -36,6 +40,10 @@ jobs:
                   ),
               ],
               "test-feedback.html": [
+                  (
+                      "// 配置 Supabase（请在测试前替换为你的实际配置）",
+                      "// 配置 Supabase",
+                  ),
                   (
                       "const SUPABASE_URL = 'https://your-project.supabase.co';",
                       "const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';",
