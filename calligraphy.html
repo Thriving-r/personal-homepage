@@ -111,6 +111,44 @@
     transition: color .25s ease, background .25s ease;
   }
   .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+  /* 顶栏三项：左「← Back」管回上一面、中间「当前页名」只是位置标识、右「Return to Home →」回主页。
+     当前页名不可点击，所以用 span 而不是 a —— 高亮观感沿用上面 .active，
+     光标保持默认箭头，避免被当成按钮。 */
+  .nav a, .nav .nav-here {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav .nav-here {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-900);
+    background: var(--sky-100);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    cursor: default;
+  }
+  .nav-arrow {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* 顶栏从两项变三项（多一枚「Return to Home →」），手机上要把留白收回来，否则会顶出胶囊。
+     这一档只收紧 gap / 内边距 / 字距，字号仍是上面 clamp 的原值。 */
+  @media (max-width: 560px) {
+    .nav { gap: min(10px, 1.6vw); padding-left: 10px; padding-right: 10px; }
+    .nav a, .nav .nav-here { padding-left: 7px; padding-right: 7px; letter-spacing: 0.02em; }
+  }
+  /* 440px 以下再让字号随视口线性收缩，兜住安卓更宽的 fallback 字体。 */
+  @media (max-width: 440px) {
+    .nav a, .nav .nav-here { font-size: clamp(11px, 3.05vw, 13px); }
+  }
 
   /* ==== 栅格 ==== */
   .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(4px, 2vw, 24px) 80px; }
@@ -322,14 +360,50 @@
     .cali-tip { padding: 0 20px; }
     .work-glyph { font-size: clamp(34px, 11vw, 54px); }
   }
+  /* ==== 云背景层（会飘的云）==== */
+  /* 最底层装饰：fixed + z-index:-1 → 永远在 body 背景之上、所有内容之下；
+     pointer-events:none → 绝不拦截点击 / 划选 / 滚轮。
+     天空透明、只画云，底层的水彩天空（bg.jpg + 多层柔光）照旧透出来。
+     渲染逻辑见 assets/cloud-bg.js（Aceternity UI《Cloud Shader》的原生移植）。 */
+  canvas.cloud-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: -1;
+    pointer-events: none;
+  }
 </style>
+<!-- 云背景层（assets/cloud-bg.js）不在这里引入：改在 <body> 里 canvas 之后就动态注入，
+     这样它不必等「整页解析完成 + 未加载完的外部样式表到齐」才执行（本页有 Google Fonts），
+     云的下载与执行会和后续解析并行。详见 body 里那段的说明。 -->
 </head>
 <body>
 
+  <!-- 云背景层：会缓慢飘动的云（最底层装饰，由 assets/cloud-bg.js 渲染，不遮挡也不拦截任何内容） -->
+  <canvas class="cloud-bg" aria-hidden="true"></canvas>
+  <!-- 云背景层引导：在这里「动态注入」脚本，而不是在 <head> 里写 <script defer src="assets/cloud-bg.js">。
+      原因：defer 要等「整页解析完成」并且「尚未加载完的样式表到齐」才执行，本页 head 里的外部
+      资源（Google Fonts）慢的时候会把云一起拖后几秒；改成这里立刻注入后，脚本的下载与后面文档的
+      解析并行进行、下载完立即执行，云因此更早出现，同时也不阻塞页面解析。 -->
+  <script>
+    (function () {
+      var s = document.createElement("script");
+      s.src = "assets/cloud-bg.js";
+      document.head.appendChild(s);
+    })();
+  </script>
+
   <header class="masthead">
     <nav class="nav">
-      <a href="index.html">← Return to Home</a>
-      <a class="active" href="calligraphy.html">书法 Calligraphy</a>
+      <!-- 左：回到「进入本页之前的那一面」（无历史可回时兜底跟随 href，逻辑见页尾脚本） -->
+      <a href="index.html" id="back"><svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M11.4 7H2.6M6 3.2 2.2 7 6 10.8"/></svg>Back</a>
+      <!-- 中：当前位置标识，不可点击 -->
+      <span class="nav-here">书法 Calligraphy</span>
+      <!-- 右：回主页（新导航，落 Home 面板顶部，不还原上次位置） -->
+      <a href="index.html" class="nav-home">Return to Home<svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2.6 7h8.8M8 3.2 11.8 7 8 10.8"/></svg></a>
     </nav>
   </header>
 
@@ -821,6 +895,28 @@
 
   /* 给所有卡片一个初始坐标后再开循环（避免首帧跳动） */
   ensureLoop();
+</script>
+
+<!-- 顶栏「← Back」：回到「进入本页之前的那一面」，也就是点「书法 Calligraphy」pill 时
+     所在的界面（同源跳转下浏览器会把那一面的面板与滚动位置一起还原）。
+     兜底：没有可回退的历史（直接双击本页 / 从书签进来）时不拦截默认行为，
+     跟随 href="index.html" 回主页，避免按了没反应。
+     ⚠️ file:// 下 location.origin 是字符串 "null" 且 referrer 为空，
+     同源判断不成立，因此单列一个分支只看 history.length。 -->
+<script>
+  (function () {
+    var back = document.getElementById("back");
+    if (!back) return;
+    back.addEventListener("click", function (e) {
+      var canGoBack = location.protocol === "file:"
+        ? window.history.length > 1
+        : document.referrer.indexOf(location.origin) === 0 && window.history.length > 1;
+      if (canGoBack) {
+        e.preventDefault();
+        window.history.back();
+      }
+    });
+  })();
 </script>
 </body>
 </html>

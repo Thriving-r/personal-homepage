@@ -23,11 +23,14 @@
 | 路径 | 说明 |
 |---|---|
 | `index.html` | 主文件，HTML / CSS / JS 全部内联其中 |
-| `travel.html` | 旅行页：three.js 3D 地球 + 城市标记 + 照片展示（独立页面） |
-| `calligraphy.html` | 书法页：可拖拽的书法作品卡片（独立页面，原生 pointer 事件；Aceternity 式**错落叠放 + 悬停倾斜 + 甩出惯性**）；**已填入 6 张真实作品照片**（`WORKS` 的 `img`），照片下方**不显示文字** |
+| `travel.html` | 旅行页：three.js 3D 地球 + 城市标记 + 照片展示（独立页面）；顶栏 = `← Back` + `旅行 Travel` + `Return to Home →`（见「交互与组件约定 · 子页顶栏」） |
+| `citywalk.html` | Citywalk 占位页：Aceternity UI《Typewriter Effect》的**零依赖复刻**（逐字淡入 + 闪烁光标），显示「新功能开发中......莫急！」；**主页面两处 Citywalk pill 的落地页**。顶栏 = `← Back` + `Citywalk` + `Return to Home →`（**2026-09-18 起底下那枚 Back 已删除，Back 统一到顶上**）；点 Back 用 `history.back()` 回到进入本页前的界面 —— **连面板和滚动位置一起还原**，在 `index.html` 侧靠 `sessionStorage` 记录 + `nav type === "back_forward"` 判定，`file://` 双击同样成立；无历史时兜底走 `index.html` |
+| `calligraphy.html` | 书法页：可拖拽的书法作品卡片（独立页面，原生 pointer 事件；Aceternity 式**错落叠放 + 悬停倾斜 + 甩出惯性**）；**已填入 6 张真实作品照片**（`WORKS` 的 `img`），照片下方**不显示文字**；顶栏 = `← Back` + `书法 Calligraphy` + `Return to Home →` |
+| `bci.html` | 脑机接口方向详情页（暗色科技风，**全站唯一的暗色页**）：脑形 PCB 走线加载动画 + HUD 数据波动（独立页面，单文件内联 CSS/JS）；顶栏 = `← Back` + `脑机接口 BCI` + `Return to Home →`（**2026-09-18 起并入四页统一口径**）。⚠️ 该页配色自成体系（`--bg-0 #04070e` / `--cyan #5fbeff`），顶栏中项用**青色半透明胶囊**而不是别页的 sky-100 —— 见「交互与组件约定 · 子页顶栏」 |
 | `assets/calligraphy/` | 书法作品照片，6 张（`praise-yangcheng-2023` / `china-dream` / `hui-yangcheng-2022` / `zhong-nanshan-2020` / `mao-zedong-poems` / `20th-congress-2022`）。全部 `sips -Z 1600 -s formatOptions 72` 压缩，共约 2.4MB |
 | `assets/avatar.png` | 头像 |
 | `assets/bg.jpg` | 水彩天空背景图 |
+| `assets/cloud-bg.js` | **云背景层**（2026-09-18 新增）：Aceternity UI《Cloud Shader》的**零依赖原生 WebGL 移植**，被 `index.html` / `travel.html` / `citywalk.html` / `calligraphy.html` 四页以 `<script defer>` 引用（`bci.html` 不引用）。只画云、天空透明，让 `bg.jpg` 水彩底透出来；参数在文件顶部 `CFG` |
 | `assets/tour-1.jpg` | 旅行照片 1（夏 · 海边栈道） |
 | `assets/tour-2.jpg` | 旅行照片 2（地中海小镇） |
 | `assets/tour-3.jpg` | 旅行照片 3（书法 · 墨） |
@@ -91,9 +94,22 @@ python3 -m http.server 8777 --directory .
   - ⚠️ **改落点前必须先量「文字墨迹」**（`Range.getClientRects()`），不要用块级元素的满宽盒子，否则会把大片空白误判成重叠
   - `pointer-events:none`：纯装饰浮层，绝不拦截点击 / 划选 / 滚轮；点击涟漪靠 **window 级圆形命中判定**实现（不是监听 canvas）
   - ⚠️ **窄屏（≤700px）单独处理**：窄屏既没有右侧留白、也没有鼠标跟随（触摸不产生 hover 跟随）。Home 回落到 `.welcome` 文档流（`width:min(180px,46vw); margin:18px auto 0`），About Me / Virtual Space 藏球。**不要**在窄屏改成固定定位，实测会压住 Home 的 H1
+  - ⚠️ **触屏设备（手机 / 平板）整颗球都不显示（定稿，改动前请先问用户）**：判定是 `TOUCH_Q = matchMedia("(hover: none) and (pointer: coarse)")`，命中即 `placeOrb()` 直接 `display:none` + 不跟随 + 渲染循环不启动（`start()` 里提前 return），并有 `@media (hover: none) and (pointer: coarse) { .hero-glass { display:none } }` 兜底。**必须用「设备能力」而不是「宽度」判定**——1024px 的 iPad 和 1024px 的电脑窗口宽度完全相同，只有 hover/pointer 能把两者分开；`TOUCH_Q` 与 `MOBILE_Q` 是**叠加**关系，电脑把窗口拖窄到 ≤700px 时仍走原来的窄屏分支（实测零回归）
+  - ⚠️ **隐藏球必须用 `display:none`，不要改成 `visibility:hidden` / `opacity:0`**：点击涟漪靠 `getBoundingClientRect()` 做圆形命中判定，`display:none` 时 rect 全 0 自然跳过；`visibility:hidden` 的 rect 仍然有效，会在球本该消失的空白处误触发涟漪
+  - ⚠️ **不要在 `pointermove` 里靠 `e.pointerType` 过滤触摸**：媒体查询才是可靠依据（触屏笔记本、iPad 接鼠标、外接触控板等情况 pointerType 会乱），且 CSS 兜底也用同一个查询，两者必须同源
   - ⚠️ **不要**恢复「整页铺满泡泡跟随鼠标」的方案——该方案已被用户明确否决
   - ⚠️ **验证球位不要用「像素差分 bbox 质心」**：球心近乎透明（过 DOM 球心的中线差值 ≤3），强差分只出现在边缘折射新月区，质心会随背后背景内容漂移几十像素，看着像「没画在指针处」。要判定位置请用 **DOM rect**（`getBoundingClientRect`）或**红盒法**（临时 `canvas.style.background='#ff0000'; canvas.style.filter='none'`，footprint 应精确等于球盒）
   - 自检钩子：只有 `?selftest=1` 才挂 `window.__heroGlass`（正式访问下为 `undefined`）
+- **子页顶栏（`travel.html` / `calligraphy.html` / `citywalk.html` / `bci.html` 四页统一，2026-09-18 定稿＝三项）**：`.nav` 里**恰好三项** —— 左 `<a id="back" href="index.html">`＝左箭头 SVG + `Back`；中 `<span class="nav-here">`＝当前页名（**位置标识，不是链接、不可点击、不带箭头**）；右 `<a href="index.html" class="nav-home">Return to Home` + 右箭头 SVG＝回主页的新导航
+  - ⚠️ 中项必须是 `span`（不是 `a`、不是 `button`、不加 `onclick`）：它只表示「你正在这一页」，做成可点会误导；光标显式 `cursor: default`，高亮观感沿用原 `.active` 的 999px 胶囊
+  - ⚠️ **中项底色只有 `bci.html` 一页不同**（唯一例外，不要照抄到别页）：`bci.html` 是暗色科技风（`--bg-0 #04070e`），套 sky-100 浅底会很跳，所以那页 `.nav .nav-here` 用青色半透明胶囊 `background: rgba(95,190,255,0.16)` + `box-shadow: inset 0 0 0 1px rgba(95,190,255,0.28)` + `color: #eaf5ff`，字体用 `var(--font-sans)` / `clamp(12px,1.7vw,14px)` / `padding 5px 12px`（跟该页 `.nav a` 一致）；另三页保持 `--sky-100` 浅底 + `var(--font-serif)` / `clamp(13px,2vw,17px)`。**别页若再新增暗色主题页，照 bci 这套走，不要复制 sky-100**
+  - ⚠️ **左右两项语义不同，不要混**：左「Back」＝回**上一面**（`history.back()`，面板 + 滚动一起还原）；右「Return to Home」＝回**主页顶部**（普通导航 → index 侧 `nav type === "navigate"` **不消费**还原记录 → 落 Home 面板顶部，语义正好对上）
+  - 箭头用**内联 SVG**（`.nav-arrow`，`viewBox="0 0 14 14"`、`stroke: currentColor`）而不是 `←` / `→` 字符：字符在不同字体下的宽度与基线都不一致，两端对不齐。**四页全页都只有 2 枚箭头**（左项 1 枚 + 右项 1 枚，中项没有）
+  - ⚠️ **Back 不是「回主页」，是「回上一面」**：点它先判 `location.protocol === "file:"` —— 是（用户双击打开）就只看 `history.length > 1`；否则要求 `document.referrer.indexOf(location.origin) === 0 && history.length > 1`（`file://` 下 `origin` 是字符串 `"null"`、referrer 为空，同源判断必然不成立，所以必须单列这条分支）。成立 → `preventDefault()` + `history.back()`；不成立（直接双击本页 / 从书签进来）→ **不拦截默认行为**，跟随 `href="index.html"` 兜底回主页，避免按了没反应
+  - ⚠️ **顶栏三项后，窄屏必须靠媒体查询收空间**：同一行要塞 `Back` + 页名 + `Return to Home`，`@media (max-width: 560px)` 只收紧 `gap` / 左右 `padding` / `letter-spacing`，`@media (max-width: 440px)` 再让字号随视口收缩（`clamp(11px, 3.05vw, 13px)`）。**改动这两档前先量 320px 档**（实测 320px 下四页最宽的是 `calligraphy.html` `navRight = 307px`、`bci.html` 306px、`travel.html` 295px，余量已很薄）
+  - ⚠️ **不要**把 Back 放回页面底部：用户明确要求统一到顶栏（`citywalk.html` 底部那枚已删，`bci.html` 也于 2026-09-18 并入统一口径）。**目前 `bci.html` 页脚仍留着一条老的 `<a href="index.html">← 返回主页 Back to Home</a>`**（不在顶栏口径内，另三页页脚没有这条）——**要不要删尚未获用户确认，别自作主张动它**；若用户说要删，参照 `citywalk.html` 的做法「删块 + 原处留说明注释」
+  - 四页宽度参考（1280px 档）：`travel.html` 的 `.nav` `docTop = 52`、`calligraphy.html` / `citywalk.html` 的 `.nav` `docTop = 28`、**`bci.html` 的 `.nav` `docTop = 14`**（都在顶部，结构不同：旅行页顶栏在 `.hero` 标题之后）
+  - ⚠️ **`bci.html` 有一层 `z-index: 999` 的全屏加载遮罩 `.loader`**（`position: fixed; inset: 0`，`load` 后最短 900ms 才加 `.is-done`、再过 800ms 才从 DOM 移除）。**用 CDP / 自动化点它的顶栏前必须先等遮罩消失**，否则鼠标事件落在遮罩上、点了没反应（本轮实测 B/C/D 三处 bci「Back」全部点空，而真人点到时它早淡出了——是测试时序问题、不是页面缺陷）。脚本里的做法见 `.deepworks/tmp/subpage-nav-verify.mjs` 的 `waitLoaderGone()`
 - **旅行页 `travel.html`**：three.js 独立页面，**加载方式刻意做成「双击可用」**
   - 脚本用普通 `<script src>`（`three.global.js` → `OrbitControls.global.js` → `earth-texture.js` → 主脚本），顺序不能调换：后一个依赖前一个建立的全局变量 `THREE` / `OrbitControls` / `window.__EARTH_TEXTURE_DATA`
   - ⚠️ **不要改回 ES Module（`type="module"` + `import`）**，那样 `file://` 双击会被 Chrome 拦掉
@@ -136,6 +152,441 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-09-18（云「更快出现」：四页云脚本改成 body 里动态注入 · 首页 supabase CDN 改 `defer` + 客户端懒初始化）
+
+- 需求：用户问「**页面打开后能不能快点出现云呢**」→ 先量后改，本轮**只动「什么时候去加载/执行云脚本」，云的画面与行为一行没改**（`assets/cloud-bg.js` 零改动）
+- 🔍 **诊断：从打开到「云真的画出来」有两段彼此独立的延迟**（`.deepworks/tmp/cloud-timing.mjs` v2：`setInterval` 轮询 + 包装 `getContext`/`shaderSource`/`compileShader`/`linkProgram`/`drawArrays`，**不要用 rAF 打点**，headless 下首个 rAF 回调会晚到秒级、量出来的是「首帧合成」而不是页面速度）：
+  1. **「等执行」**：`<script defer src="assets/cloud-bg.js">` 要等**整页解析完成**、且**尚未加载完的样式表到齐**才执行。`index.html` head 里的 supabase CDN（`cdn.jsdelivr.net`，本机实测 total ~2.1s）与 `travel.html` / `calligraphy.html` 的 Google Fonts 会把云一起拖后
+  2. **`getContext('webgl')` 自身耗时**：真 GPU 下 10~20ms，SwiftShader 软件渲染下可到 0.2~1s（无头 CI 环境才会遇到，真机可以忽略）
+- **改动 1（四页，`index.html` / `travel.html` / `citywalk.html` / `calligraphy.html`）**：head 里那行 `<script defer src="assets/cloud-bg.js"></script>` **删掉**（原位置换 3 行说明注释），改在 `<body>` 里 `<canvas class="cloud-bg">` **之后**立刻动态注入：
+  ```html
+  <script>(function(){var s=document.createElement("script");s.src="assets/cloud-bg.js";document.head.appendChild(s);})();</script>
+  ```
+  原理：脚本从「**解析完成后才执行**」变成「**解析到那里就开始下载、下载完立即执行**」——云的下载/执行与后续文档解析**并行**，既更早出画，也仍然**不阻塞**解析。`cloud-bg.js` 本来就是「执行即启动」（开头自己 `querySelector("canvas.cloud-bg")`，不自己等 DOMContentLoaded），所以这条路完全成立
+- **改动 2（只有 `index.html`）**：head 的 supabase CDN 加 `defer`（原本是**阻塞解析的同步脚本**，是首页「等执行 2.6s」的主因）；配套把它创建客户端的地方从 `const supabase = window.supabase.createClient(...)` 改成 **`let supabaseClient` + 最多等 15s 的轮询**（每 100ms 查一次 `window.supabase`，成功即建、超时放弃），提交处加一行守卫 `if (!supabaseClient) throw new Error("服务暂时不可用，请稍后再试")` 走既有 `catch` 提示
+  - ⚠️ **为什么变量名从 `supabase` 改成 `supabaseClient`**：CDN 加载完会往 `window` 上挂一个全局 `supabase`，页面顶层再声明 `let/const supabase` 是**遮蔽同名全局**，`defer` 之后两边时序不确定，改名最稳
+  - ⚠️ **为什么必须一起改**：只加 `defer` 不改创建逻辑 → 页面脚本解析到那一行时 `window.supabase` 还是 `undefined`，首页会**整页抛 `TypeError`**（表单彻底不可用）。这两处是**原子的一对**
+- 📐 **实测 A/B（同一台机、同一个无头 Chrome、真 GPU、缓存禁用；BEFORE = 权威副本 `8792`，AFTER = 编辑副本 `8791`）——「首个 draw」= 云真正画出来的时刻**：
+
+  | 页面 | 改前 | 改后 | 变化 |
+  | --- | --- | --- | --- |
+  | `index.html` | 4041ms（等执行 2647ms） | **230ms**（等执行 32ms） | **−3811ms（约 17×）** |
+  | `travel.html` | 967ms（等执行 782ms） | **419ms**（等执行 249ms） | −548ms |
+  | `calligraphy.html` | 257ms | **118ms** | −139ms |
+  | `citywalk.html` | 26~42ms | 39~44ms | **噪声内，无回归**（3 次复测：改前 42/30/34，改后 39/81/39；81 那次连「下载」也异常到 24ms，属网络抖动） |
+
+- ✅ **零回归（改了「加载时机」，必须重新验一遍画面本身）**：`http://127.0.0.1:8791`（`cloud-verify-http5.json`）与 `file://`（`cloud-verify-file6.json`）各 4 页全部 **buffer 1280×800 / `hasGL: true` / `canvasIntercepts: false` / JS 异常 0**；对照组 `bci.html` 仍只有它自己那条历史 SVG 报错（`<path> attribute d`，与本次无关）
+- ✅ **supabase 专项探针（`index-supabase-probe.mjs`，不真的提交表单以免往用户数据表写脏数据）**：在线 → CDN 640ms 就绪、`supabaseClient` 773ms 建成（`from` / `auth` 都在、`supabaseUrl` 正确）；**挡住 CDN**（`Network.setBlockedURLs` = `*jsdelivr*`）→ 页面 0 异常、`readyState: complete`、云照画（canvas 1280），只是 `supabaseClient` 保持 `null`，即**断网时从「整页报错」变成「提交时才给一句友好提示」**
+- ⚠️ **本轮踩坑（固化）**：删 head 那行 defer 时**漏了 `index.html`**，一时间变成「head + body 双份引入」→ 云脚本会被执行**两次**（两个 WebGL 上下文、两条 rAF 循环）。另外**校验时别用裸字符串 grep**：注释里也含 `<script defer src="assets/cloud-bg.js">` 这段文字，会误判「没删干净」；要用 `^\s*<script defer src="assets/cloud-bg\.js"></script>\s*$` 锚行首，并数 `s.src = "assets/cloud-bg.js"`（每页应恰好 1）
+- 文件行数：`index.html` 2396 → **2425**、`travel.html` 1026 → **1039**、`citywalk.html` 434 → **447**、`calligraphy.html` 909 → **922**（三页均为 +13：注释 +2、注入引导 +11）
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`：`index.html` / `travel.html` / `citywalk.html` / `calligraphy.html` / `AGENTS.md` 五份经 `shasum -a 256` 校验**逐字节相同**（`index.html` = `78e26b99f61f3221…`、`travel.html` = `42b5e2f0e1550be8…`、`citywalk.html` = `e85d8f5f28ef0a3a…`、`calligraphy.html` = `175acffa00fe2670…`；`assets/cloud-bg.js` 未改动，仍 `91509918f7b66d6f…`）
+
+### 2026-09-18（撤掉首页左侧三枚白色圆形快捷按钮：未获用户要求的自加组件，整块回退）
+
+- 用户反馈：`index.html` **最左侧竖排那三枚白色圆形图标按钮**（`⌂` 首页 / `人` 关于我 / `✉` 联系）不是用户要求的，观感也不好，要求撤掉
+- ⚠️ **先做事实核查，别急着删**：全文检索本变更记录，`.side-dock` / 「左侧白色竖排圆形图标条」**一条历史记录都没有** —— 说明它确实是**未获用户要求自加的组件**，用户的说法成立，属于「未授权新增内容回退」，不是功能需求变更
+- **改动（`index.html`，两处整块删除，每处原位置换留一行说明注释）**：
+  1. CSS（原 651~677 行，27 行）：注释 `/* ==== 左侧白色竖排圆形图标条 ==== */` + `.side-dock`（`position:fixed; left:18px; top:50%; translateY(-50%); flex-column; gap:12px; z-index:20`）+ `.side-dock a`（34×34 圆形、`rgba(255,255,255,.85)` 底、`--ink-500` 图标、`0 4px 12px rgba(95,139,181,.18)` 投影）+ `:hover` 上浮 + `@media (max-width:720px){ display:none }`
+  2. HTML（原 1063~1068 行，6 行）：注释 `<!-- 左侧白色竖排圆形图标条 -->` + `<div class="side-dock">` 内三枚 `<a href="#top|#about|#contact" title="首页|关于我|联系">`
+- 文件行数 **2427 → 2396**（净减 31 行）
+- ⚠️ **它不占文档流，所以删除不影响任何布局**：`.side-dock` 是 `position: fixed` 的独立浮层，删掉后没有任何元素需要「回填空位」。`@media (max-width:720px)` 那条隐藏规则随块一起删（**.side-dock 已无任何选择器，不留空规则**）
+- ⚠️ **锚点残留已核查**：`#contact` 删后**全页无任何引用**（页脚也没用过），`#top` / `#about` 不再被 `href` 指向（导航用的是 `data-panel` + JS，不依赖锚点）；`<div class="page" id="top">` 这个 **id 保留**（现在无使用者，留着无害，也避免动到面板容器）
+- 📐 **验证（无头 Chrome + CDP，`.deepworks/tmp/sidedock-verify.mjs` + `run-sidedock.sh`，7 视口 1280/1024/768/430/390/360/320）**：**72/72 通过**（两副本各跑一遍，均 72/72）
+  - 断言：`.side-dock` 元素 **0**、含该 class 的节点 **0**、`⌂`/`✉` 字符 **0**、`a[title]` **0**；顶部胶囊导航仍 **3 项**（About Me / Home / Virtual Space）；默认面板仍 `panel-home`、可正常切到 `panel-chat`
+  - **零回归**：全部 7 档**横向溢出 0**（`scrollW == clientW`）、**无 JS 异常**（`exceptionThrown` 事件 0 条）、1280px 液态玻璃球仍在（`.hero-glass` 1 个）
+  - **输入栏数值与既有记录逐项吻合**（证明没有连带影响这块）：360px `input=148 / send=94`、430px `input=188 / send=120`、768px `input=465`、1024px `input=669`、1280px `input=786`
+- ⚠️ **验证仪器坑（本轮踩到，固化）**：**探针一开始有两条断言是错的判据，不是页面回归** —— ① 默认面板写成了 `panel-about`，实际是 `panel-home`（`activate("home")` 在初始化里）；② 在**未激活**的 `panel-chat` 上量 `.input-bar input` 宽度，得到 `0`（`display:none`）。**看 DOM 断言失败先怀疑自己判据写错**，改「先点 `#nav a[data-panel="chat"]` 切过去再量」后全绿。同轮还试过 `chrome --headless --screenshot` 与 `--virtual-time-budget`：前者本机不落盘、后者因页面有无限 `rAF` 动画**永不推进**直接挂到超时 —— **截图不是必需证据**（DOM 层确定性断言已覆盖），别在这上面继续耗轮次
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`index.html` + `AGENTS.md`）：两份 `index.html` 经 `cmp` 校验**逐字节相同**，sha256 均为 `b61c2458f6bd55fd…`；两份 AGENTS.md 同步更新
+
+### 2026-09-18（四页加「会飘的云」背景层 · Aceternity《Cloud Shader》零依赖移植）
+
+- 需求：给 `index.html` / `travel.html` / `citywalk.html` / `calligraphy.html` 的背景加上**会动的云彩**；四页原有的水彩天空、文字、交互都不许被挡住或改变。`bci.html`（暗色科技风）**明确排除，零改动**。
+- 新增 `assets/cloud-bg.js`（394 行，零依赖原生 WebGL，**没有引入 React / motion**）：保留官方那份着色器的 billow 噪声、域扭曲、云的自阴影（向上再采样一次密度）、6 层云 far→near 与高空薄卷云。
+  - **与官方唯一的功能性差异**：官方把天空也画进 canvas（不透明），本项目**只画云、天空留透明** —— 按 premultiplied alpha 累积覆盖度（`acc = vec4(c.rgb*c.a + acc.rgb*(1-c.a), c.a + acc.a*(1-c.a))`），天空区域 `alpha = 0`，让页面自己的 `bg.jpg` 水彩底透出来；云的暗部/大气透视改用 `--sky-200` 一档的 `u_haze` 代替原 sky，保持浅蓝水彩调、不引新色系。
+  - 参数集中在文件顶部 `CFG`：`{ speed: 1, count: 6, cloudColor: "#ffffff", haze: "#cfe4f5", maxPixels: 2600000 }`。**要调云的多少/快慢/颜色只改这里。**
+  - 降级：WebGL 不可用 → `canvas.style.display = "none"` 页面背景照旧；`prefers-reduced-motion` → 只渲染静止一帧；标签页切后台 → 暂停 rAF；`ResizeObserver`（无则 `resize`）+ `orientationchange` + `load` 跟随视口；DPR 上限 2 且再受 `maxPixels` 总像素预算约束（云很柔，降采样看不出来）。
+- 每页插三处（各自一次插入，**纯新增 19 行、0 行删除**）：① `<style>` 末尾的 `canvas.cloud-bg` 规则（注释标签「云背景层（会飘的云）」）；② `</head>` 前 `<script defer src="assets/cloud-bg.js"></script>`；③ `<body>` 后的注释 + `<canvas class="cloud-bg" aria-hidden="true"></canvas>`。
+- **层级原理**：`canvas.cloud-bg { position: fixed; top/left: 0; width/height: 100%; z-index: -1; pointer-events: none }`。四页 `body` 都没有 `transform / filter / opacity` → 不产生新的层叠上下文，于是云画在 body 背景**之上**、所有内容**之下**；`pointer-events: none` 保证不拦截点击 / 划选 / 滚轮。
+- ⚠️ **排错实录（重要，别按错误结论重犯）**：中途观测到「CSS 已生效（`clientWidth` 1280）但 `canvas.width` 停在 **300×150**」，当时推断是「`defer` 脚本在 CSS 应用前执行、`canvas.clientWidth` 取到 canvas 默认固有尺寸 300（**真值**），所以 `clientWidth || window.innerWidth` 这种写法不会兜底」。**这个推断是错的**：换成带**轮询就绪**的验证脚本后量到，导航后 ~0.9s 时四页确实还是 300×150，但 **2.4~4.5s 内全部自行变成 1280×800** 且 `errors: []` —— 也就是说 300×150 主要是**验证脚本「固定 `sleep(4200)` 就下结论」的测量竞态**（`python -m http.server` 是**单线程**的，`travel.html` 要拉 three.js / 609KB 贴图；冷启动 `file://` 还要现读磁盘），**不是页面的永久缺陷**。教训：**判断「页面坏了」之前，先确认测量时机**。
+  - 仍保留的改动（语义上更正确、成本为零，属于加固）：`resize()` 主来源改成 `window.innerWidth/innerHeight`（fixed 全屏层尺寸恒等于视口），并在 `document.readyState !== "complete"` 时补一个 `load` 兜底；源码注释里已写明缘由。
+- 📐 **验证（脚本：`.deepworks/tmp/cloud-verify.mjs` 采集 + `cloud-analyze.mjs` 像素量化）**
+  - `file://` 双击（1280×800）：四页 `buffer` 均 **1280×800**、`hasGL true`、`canvasIntercepts false`、`errors: []`，就绪耗时 2557 / 3600 / 4527 ms（index / travel / calligraphy）
+  - `http://127.0.0.1:8791`：同样四页全绿，就绪 2380~3714 ms；`bci.html` 作为控制页**确实没有 canvas**
+  - 云的像素贡献（`|on - off|`，阈值通道和 > 6）：changedPct **15.1 / 19.4 / 25.3 / 17.5 %**、`meanDelta` 29~38
+  - 云是否在飘：云掩膜像素 8s 后位移 **85.0 / 83.6 / 84.8 / 91.1 %**
+  - **文字安全**：`index` / `citywalk` / `calligraphy` 的暗色墨迹 Δ0（max ≤ 6）；`travel` 的 Δ25.0 **小于**它自己无云基线的 Δ37.4 —— 差值全部来自该页自带的 three.js 地球动画，云没有盖字。整页平均亮度只 +1.7~+3.2（0–255）→ 柔和不泛白
+  - **DPR=2（真人 Retina 场景）**：缓冲 2039×1274 = `floor(1280 × min(2, √(2.6M / 1.024M)))` 完全吻合，2.60M 像素 ≤ 上限，`gl true`、0 errs
+- ⚠️ **验证工具链的三个坑（都已修，且都是「看起来像卡死」的元凶）**：① `new WebSocket(...)` 后 `await open` **没有超时** → 调试通道连不上就永久挂起，跑满 shell timeout 被杀、结果文件还是 0 字节；② `send()` 等回复**没有超时**；③ 调试输出 `TARGET ...` 打在 JSON **前面**，把结果文件弄成非法 JSON（读取方已改成「从第一个 `{` 起解析」）。
+- ✅ **两副本逐字节一致**：`index.html` 2427 行 / `5a7cbe9155a7280f…`、`travel.html` 1026 / `1d7641533e586bb4…`、`citywalk.html` 434 / `62877f9b4e20dba1…`、`calligraphy.html` 909 / `cba61f28526b4043…`、`assets/cloud-bg.js` 394 / `91509918f7b66d6f…`；`bci.html` 1171 行 / `02883b05a66f4e91…` **未改动**（同步前 `diff` 核对：四页差异确为纯插入 19 行、0 删除）
+
+### 2026-09-18（`bci.html` 并入顶栏统一口径：也改成**三项**）
+
+- 用户原话：「bci.html也同样改成这样」。上一轮三页统一时 `bci.html` 被留在「**原样不动**」（见下面两条记录里的 ②），本轮把这一页**并进同一口径**。
+- `bci.html` 改前是**两项**：`<a href="index.html">← Return to Home</a>` + `<a class="active" href="bci.html">脑机接口 BCI</a>`。**改 4 处**（另三页的对应位置保持不动）：
+  1. **HTML**：`.nav` 换成三项 —— 左 `<a href="index.html" id="back">` + 内联左箭头 SVG + `Back`；中 `<span class="nav-here">脑机接口 BCI</span>`；右 `<a href="index.html" class="nav-home">Return to Home` + 内联右箭头 SVG。三条中文说明注释与另三页同款
+  2. **CSS**：插在 `.nav a.active {…}` 块之后、`/* ============ 首屏 ============ */` 之前（现第 166 行起），共 40 行：`.nav a, .nav .nav-here { display:inline-flex; align-items:center; gap:6px }`、`.nav .nav-here {…}`、`.nav-arrow {…}`，再加 `@media (max-width: 560px)` / `@media (max-width: 440px)` 两档窄屏（数值与文案跟另三页一致）
+  3. **JS**：页尾新增一段独立 `<script>` IIFE（点 `#back` 时判 `location.protocol === "file:"` 分支 → 能回退就 `preventDefault()` + `history.back()`，否则跟随 href 兜底），与另三页逐字同款
+  4. **页脚**：删掉那条老链接（详见下面最后一条），并在 `<footer>` 里留了三行中文注释写明「为什么没有了」
+- ⚠️ **中项底色是本页唯一的例外，不要回来「统一」它**：`bci.html` 是暗色科技风（`--bg-0 #04070e` / `--cyan #5fbeff`），套别页的 `--sky-100` 浅底会很跳，所以这里**沿用该页 `.nav a.active` 的青色半透明胶囊**：`color: #eaf5ff` / `background: rgba(95,190,255,0.16)` / `box-shadow: inset 0 0 0 1px rgba(95,190,255,0.28)`，字体随该页 `.nav a`（`var(--font-sans)` / `clamp(12px,1.7vw,14px)` / `letter-spacing:.05em` / `padding:5px 12px`）
+- ⚠️ **`.nav a.active` 规则保留未删**：改后 `.nav` 里已经没有 `.active` 元素了，但这条规则是 `.nav-here` 观感的来源与参照（且改动最小），不要因为「没有引用了」就清理
+- ⚠️ **`bci.html` 有一层 `z-index: 999` 的全屏加载遮罩 `.loader`**：`load` 后最短 900ms 才加 `.is-done`（`visibility:hidden`）、再过 800ms 才从 DOM 移除。**自动化点它顶栏前必须先等遮罩消失**，否则鼠标事件落在遮罩上、点了没反应。本轮首跑就是栽在这里：`B/C/D.bci` 的「Back」全部点空（`pathname` 仍是 `bci.html`，只留下 `sessionStorage` 残留），而**真人点到时遮罩早淡出了 —— 是测试时序问题、不是页面缺陷**。已在 `subpage-nav-verify.mjs` 里加 `waitLoaderGone()`（放进 `clickAndSnapshot`，其它页面零开销）
+- 📐 **验证（`subpage-nav-verify.mjs` + `run-subnav.sh`，已为 bci 参数化：`PAGES` 增 bci 项、入口选择器 `a.major-link[href="bci.html"]`、中项底色 `hereBg` 按页给值）**
+  - **两副本都跑 `ONLY=all`：256/256 全绿**（JS 异常 `[]`）；窄屏单独跑 **76/76**（两份都绿）
+  - ⚠️ **跑权威副本时 `FILEBASE` 必须传原始路径**（就写中文，别自己 `encodeURI`）——脚本内部会自己编码一次；手工再编码会得到 `file://%252FUsers%252F…`，Chrome 直接落 `chrome-error://chromewebdata/`，四个 `file://` 场景全挂（本轮为此白排查了一轮，最终靠一个字面量 URL 的探针才定位）
+  - **静态**（四页 × 3 环境）：`.nav` 恰好三项、tag 顺序 `["A","SPAN","A"]`；左项 `Back` / `href="index.html"` / `id="back"` / 14×14 左箭头；中项文案 `脑机接口 BCI`、`SPAN`、无箭头、`cursor=default`、**背景 `rgba(95,190,255,0.16)`**、非链接非按钮；右项 `A.nav-home` / `Return to Home` / `id` 为空 / 14×14 右箭头；**全页箭头恰 2 枚**；`Return to Home` 计数 **1**；`.btn` / `.tw-actions` 计数 0；无横向溢出；`docTop = 14`
+  - **http 主流程**：index → About → `y=136` → `bci.html` → 点 Back → **`panel-about` + `y=136` 完整还原**（会话副本 152ms / 权威副本 157ms）
+  - **直开兜底**（`history.length=1`）：点 Back → 跟随 href → 落 `index.html` + `panel-home` + `y=0`（会话副本 250ms / 权威副本 888ms，都只是等待时间差异）✅
+  - **`file://` 双击**（用户实际用法）：点 Back 回去 `nav type = "back_forward"`、**`panel-about` + `y=136` 完整还原**（会话副本 526ms / 权威副本 814ms）✅ 比另三页慢，因为该页要等 `load` + 加载遮罩
+  - **窄屏 6 档**（430 / 414 / 390 / 375 / 360 / **320**）：顶栏高 45~49px 仍是单行、三项 `cy` 相同、都可见、无横向溢出；**320px 档 `navRight = 306px`**（四页里仅次于 calligraphy 的 307px）
+- ✅ 两副本 `bci.html` 均为 **1171 行 / `02883b05a66f4e91…`**（`cmp` 逐字节相同）。同步前 `diff` 核对过：差异只有本轮这四处
+- ✅ 交付文件全部 `cmp` 一致：`index.html` 2408 行 / `cccb101b55f0bf81…`、`bci.html` 1171 行 / `02883b05a66f4e91…`、`travel.html` 1007 行 / `ef77bc1cef8b8329…`、`calligraphy.html` 890 行 / `1d7ff3aefb83e0ff…`、`citywalk.html` 415 行 / `f1e0e29984c91e7e…`
+- ✅ **并发写入已对齐**：本轮进行中另有改动在同一目录里落地（「手机端数字分身卡片标题整句一行」，即下面那条记录 + `index.html` 的 480px 块）。我一度量到会话副本 `index.html` 比权威副本多 35 行、且当时 AGENTS.md 还没有它的记录，**没有盲目同步**；随后那条改动自己完成了双副本同步（两副本现均为 **2408 行 / `cccb101b55f0bf81…`**、`cmp` 相同），与本轮互不冲突
+- ✅ **页脚那条老链接已按用户确认删除**：`bci.html` 页脚原先有一行 `<p><a href="index.html">← 返回主页 Back to Home</a></p>`，而另三页的页脚都没有这条 → **当面问过用户，用户选「删掉」**，于是整行（连同 `<p>`）删除，并在 `<footer class="foot">` 内留了三行注释写明缘由（页脚现在只剩署名那一行）。删完两副本各重跑了 `ONLY=all`（256/256）+ `ONLY=narrow`（76/76），依旧全绿
+
+### 2026-09-18（手机端：数字分身卡片标题「数字分身 · 和我聊聊 Virtual Space」整句一行）
+
+- 用户诉求：手机端 **`#panel-chat`（Virtual Space）** 里那行 **「数字分身 · 和我聊聊 Virtual Space」** 折到第二行，观感不好，要改成**整句一行**；**电脑端与平板端不要变**
+- **范围确认（只动这一处）**：全站 `.card-title` 共有三处 —— `#panel-about`（关于我）、`#panel-chat`（数字分身，本轮目标，HTML 在 1210 行）、`#panel-home`（欢迎语）。**只有 `#panel-chat` 那处被改**，另两处一字未动，并在验证脚本里加了断言逐档复核（320px 档 home 的欢迎标题本来就折 2 行，属既有设计，未纳入本轮）
+- 📐 **基线实测（无头 Chrome + CDP，先改前先量）**
+  - 桌面 / 平板 **1280 / 1024 / 834 / 768**：本来就**单行**（h = 37.39px，22px + 0.06em 字距，`.en` 11px）
+  - **480px：本来就单行**（h = 37.39px）
+  - **430 / 414 / 412 / 400 / 390 / 375 / 360 / 344 / 340 / 331 / 320：折 2 行**（h = 74.78px = 2 × 37.39）
+  - **301 / 300 / 280：折 3 行**（h = 112.17px）
+  - 所以「手机端折行」的触发线在 **<480px**，与断点选择吻合
+- 📐 **标定（关键，别凭感觉写字号）**：把标题克隆成 `nowrap` 量整句宽，对字号做线性回归，三组候选实测：
+  - A 原样（中文字距 `0.06em` / `.en` `0.2em` / `gap` 12px）：**宽 = 15.4222 × 字号 + 12.02**
+  - **B 采用**（中文字距 `0.03em` / `.en` `0.12em` / `gap` 12px）：**宽 = 14.5727 × 字号 + 12.01**
+  - C 更紧（`0.02em` / `0.08em` / `gap` 8px）：宽 = 14.2016 × 字号 + 8.03 —— 省下的 1.37em 换不到多少字号，反而字距过紧，落选
+  - 斜率与视口无关（纯字体度量），B 组即上式的 `K实测 = 14.5727`
+- 📐 **可用宽模型**：卡片可用宽 ≈ **「视口 − 106px」**，在 **<400px 档精确成立**（body `12px`×2 + `.page` `16px`×2 + `.card` `24px`×2 + 边框 2）；**400~480px 档 body/.page 内边距按 `3vw`/`4vw` 放大到 14.4~19.2px，可用宽其实更窄 4~11px** —— CSS 注释里按 `−106` 估（偏乐观），靠 K 的余量兜住，实测 480 档仍余 32px
+- **改动（`index.html` 一处、两个副本同改；紧跟 `.card-title .en` 原规则之后纯新增，原规则一行未删）**
+  - `@media (max-width: 480px)`：`white-space: nowrap` + `flex-wrap: nowrap` + 字距 `0.06em → 0.03em` + `font-size: clamp(12px, calc((100vw - 118px) / 15.8), 22px)`；`.en` 改为 `font-size: 0.5em` + 字距 `0.2em → 0.12em`
+  - `@media (max-width: 300px)`：极窄屏兜底，恢复 `white-space: normal` + `flex-wrap: wrap` + 原字距 + 18px（`.en` 回 11px / `0.2em`），避免 `nowrap` 把页面撑出横向滚动
+- ⚠️ **为什么不写 `flex-wrap` 的反向值就够**：`.card-title` 是 `display:flex` 且**未设 `flex-wrap`（默认 nowrap）**，折行发生在**中文文本节点内部**（匿名 flex item 可被压缩，中文可在任意字间断行），不是在 flex 子项之间 —— 所以**只加 `white-space: nowrap` 才是对症的那一刀**，`flex-wrap: nowrap` 只是显式声明、便于和 ≤300px 兜底对照
+- ⚠️ **K 取 15.8 的依据**：相对实测 `14.5727` 留约 **8%** 余量。整句里**拉丁（`Virtual Space`）约占 31%**，而中文字宽恒为 1em（与字体无关），安卓 fallback 字体的差异主要压在拉丁部分；8% 余量正是给它的。代价是 <480px 各档字号按比例缩小（430 → 19.75px、390 → 17.22px、320 → 12.78px），这是「一行 + 安卓不折」的必然取舍
+- ⚠️ **`.en` 由固定 11px 改成 `0.5em` 不是随手改的**：`11px` 恰好是 `22px` 的**一半**，写成 `0.5em` 后 **480px 档视觉与改动前逐项相同**（`.en` 仍是 11px），更窄档则随主字号等比缩放，避免出现「中文缩到 17px、英文还顶 11px」的失衡。**别把它改回固定 px**
+- ⚠️ **断点仍是 480px**（与页脚署名、旅行页副标题那两次统一口径）：480px 以上没有手机档位（平板最小 768、手机横屏 844），不会误伤平板 / 电脑；且 431~480px 段若不加 `nowrap`，安卓 fallback 字再宽一点就会折
+- 📐 **验证（`.deepworks/tmp/hp-chattitle-verify.mjs` + `run-chattitle.sh`，18 档）**
+  - **手机档 480 / 430 / 414 / 412 / 400 / 390 / 375 / 360 / 344 / 340 / 331 / 320 / 301：全部 1 行、零溢出、页面无横向滚动**（480 档 22px 原字号、整句 330.78px vs 可用 363px；430 → 19.75px / 298.03px vs 320px；390 → 17.22px / 261.34px vs 284px；320 → 12.78px / 197.20px vs 214px；301 → 触底 12px / 185.89px vs 195px，余量仍 ≥ 5%）
+  - **极窄兜底**：300 / 280 → 折 2 / 3 行、零溢出（符合设计）
+  - **桌面 / 平板零回归**：1280 / 1024 / 834 / 768 的 `white-space` 仍 `normal`、字号仍 22px、字距仍 1.32px、`.en` 仍 11px / 113.95px、整句仍 349.48px、h 仍 37.39px —— 与改动前**逐项完全一致**
+  - **未波及其它标题**：430 / 390 / 320 档复核 `#panel-about` / `#panel-home` 的 `.card-title` 仍 `white-space: normal` + 22px，`#panel-chat` 才是 `nowrap`
+  - **两个副本各跑一遍，18/18 全绿**（会话副本 + 权威副本）
+- ✅ 两份 `index.html` sha256 均为 `cccb101b55f0bf81…`（`cmp` 逐字节相同）。同步前先 `diff -u` 核对过：差异**恰好只有本轮这一处新增 CSS 块**，没有夹带别的漂移
+- 🔧 验证脚本本次修正一处**自己写错的判据**：原先按 `Range.getClientRects()` 的 `top` 聚类数行，**被 `.card-title` 的 `align-items: baseline` 骗了** —— 中文与 `.en` 顶面不同高，单行也被算成 2 行。**改为「元素实际高度 ÷ nowrap 克隆的单行高度」四舍五入**，基线档因此从「2 行」纠正为「1 行」。**以后在本项目量这类 baseline 对齐 flex 的行数，别用 rect 的 top 聚类**
+
+### 2026-09-18（顶栏口径修正：**两项 → 三项**，加回右项「Return to Home →」）
+
+- 用户原话：「大哥你会错意了。都不按我说的执行，我要「← Back」+「当前页名 」+「Return to Home →」」
+- ⚠️ **本条取代下面「三页顶栏统一改版」那条的两项口径**：那一版把顶栏做成「左 Back + 右页名 →」，**把「Return to Home」整条删掉了**，而用户要的是**三项**（Back / 页名 / Return to Home 同时存在）。旧条目保留原样作历史记录，**但「用户明确要求删掉 Return to Home」这个结论是错的，别再据此删按钮**
+- **最终口径**：`.nav` 恰好三项
+  1. 左 `<a href="index.html" id="back">` ＝ 左箭头 SVG + `Back`（回**上一面**，`history.back()`，面板 + 滚动一起还原；无历史兜底跟随 href）
+  2. 中 `<span class="nav-here">` ＝ 当前页名（`旅行 Travel` / `书法 Calligraphy` / `Citywalk`）——**位置标识、不可点击、不带箭头**，`cursor: default` + sky-100 胶囊
+  3. 右 `<a href="index.html" class="nav-home">` ＝ `Return to Home` + 右箭头 SVG（回**主页顶部**：普通导航 → index 侧 `nav type === "navigate"` 不消费还原记录 → 落 Home 面板顶部，语义正好对上）
+- 具体改动：`travel.html` / `calligraphy.html` / `citywalk.html` 三页各改 3 处
+  1. **HTML**：中项的右箭头 SVG 删掉；`</nav>` 前新增右项 `<a href="index.html" class="nav-home">Return to Home + 右箭头 SVG</a>`；顶部那段说明注释同步改写
+  2. **CSS**：仅改注释（原注释写「顶栏改版：左 Back + 右页名」）；`.nav` / `.nav a` / `.nav-here` 规则本身**一行未改**（右项靠 `.nav a` 自动继承 hover / `.active` 观感，`.nav-home` 只作语义标记，**没有**独立 CSS 规则）
+  3. **新增两档窄屏媒体查询**（插在 `.nav-arrow` 块之后、`/* ==== 栅格/布局 ==== */` 之前）：`@media (max-width: 560px)` 把 `gap` 收到 `min(10px, 1.6vw)`、左右 `padding` 收到 10px、项内 `padding` 收到 7px、`letter-spacing` 收到 `0.02em`；`@media (max-width: 440px)` 用 `font-size: clamp(11px, 3.05vw, 13px)` 继续收字号
+- ⚠️ **为什么必须加窄屏档**：三项比两项多一枚「Return to Home →」，360px 档原本会顶出胶囊（估算 ≈359.6px vs 可用 ≈304px）。**三项里中文页名那项最宽**（`书法 Calligraphy`），是窄屏的主要压力来源
+- ✅ **验证（`subpage-nav-verify.mjs` + `run-subnav.sh`，每页 4 场景 + 窄屏；静态断言已从「两项 `["A","SPAN"]`」改为「三项 `["A","SPAN","A"]`」）**
+  - **会话副本 `ONLY=all`：193/193 全绿**，JS 异常 `[]`；窄屏单独跑 **58/58**
+  - **静态**（三页 × 3 环境 = 9 遍）：`.nav` 恰好 3 个子元素、tag 顺序 `["A","SPAN","A"]`；左项 `Back` / `href="index.html"` / `id="back"` / 14×14 左箭头；中项文案 = 页名、`SPAN`、无箭头、`cursor=default`、背景 `rgb(231,242,251)`、非链接非按钮；右项 `A.nav-home` / 文案 `Return to Home` / `href="index.html"` / 14×14 右箭头 / **`id` 为空（不抢占 `back`）**；**全页箭头恰为 2 枚**；`Return to Home` 计数 **1**、`.btn` 与 `.tw-actions` 计数 0；无横向溢出
+  - **http 主流程**：index → About → `y=238` → pill → 子页 → 点 Back → **`panel-about` + `y=238` 完整还原**，三页 152 / 153 / 181ms
+  - **直开兜底**（`history.length=1`）：点 Back → 跟随 href → 落 `index.html` + `panel-home` + `y=0` ✅
+  - **`file://` 双击**（用户实际用法）：点 Back 回去 `nav type = "back_forward"`、**`panel-about` + `y=238` 完整还原** ✅
+  - **窄屏 6 档**（430 / 414 / 390 / 375 / 360 / **320**，三页 ×6 = 18 组）：顶栏高 45~48px **仍是单行**、三项 `cy` 相同（同行）、都可见、无横向溢出、未越出视口；**320px 档最紧的一页 `navRight = 307px`（calligraphy）、`travel.html` 为 295px**，仍在视口内
+  - `citywalk.html` 打字机同时复测：15 字俱全、`tw-caret-blink / 0.8s / infinite` 光标仍在、纯 CSS 无 JS 驱动
+- 🔧 验证脚本本次修正一处**自己写错的断言**：三项里只有 **2 枚**箭头（中项没有），右箭头是 `arrows[1]` 而非 `arrows[2]` —— 首跑 175/184 的 9 条 ❌ 全部来自这一条，不是页面问题
+
+### 2026-09-18（手机端页脚署名整句一行：`index.html` + `citywalk.html` 不再折行）
+
+- 用户原话：「手机端每个页面最后的『刘孟涵·个人主页·天津大学......』那个也会换行，我不要换行」
+- **范围确认（先查全站再动手）**：这句完整文案只出现在 **`index.html`（`.footer`）** 与 **`citywalk.html`（`footer.footer`）**；其余三页底部是**另一句文案、实测本来就不折行，本轮一字未动**：
+  - `calligraphy.html` = 「刘孟涵 · 书法 Calligraphy」→ 12px、单行 **210.39px**，15 档全单行
+  - `travel.html` = 「MENGHAN LIU · TRAVEL」→ 12px、单行 **213.64px**，15 档全单行
+  - `bci.html` = 「刘孟涵 · 智能医学工程（脑机接口方向）」→ 12px、单行 **250.81px**，10 档全单行（该页 `.foot` 本身是多行结构「链接行 + 署名行」，署名行要用 `SEL=".foot p:nth-of-type(2)"` 单独量，整块 `lines=4` 是结构而非折行）
+- 📐 **基线实测（无头 Chrome + CDP）**
+  - `index.html`：12px + `0.06em` 下**整句需 350.31px**，可用宽 =「视口 − 56px」（body 内边距 12 + `.page` 内边距 16，左右各两处）→ **≤406px 必折**（480 / 430 / 414 / 412 单行；**400 / 390 / 375 / 360 / 344 / 340 / 331 / 320 全部 2 行**）
+  - `citywalk.html`：12.5px + `0.08em` 下**整句需 372.66px**，可用宽 =「视口 − 43px」→ **≤413px 必折**（414 / 430 / 480 单行；412 及以下全 2 行）
+- **改动（两个文件，两个副本同改）**：紧跟各自页脚原规则之后**纯新增**，原规则一行未删
+  - `@media (max-width: 480px)`：`white-space: nowrap` + 字距收紧（index `0.06em → 0.02em`；citywalk `0.08em → 0.02em`）+ 左右负边距吃回 `.page` 内边距 + `font-size: clamp(9.5px, calc((100vw - 26px) / 30), 原字号)` + `text-size-adjust: 100%`
+  - `@media (max-width: 300px)`：极窄屏兜底，恢复 `white-space: normal` + 原字距 + 11px，避免 nowrap 撑出横向滚动
+- ⚠️ **负边距两页写法不同，不能照抄**：`index.html` 的 `.page` 内边距是 `clamp(16px, 4vw, 40px)`，手机档恒为 16px → 写死 `-16px`；`citywalk.html` 的 `.page` 是 `clamp(4px, 2vw, 24px)`，**随视口变化** → 必须写 `calc(-1 * clamp(4px, 2vw, 24px))`。**以后在本项目做「负边距吃回容器内边距」的修复，先量容器实际内边距，不要照抄别页的数字**
+- ⚠️ **断点仍是 480px**（与旅行页副标题那次统一口径）：406~480px（index）/ 413~480px（citywalk）用原字号余量已不足 8%，安卓 fallback 字体稍宽就折；480px 以上没有手机档位（平板最小 768、手机横屏 844），不会误伤平板 / 电脑
+- ⚠️ **K 取 30 的依据**：同文案实测整句 ≈ **27.9em**（字距 0.02em 下），取 30 留约 7% 余量。因负边距先吃回空间，**index 390~480、citywalk 414~480 的字号仍是原值（12px / 12.5px），视觉一字未变**，只有更窄才微微缩小
+- ⚠️ **`text-size-adjust: 100%` 是 iOS 保险**：iOS Safari 会给「宽文本块」自动放大字号，nowrap 下一旦放大就会溢出；显式关掉。对桌面与安卓无副作用
+- 📐 **验证（`.deepworks/tmp/hp-footer-verify.mjs` + `run-footer.sh`，每页 18 档）**
+  - `index.html`：480 / 430 / 414 / 412 / 400 / 390 → **12px 原字号**、单行 **335.44px**（可用 366~445px）；375 → 11.63px / 325.09px；360 → 11.13px / 311.11px；344 → 10.6px；340 → 10.47px；331 → 10.17px；320 → 9.8px / 273.94px；**301 → 9.5px 单行** —— **18 档全部 1 行、零溢出、页面无横向滚动**
+  - `citywalk.html`：480 / 430 / 414 / 412 → **12.5px 原字号**、单行 **349.41px**；400 → 12.47px；390 → 12.13px / 339.06px；375 → 11.63px；360 → 11.13px；344 → 10.6px；340 → 10.47px；331 → 10.17px；320 → 9.8px / 273.94px；301 → 9.5px 单行 —— 同样 **18 档全绿**
+  - **极窄兜底**：300 / 280 → 折 2 行、零溢出（符合设计）
+  - **桌面零回归**：1280 / 1024 / 768 的 `white-space` 仍 `normal`、字号仍 12 / 12.5px、字距仍 0.72px / 1px、单行宽仍 350.31px / 372.66px —— 与改动前**逐项完全一致**
+  - **两个副本各跑一遍，18/18 全绿**（会话副本 + 权威副本）；bci.html 另用 `SEL=".foot p:nth-of-type(2)"` 复测 10 档全单行
+- ✅ 两份 `index.html` sha256 均为 `81ec5f80b81df039…`、两份 `citywalk.html` 均为 `a7c5619c1b29986e…`（`cmp` 逐字节相同）。同步前先 `diff -u` 核对过：两文件与权威副本的差异**恰好只有本轮这两处新增 CSS 块**（新增 32 / 30 行），没有夹带别的漂移
+- 🔧 验证脚本已参数化 `SEL`（默认 `.footer, footer.foot, .foot`）：量 `bci.html` 这类「页脚多行结构」中的某一行，传 `SEL=".foot p:nth-of-type(2)"` 即可
+
+
+### 2026-09-18（三页顶栏统一改版：左「← Back」+ 右「当前页名 →」· Citywalk 底部那枚 Back 撤掉）
+
+- 用户原话：「在旅行、书法和Citywalk页面然后不要把back放在下面了 就统一都放在顶上 Return to Home和旅行/书法那一栏（citywalk那里的back键记得删掉）。我想要改成（左箭头）back、旅行Travel/书法Calligraphy/Citywalk（右箭头）这样的」
+- 落定口径（用户确认）：① 顶栏 = 左「← Back」+ 右「当前页名 →」，**当前页名只是位置标识、不可点击**；② 只改 `travel.html` / `calligraphy.html` / `citywalk.html`，**`bci.html` 保持 `← Return to Home` + `脑机接口 BCI` 原样**；③ Back = `history.back()`（回到进入本页前的那一面，面板 + 滚动一起还原），**无可回退历史时兜底跟随 `href="index.html"`**
+- **改动（三个文件，两个副本同改；`index.html` / `bci.html` 一个字没动）**
+  1. HTML：原来的两项 `<a href="index.html">← Return to Home</a>` + `<a class="active">页名</a>` 换成
+     - `<a href="index.html" id="back">` + 内联左箭头 SVG + 文本 `Back`
+     - `<span class="nav-here">页名` + 内联右箭头 SVG
+  2. CSS：在 `.nav a:hover, .nav a.active {...}` 之后追加 `.nav a, .nav .nav-here { display:inline-flex; align-items:center; gap:6px }`、`.nav .nav-here { font-family:var(--font-serif); font-size:clamp(13px,2vw,17px); color:var(--ink-900); background:var(--sky-100); padding:4px 10px; border-radius:999px; letter-spacing:.06em; cursor:default }`、`.nav-arrow { width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }`
+     - ⚠️ 原 `.nav a:hover, .nav a.active` 规则**保留未改**（最小改动、向后兼容），不是删掉重写
+  3. JS：页尾各加一段独立 IIFE（点 `#back` 时判定能否回退，能就 `preventDefault()` + `history.back()`）
+  4. `citywalk.html` 额外两步：**删**底部 `.tw-actions` 块（连同那枚 `<a class="btn" id="back">`）、**删**整段已无引用的 `.tw-actions` / `.btn` / `.btn:hover` CSS（原处留一段说明注释）；`#back` 改到顶栏，**id 仍是 `back`**、沿用原处理器与 `file:` 分支判定，只把注释改写
+- ⚠️ **`citywalk.html` 的 id 复用是刻意为之**：底部那枚和顶栏那枚不可能同时存在，沿用 `back` 可以让原 JS 段一行不改；重命名会让「有一枚 Back 忘了改」这种错误失去 `getElementById` 这道保护
+- ⚠️ **箭头必须用 SVG 不用字符**：`←` / `→` 在宋体、PingFang、Caveat 下的宽度与基线各不相同，两端视觉对不齐；SVG 走 `currentColor`，hover 变色自动跟随
+- 📐 **验证（无头 Chrome + CDP，`.deepworks/tmp/subpage-nav-verify.mjs` + `run-subnav.sh`）= 108/108 通过、JS 异常 0 条**
+  - **静态**（三页各做 3 遍，共 9 遍）：`.nav` 恰好 2 个子元素且 tag 顺序 `["A","SPAN"]`；左项文案 `Back` / `href="index.html"` / `id="back"` / 带 14×14 左箭头；右项文案 = 页名（`旅行 Travel` / `书法 Calligraphy` / `Citywalk`）/ 带 14×14 右箭头 / `cursor=default` / 背景 `rgb(231,242,251)` / **不是 `a`、不是 `button`**；`.nav` 文档坐标 `docTop` = 52 / 28 / 28（在顶部，不是底部）；`Return to Home` 计数 0、`.btn` 计数 0、`.tw-actions` 计数 0；横向溢出 0
+  - **http 主流程**（三页各一遍，1280×900）：index → 点 `About Me` → 滚到 `y=238` → 点**可见**的该页 pill → 子页 → 点顶栏 Back → 回到 `index.html`，**active 面板 = `panel-about`、`y=238`（±2 内）**，三次分别 156 / 152 / 153ms 完成；`sessionStorage` 记录消费后为 `null`（无残留）
+  - **直开兜底**（三页各一遍，`history.length=1`）：点 Back → 不拦截、跟随 href → 落 `index.html` + `panel-home` + `y=0` ✅
+  - **`file://` 双击**（三页各一遍，用户实际用法）：index → About + 滚动 → pill → 子页（`history.length` 2、`origin` = `"file://"`）→ 点 Back → 回 `index.html`，**`nav type = "back_forward"`、面板 `panel-about` + `y=238` 完整还原** ✅（比上一轮进步：上一轮 `file://` 回去是默认 Home 面板，本轮实测已能还原）
+  - **窄屏 390 / 360**（三页 ×2 档）：顶栏高 48px **仍是单行**、两项 `cy` 相同（同行）、都可见、无横向溢出、未越出视口；`navRight` 最大 322 < 390
+  - **Citywalk 打字机零回归**：`.tw-char` 15 个、`aria-label` 文案未变、`.tw-caret` 仍 `tw-caret-blink / 0.8s / infinite`、底色 `rgb(122,168,207)`、渲染宽 4px —— 删掉底部块与 `.btn` CSS 后一字未损
+- ⛔ **两个旧验证脚本已退役**（`.deepworks/tmp/citywalk-back-verify.mjs`、`citywalk-back-verify-auth.mjs`：断言底部 `.tw-actions` 有 1 个按钮、顶部仍有「Return to Home」；`citywalk-restore-verify.mjs` 的 B 段同理）—— 这些断言已被新设计**有意推翻**，文件头已加退役说明，**再跑必然「预期内失败」，别去追**
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`travel.html` + `calligraphy.html` + `citywalk.html` + `AGENTS.md`，`cmp` 逐字节相同）：`travel.html` 995 行 sha256 `7c798ca1137b488b…`、`calligraphy.html` 878 行 `ac02adb17e203f7f…`、`citywalk.html` 370 行 `03344d8fb2266897…`（改动前 `125237e01f39a0c2…`）；`index.html` 未改，仍为 2336 行 `c98ec4ff6cfaca96…`（本轮已 `cmp` 确认两副本相同）。⚠️ 同步前先 `diff` 核对过：三个文件与权威副本的差异**恰好只有本轮这三处改动**（56 / 56 / 80 差异行），没有夹带别的漂移。AGENTS.md 含本条记录，其哈希自指无意义故不记录，以两副本 `cmp` 相同为准
+- 📐 **权威副本（中文路径）复跑**：同步后把上面全部场景在权威副本上再跑一遍 = **130/130 通过、JS 异常 0 条**（含窄屏档）；`file://` 那三条另行单独复跑 = **36/36 通过**，并打印 `location.href` 佐证确实加载的是中文路径副本（`file:///Users/liumenghan/Documents/%E4%B8%AA%E4%BA%BA%E4%B8%BB%E9%A1%B5/...`，即「个人主页」，`encodeURI()` 生效，不是英文副本或缓存）、`sessionStorage = "ok"`
+
+### 2026-09-18（旅行页副标题：手机端整句单行，末尾「—」不再掉到第二行）
+
+- 用户反馈：手机端旅行页（地球页）副标题「— 想去的地方 天气好的时候就出发吧 —」**末尾的「—」会换行**，要求整句一行
+- **根因（实测）**：`.travel-sub` 原字号 17px + `letter-spacing: 0.16em` 下**单行需 341px**，而可用宽只有「视口 − 64px」（`.page` 内边距 16 + `.travel-head` 内边距 16，左右各两处）→ **≤400px 视口必然折行**；412px 恰好 347 > 341 不折，这就是断点边界。真机 390 / 375 / 360 全部折行
+- ⚠️ **两个副本不同步**：会话副本 `~/Documents/deepwork/outputs/personal-homepage/travel.html` 已有一条 `max-width: 430px` 的单行规则，而用户实际打开的权威副本**没有这条规则**（`diff` 仅此一处差异）→ 这就是「手机端仍换行」的直接原因。**改本项目务必优先改权威副本，改完再同步会话副本**
+- **改动（`travel.html` 一个文件，两个副本同改）**：在 `.travel-sub` 原规则后新增
+  - `@media (max-width: 480px)`：`white-space: nowrap` + 字距 `0.16em → 0.06em` + 左右各 `-16px` 负边距吃回 `.travel-head` 内边距（可用宽 = 视口 − 32px）+ `font-size: clamp(11.5px, calc((100vw - 34px) / 20), 17px)`
+  - `@media (max-width: 300px)`：极窄屏兜底，恢复 `white-space: normal`、去掉负边距、13px，避免 nowrap 撑出横向滚动
+- ⚠️ **断点由 430px 放宽到 480px**：405~480px 区间用原字号只剩不到 8% 余量，字体稍宽仍会折行；而 480px 以上没有手机档位（平板最小 768、手机横屏 844），不会误伤平板 / 电脑
+- ⚠️ **中文汉字宽度恒等于 1em（与字体无关）**，字体差异只来自空格与全角破折号 —— 公式取 `k=20`（实测常数 18.06）纯属给 fallback 字体留余量
+- 📐 **验证（无头 Chrome + CDP，`.deepworks/tmp/hp-travelsub-verify.mjs` + `run-travelsub.sh`）**
+  - **改动前（权威副本实测）**：480 / 430 / 414 / 412 单行；**400 / 390 / 375 / 360 / 344 / 340 / 331 / 320 全部折成 2 行**
+  - **改动后**：480 / 430 / 414 / 412 / 400 / 390 / 375 → 17px 原字号、单行宽 307px、可用宽 396~442px；360 → 16.3px / 294px；344 → 15.5px / 280px；340 → 15.3px / 276px；331 → 14.85px / 268px；320 → 14.3px / 258px —— **15 档全部单行、零溢出、页面无横向滚动**
+  - **极窄兜底**：301 → 13.35px 单行；300 → 13px 单行；280 → 折 2 行但零溢出（符合设计）
+  - **桌面零回归**：1280 / 1024 / 768 仍 `white-space: normal`、字号 24 / 24 / 23.04px、字距 3.84 / 3.84 / 3.6864px、单行宽 481.41 / 481.41 / 462.14px —— 与改动前逐项完全一致
+- ✅ 两个副本 `travel.html` md5 均为 `6f4b5686607a15558981da2eb6bd70e8`（改动前：权威 `bc5ea567c5cd5c9f15de2fa6dcbb1af0`、会话 `f3e065f85e6901387dff6238b668cde0`），`diff -q` = 无差异
+
+### 2026-09-18（Back 真正回到「点 Citywalk 前的样子」：面板 + 滚动位置自己记、自己还）
+
+- 用户反馈：上一版 Back **仍然回到 Home 面板、而且回到页面顶部**，不符合「回到点击 Citywalk 前的界面」的本意。明确要求：**进去前是哪个面板、滚到哪，回来就得一模一样**
+- **根因**：`index.html` 的面板切换是纯 JS `classList.toggle`，**面板名和滚动位置都不在浏览器历史里**（既不写 hash 也不 pushState）。上一版全靠 **bfcache** 顺带还原 DOM —— http 下成立，但用户**双击打开用的就是 `file://`，那里的 bfcache 不保留 DOM 状态**，于是整页重新加载 → 走默认的 `activate("home")` + `window.scrollTo({ top: 0, behavior: "smooth" })` → 永远是「Home + 顶部」
+- **改动（只动 `index.html` 一个文件）**
+  1. `activate(name)` → `activate(name, opts)`，新增 `opts.keepScroll`：为真时**跳过**里面那次「滚回顶部」。还原流程必须用它，否则会先被拉回顶部再被拉回来，白闪一下
+  2. 新增「离开前记一份、回来还回去」的小模块（`RETURN_KEY = "lmh_home_return"`，存 `sessionStorage`）：
+     - 点**站内子页链接**（`citywalk.html` / `travel.html` / `calligraphy.html` / `bci.html`）之前，把 `{ panel: 当前 active 面板名, y: Math.round(window.scrollY) }` 存进 `sessionStorage`
+     - 回来时**先用 `performance.getEntriesByType("navigation")[0].type === "back_forward"` 判断「这次是不是后退/前进回来的」**，是才消费这份记录并还原；不是（属于新导航，含子页里点「← Return to Home」）就**直接把记录丢掉**
+     - 存取全程 `try/catch`：`sessionStorage` 不可用（隐私模式 / 站点数据被禁）时静默退化成浏览器默认行为，**不影响跳转**
+  3. 滚动落位用 `window.scrollTo({ top: restoreY, behavior: "instant" })`，并在 `rAF ×2` / `setTimeout 150ms` / `load` 各补一次（换面板后文档高度变了、`bg.jpg` 撑高也要算进去）；`pageshow` 里若 `event.persisted` 为真**只清记录**（bfcache 已经自己还原好了，不要插手）
+- ⚠️ **为什么必须 `behavior: "instant"`**：页面全局有 `html { scroll-behavior: smooth }`，`window.scrollTo(0, y)` 这种默认写法会变成一段平滑动画，**和 `activate("home")` 那次滚顶动画抢跑**，最后停在两个动画中间 —— 实测差 5px（`233` vs `238`）。只有显式 `instant` 才是立即定位
+- ⚠️ **为什么用 `nav type` 区分、而不是去改子页**：Back 键（`history.back()`）和子页顶部「← Return to Home」都是「同源子页 → index.html」，光看 `referrer` 区分不了；而前者 `type === "back_forward"`、后者 `type === "navigate"`。**所以 `citywalk.html` 一个字都不用改**
+- 📐 **验证（`citywalk-restore-verify.mjs`，7 条断言）**
+  - 核心断言是**离开前快照 vs 回来后快照**的 `(active 面板, window.scrollY)` 完全相等；快照必须在 `scrollIntoView` 停稳**之后、派发点击之前**读取
+  - **只在「About 面板 + 非零滚动」上断言**才有区分度：Home + 顶部 是「不动代码也成立」的默认态，测不出这个 bug。实测两份副本都是 `{panel: panel-about, y: 238}` → 回来后 `{panel: panel-about, y: 238}`
+  - 三种环境全测：**http + `--disable-features=BackForwardCache`**（强制走自己写的还原路径）、**http 默认**（bfcache 路径）、**`file://` 双击**（用户实际用法）→ 全部 **7/7 通过**，`❌` 0 条，JS 异常 `[]`
+  - 另有两条语义断言：子页「← Return to Home」仍落在 **Home 面板 + 顶部**（`y = 0`）；直开 `citywalk.html`（无可回退历史）点 Back 的兜底仍落 `index.html` + Home 顶部
+- ⚠️ **验证仪器坑（本轮新增）**
+  1. **`Page.navigate` 偶发卡死在 `loading`**：headless 下 Chrome 自己那份「命令行初始加载」偶尔卡住（探测值长这样：`loading|0|<标题>|-1|/index.html` —— 标题已解析、`body` 还没建），此后**所有** `Page.navigate` 都跟着卡，`goTo` 一路超时。修法三件套：脚本连上后**先预热**（不就绪就 `about:blank` 重置加载器）、`goTo` 失败**重试一次**、Chrome 启动加 `--disable-background-networking --disable-component-update --disable-sync …`。加固前 5 次里偶发 1 次，加固后**连续 8 次 7/7 全绿**
+  2. **等待条件别踩「错误页也满足」**：`http.server` 还没绑好端口时，Chrome 会落到「连接被拒绝」错误页，而**它的 target URL 仍然是 `/index.html`** —— 按 URL 找 target 的等待循环会误判成「已就绪」。run 脚本改成**先用 `curl` 探到 server 真的返回 200，再启 Chrome**
+  3. 配套：脚本 `FATAL` 时**必须也写结果文件**，否则文件里留着上一次的「全绿」内容，看起来像通过（本轮被这个假绿骗过一次）；run 脚本开跑前先 `: > 结果文件` 截断
+- ✅ **`citywalk.html` 本轮零改动**（sha256 仍 `125237e01f39a0c2…`）
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`index.html` + 本文件，`cmp` 逐字节相同）：`index.html` sha256 `c98ec4ff6cfaca96…`（2336 行），上一版为 `dacf9395b692daca…`
+
+### 2026-09-18（Citywalk 页底部改版：删「重新播放」· 白色 Back 走 `history.back()` 回上一面）
+
+- 用户要求三条：① 去掉「重新播放」按钮；② 「返回主页 Home」改成 **`Back`**；③ 点 Back 要**回到「点击 Citywalk 之前的界面」**（理由：顶部已经有「← Return to Home」专管回主页了）；并要求这枚 Back **用白色**、和原来那枚次要按钮同款
+- **改动（只动 `citywalk.html` 一个文件）**
+  1. HTML：`.tw-actions` 里的 `<button id="replay">重新播放 Replay</button>` 删除；`<a class="btn primary" href="index.html">返回主页 Home</a>` → `<a class="btn" href="index.html" id="back">Back</a>`（白色 `.btn`，与原文案按钮同款材质）
+  2. CSS：删掉只为原蓝按钮服务的 `.btn.primary` / `.btn.primary:hover`（全页引用已为 0），原处留一行说明注释；`.btn` 白色玻璃规则**一字未改**
+  3. JS：删 `var replay = document.getElementById("replay")` 与 `replay.addEventListener("click", play)`（**必须删** —— 否则 `replay` 为 null，`addEventListener` 抛错会连带后面的 Back 逻辑一起失效）；`play()` **保留**，因为 `prefers-reduced-motion` 的 `change` 监听仍在用它
+  4. 新增 Back 处理：`location.protocol === "file:"` 时只看 `history.length > 1`；否则要求 `document.referrer.indexOf(location.origin) === 0 && history.length > 1`。成立 → `preventDefault()` + `history.back()`；不成立 → **不拦截默认行为**，跟随 `href="index.html"` 回主页（直接双击 / 从书签进来的兜底，避免按了没反应）
+- ⚠️ **为什么要判同源 referrer**：`index.html` 的面板切换是纯 JS `classList.toggle`，既不写 hash 也不 pushState，所以「回到上一面」只能靠浏览器把**同源跳转**的那一页连同 DOM 状态（About 面板展开）一起从 bfcache 还原。referrer 判定是为了不把「从站外 / 书签直开本页」误判成可回退
+- 📐 **验证（无头 Chrome + CDP，`citywalk-back-verify.mjs` + `run-back.sh`，四场景全程真实鼠标点击）**
+  - **静态**：`#replay` 不存在；`.tw-actions` 只有 1 个子元素、文案 `Back`、`<a class="btn">`；背景 `rgba(255,255,255,0.82)`、`background-image: none`（证明不是原来的蓝色渐变）、白边 `rgba(255,255,255,0.95)`、圆角 999px、84×43；顶部「Return to Home」仍在 1 个；`.tw-char` 15 个、光标正常
+  - **http 同源主流程**（1280×900）：点 About → active 变 `panel-about` → 点**可见**的 Citywalk pill → 到 `/citywalk.html`（`document.referrer` = `http://127.0.0.1:8792/index.html`，`history.length` 4）→ 点 Back → **0ms 内回到 `/index.html` 且 `#panel-about` 仍是 active** → **bfcache 生效，「回到点 Citywalk 前的界面」成立**
+  - **兜底（直接开 `citywalk.html`，`history.length = 1`）**：点 Back → 不拦截、跟随 href 落到 `/index.html`（默认 Home 面板），**不会按了没反应**
+  - **`file://` 双击**：点 pill 进 citywalk（`history.length` 2、`referrer` 为空、`location.origin === "file://"`）→ 走 `file:` 分支判定可回退 → 点 Back 回到 `index.html` ✅ ⚠️ 但 `file://` 下回去的是**默认 Home 面板**（About 状态未还原）—— `file://` 的 bfcache 行为与 http 不同，如实记录；部署到 http(s)（如 GitHub Pages）后与上面主流程一致
+  - 三个页面全程 **JS 异常 = `[]`**
+- ⚠️ **验证仪器坑（本轮新增，同类问题第四次）**：`index.html` 的滚动是 **smooth** 的 —— 用 `scrollIntoView()` 把 pill 滚进视口后**立刻** `getBoundingClientRect()`，读到的是**滚动途中**的坐标 → 鼠标点空。现象很像「pill 不能点」：选择器取到的元素可见、`elementFromPoint` 命中的就是 pill 本身、也没有遮挡，而**同一个元素用 `el.click()` 立刻就能跳**。**改法：`scrollIntoView` 之后轮询到 rect 连续两次相同再派发鼠标事件**
+  - 附带一条：`.interest-pills .pill` 在 **Home 与 About 两个面板各有一份**，非活动面板 `display:none` → rect 全 0。选择器必须过滤 `rect.width > 0`，否则会「点」到隐藏的那一枚，一路假阳性（首次跑就撞上了）
+  - 再一条：**目录名含中文时，`Target.createTarget` 的 `file://` URL 必须 `encodeURI()` 过**。权威副本目录是「个人主页」，用未编码 URL 建 target，页面看着「开了」、`location.pathname` 也对，但 `.nav a` / `.panel` 全读不到（`active 面板 = (none)`），像极「页面没渲染 / 按钮坏了」。脚本第 4 段现已 `encodeURI` + 轮询 `readyState=complete 且 .nav a 存在` 双条件
+  - 还有一条脚本自身的坑：点击辅助函数若闭包捕获了别的 CDP 连接，`file://` 场景就会把点击派发到 http 那个 target 上 —— 多 target 时点击必须绑定「当前 target」的连接
+- ✅ **两个副本各跑一遍全绿**：会话副本（`deepwork/outputs/…`）与权威副本（中文路径）四场景结论一致
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`citywalk.html` + `AGENTS.md`，`cmp` 逐字节相同）：`citywalk.html` sha256 `125237e01f39a0c2…`（改动前 `98ddb6916e602b14…`），372 行 / 14066 bytes
+
+### 2026-09-18（新增 Citywalk 占位页 · Aceternity Typewriter Effect 零依赖复刻）
+
+- 用户需求：主页面点「**Citywalk**」pill 后进入一个新界面，用 **Aceternity UI 的 Typewriter Effect** 显示「**新功能开发中......莫急！**」
+- ✅ **兑现历史 TODO**：本文件「晚 · 七」条目（`Citywalk` 的那段）末尾记过 ——「Citywalk 的 pill 仍是**不可点击的 `<span class="pill">`**……如果之后要做 citywalk 详情页，记得同步改成 `<a class="pill" href="...">`」。本次即按此办理，该 TODO 已关闭
+
+**组件来源与许可**
+- 来源：Aceternity UI《Typewriter Effect》—— 页面 `https://ui.aceternity.com/components/typewriter-effect`，源码 `https://ui.aceternity.com/registry/typewriter-effect.json`（作者 Manu Arora）
+- 许可：该组件以 Aceternity License 发布，**允许用于个人 / 客户的终端产品并允许修改，仅禁止把组件源文件当模板或素材转售**；本项目属个人展示，在允许范围内
+- 与 `calligraphy.html` 借鉴「Draggable Card」同一口径：**只借用参数与交互意图，不复制 React 源码**；来源与许可原样写在 `citywalk.html` 头部注释里
+
+**效果选型**
+- registry 里有两个变体：`TypewriterEffect`（**逐字淡入**）与 `TypewriterEffectSmooth`（整句推进 + 光标跟随）。选了**前者** —— 中文短句逐字淡入的「打字感」最明显，且不需要测量文字宽度
+- ⚠️ 官方 `TypewriterEffect` 的真实行为容易被误读：所有字符初始 `opacity-0 hidden`；进入视口后**一次性**设置 `display:inline-block` / `width:fit-content`，再按 `stagger(0.1)` 逐个淡入 —— 等价于「**所有字符瞬间占位 → 每 0.1s 淡入一个**」，**不是**逐字推进布局。详见页面头部注释
+
+**改动（两个文件）**
+1. **新增 `citywalk.html`**（362 行 / 13KB）：独立页面 + 返回主页，与 `travel.html` / `calligraphy.html` 同构
+2. **`index.html` 两处**（第 1044 / 1151 行）：`<span class="pill">Citywalk<span class="pill-en">City Walk</span></span>` → `<a class="pill" href="citywalk.html">Citywalk<span class="pill-en">City Walk</span></a>`
+   - `a.pill` 样式（含 `text-decoration:none; cursor:pointer; display:inline-block` 与 hover 上浮）**本就存在，未新增任何 CSS**
+
+**参数 1:1 对照（本页 → 官方）**
+- 每个字符 `.tw-char` 常驻 `display:inline-block; opacity:0` → `motion.span` 初始 `opacity-0 hidden`
+- `animation: tw-char-in .3s ease-in-out both` → `{ duration: 0.3, ease: "easeInOut" }`
+- `animation-delay: calc(var(--i) * .1s)` → `{ delay: stagger(0.1) }` ← 逐字间隔，打字感的来源
+- `animation-fill-mode: both` → 延迟期间保持 `opacity:0`（同官方 initial hidden）
+- `.tw-caret` `0.8s` + `infinite` + `alternate` → `{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }`；尺寸同为 `4px` 宽、`rounded-sm`
+
+- ⚠️ **唯一有意偏离**：光标颜色用页面既有 `--sky-500`（#7aa8cf）而**不是**官方 Tailwind `blue-500`（#3b82f6），依据是「配色严格遵守水彩天空蓝体系，**不引入新色系**」。想还原官方原色只需改 `.tw-caret` 的 `background` 一行，页面注释里也写明了
+- **零依赖**：没有引入 motion / React / 任何 CDN，纯原生 CSS 动画 + 一段拆字脚本；`file://` 双击可用
+- **有意不引入 Google Fonts**（`calligraphy.html` 有引入，本页没有）：改用系统字体栈，保证离线可用
+
+**无障碍 / 降级**
+- 整句放在 `h1[aria-label]`，逐字 span 统一标 `aria-hidden` → 读屏不会一个字一个字念
+- `prefers-reduced-motion: reduce` 下整句直接显示、去掉光标闪烁
+
+- 📐 **验证（无头 Chrome + CDP，`citywalk-verify.mjs` / `citywalk-verify2.mjs` + `run-citywalk*.sh`）**：
+  - **逐字时间线（40ms 采样，121 帧）**：可见字符数 `0 → 1 → … → 15`，出现时刻为 **208 / 329 / 408 / 528 / 608 / 729 / 809 / 928 / 1008 / 1129 / 1208 / 1328 / 1408 / 1528 / 1608 ms** —— 稳定每 ~100ms 出现一个字，**确认是逐字而非整体齐现**；早期帧（t=208ms）抓到 `[0.50, 0.06, 0, 0, …]` 的「有的已现、有的未现」共存状态
+  - **结构**：15 个字符 span、`animation-name` 唯一值 `["tw-char-in"]`、`duration` 唯一值 `["0.3s"]`、`fill-mode` 唯一值 `["both"]`、延迟序列 `[0,100,…,1400]ms` 严格递增 100ms、最终 opacity 全 1
+  - **光标**：`tw-caret-blink / 0.8s / infinite / alternate`、`4px × 40px`、`rgb(122,168,207)`（= `--sky-500`）
+  - **布局**：窄屏 390×844 与桌面 1280×900 均**横向溢出 0**、卡片水平居中偏移 **0px**、文字**单行不折行**、光标紧跟末字同一行（垂直中心差 1px / 4px）
+  - **重播按钮**：点击后 50ms 内 15 个字符 opacity 全部回落到 ~0，2.6s 后再次全部 = 1 → **重播有效**
+  - **`file://` 双击**：页面正常、**无 JS 异常**、`assets/bg.jpg` 加载成功（1400×933）
+  - **主页面入口**：两处 Citywalk 均为 `<a href="citywalk.html">`，`span.pill` 形式的 Citywalk **已为 0**；实测点击 About 面板里那枚能跳到 `/citywalk.html`
+- ⚠️ **验证仪器坑（第二次踩，固化）**：`Page.navigate` 之后接**固定 `sleep`** 会误报 —— 本次首轮 sleep 3.2s 后量到的仍是**上一页**的 DOM（`.tw-caret` 为 `null` → 探针整体返回 `undefined`，`.tw-char` 为空数组）。判据：**看 http.server 日志里目标页压根没被请求**。改为轮询「`readyState === 'complete'` **且** 目标选择器已存在」并打印 `Page.navigate` 的 `errorText` 后全部通过。与「平板 pill」那次记的 `setTouchEmulationEnabled` 触发额外重载属同类问题：**导航 / 仿真之后一律轮询就绪，绝不固定 sleep**
+- ⚠️ **同一个坑当天又踩到一次，一并固化（下次直接照做）**：
+  1. **误报时第一件事是看 http.server 日志** —— 「目标页没被请求」= 根本没导航过去，不要先去怀疑页面代码
+  2. **换新 `--user-data-dir` 起 Chrome 时，`/json/list` 的第一项可能是 `about:blank`**。权威副本首轮验证就中招：读到空 DOM、`pill 总数 = 0`、`location.pathname = "/"`，而服务器日志显示 `index.html` 明明 `200` 了。**必须按 URL 前缀挑 target**（`t.url.startsWith(BASE)`）而不是取第一个 `type === "page"`
+  3. **探针要能自己暴露「选错页面」**：`document.querySelector('.tw-caret').getBoundingClientRect()` 这种链条在元素不存在时会抛错，让整个探针静默返回 `undefined` —— 看起来像「页面没渲染」，其实只是选错了 target。关键断言前先打一行 `target 列表 = …` 能省掉一轮排查
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`citywalk.html` + `index.html` + `AGENTS.md`）：`citywalk.html` 与 `index.html` 经 `cmp` 校验两副本逐字节相同，sha256 分别为 `98ddb6916e602b14…` 与 `dacf9395b692daca…`；上面全部验证结论对权威副本同样成立
+
+### 2026-09-18（平板竖屏：About 面板「兴趣」三枚 pill 排成一行）
+
+- 用户反馈：**平板竖屏**时 About 面板「兴趣」里的 `Citywalk` 掉到第二行，与「旅行 / 书法」不在同一行，而「位置明明是足够的」，要求**排成一行、不换行**；并明确 **手机、电脑、平板横屏一律不变**
+- **根因（实测数据）**：三枚 pill 单行需 **395.4px**（`100.25 + 128.77 + 148.38`），另加 2×9px 的 `gap`
+  - 平板竖屏（`min-width:640px` 起）About 是**两列**栅格，兴趣栏按自动放置落在**左列**，列宽只有 **290 / 306 / 310 / 315 / 391px**（768 / 810 / 820 / 834 / 1024 视口）→ **必然折行**
+  - 这正是用户说「位置明明是足够的」的来源：兴趣栏所在的**第三行右列本来就是空的**（右列第 3 行没有内容），第一行「旅行 书法」（229px）右侧那一整块空白看着确实够放 `Citywalk`
+  - 注意 iPad Pro 12.9 竖屏（1024）只差 **4.4px** 就折行，所以它也属于要修的范围；而它和 iPad 9.7 横屏（同为 1024 宽）**只能靠 `orientation` 区分**
+- **改动（`index.html`，两处）**：
+  1. HTML：兴趣那一栏的 `<div class="about-item">` 加类 → `<div class="about-item interests-item">`（只在需要时好选中，不给它 `span-all`，否则全端都会跨列）
+  2. CSS：紧跟 `.about-item { min-width: 0 }` **纯新增**一条媒体查询，让兴趣栏跨列：
+     ```css
+     @media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+       #panel-about .about-item.interests-item { grid-column: 1 / -1; }
+     }
+     ```
+- ⚠️ **三重限定缺一不可，且必须用「设备能力」判定触屏**：
+  - `orientation: portrait` 把**平板横屏**（1024/1180/1194 宽）摘出去 —— 平板横屏列宽 ≥450px，本来就够一行，且 `1024px` 竖屏与 `1024px` 横屏宽度完全相同，**只有朝向能分开**
+  - `(hover: none) and (pointer: coarse)` 把**电脑**摘出去 —— 电脑把窗口拖成竖窗（900×1200）时 `orientation` 也是 portrait，靠 hover/pointer 才能不误伤（同「液态玻璃球」章节的判定口径）
+  - `min-width: 641px` 把**手机**摘出去 —— 手机 About 本就是单列（`max-width:284px`），跨列无意义
+- **没有动任何排版细节**：pill 的内边距、`gap: 9px`、`font-size: 13.5px`、`letter-spacing`、英文小字全部原样，只是把这一栏的**可用宽度**从 290~391px 换成 598~801px（跨列后）
+- 📐 **验证（无头 Chrome + CDP，`hp-pills-verify.mjs` + `run-pills.sh`，16 视口）**：**16/16 通过**
+  - **平板竖屏 5 档**（768/810/820/834/1024）：`跨列=1 / -1`、**行数 1**、pills 溢出 0、页面横向溢出 0；跨列后可用宽 **597 / 630 / 638 / 649 / 801px** vs 需求 395.4px（余量 200px+，安卓更宽的 fallback 字体也吃得下）
+  - **零回归**（逐项与改动前一致）：平板横屏 3 档、手机 390/360/320/横屏 844、电脑 1280/1024/窄窗 768/竖窗 900×1200 全部 `跨列=auto / auto`，行数仍为 `2 / 2 / 3 / 2 / 1 / 2 / 2 / 2`（与基线逐项相同）
+  - 所有 16 档的 pill 宽度恒为 `100.25 / 128.77 / 148.38`、`gap=9px`、`flex-wrap=wrap`、`font-size=13.5px` —— 证明只改了布局归属，**样式一字未动**
+- ⚠️ **验证仪器坑（再记一次）**：`Emulation.setTouchEmulationEnabled` 会触发页面**额外重载**，reload 后固定 `sleep(2400)` 会大面积误报「测量失败」；必须轮询 `document.readyState === "complete"` **且** 目标元素已存在再测
+- ✅ **已同步到权威项目** `~/Documents/个人主页/outputs/personal-homepage/`（`index.html` + `AGENTS.md`）：两份 `index.html` sha256 均为 `73d36715c97af993…`（改动前 `f91cd48b54cc1859…`）、两份 `AGENTS.md` 均为 `17dddadf24dd1c82…`；因两份文件逐字节相同，上面 16 视口的验证结论对权威副本同样成立
+
+### 2026-09-18（手机端 / 平板端：彻底去除跟随鼠标的液态玻璃球 · 电脑端零回归）
+
+- 用户要求：**手机端和平板端完全去掉这颗跟随鼠标的玻璃球**——不显示、不跟随、不渲染，**且不保留它占的位置**（不是「留个空位」）；**电脑端必须一点不变**。用户先问了可行性、确认「电脑端可以完全不变」后才批准动手（B 口径）
+- **根因**：原先只有 `MOBILE_Q = matchMedia("(max-width: 700px)")` **一个**判定，且**只看宽度**：
+  - **平板（>700px）走的是完整桌面分支** → 球照常显示、照常跟随。基线实测 iPad 三档 **1024 / 834 / 768 全部 `跟着动了=true`**；`pointermove` 里也没过滤 `pointerType`，所以手指滑动/触控笔同样会拖动它
+  - **手机（≤700px）**虽然早已不跟随，但 Home 面板的球仍落在 `.welcome` **文档流**里**真实渲染**，白占约 198px 高
+- **改动（`index.html`，共 7 处；桌面分支的原有逻辑一行未改，全部是「新增条件」）**：
+  1. 新增 `const TOUCH_Q = window.matchMedia("(hover: none) and (pointer: coarse)")` —— **用「设备能力」而不是「宽度」区分平板与电脑**：1024px 的 iPad 和 1024px 的电脑窗口宽度完全相同，只有 hover/pointer 能分开
+  2. CSS 新增兜底 `@media (hover: none) and (pointer: coarse) { .hero-glass { display: none } }`（防止脚本异常时球闪现）
+  3. `placeOrb()` 开头：`TOUCH_Q.matches` 时 `follow.on = false` + `transform = ""` + `display = "none"` 后直接 return
+  4. `applyOrb()`：非触屏判定改为 `MOBILE_Q.matches || TOUCH_Q.matches || orbSize < 2`
+  5. `pointermove` 的跟随分支：加 `!TOUCH_Q.matches`
+  6. `start()`：加 `TOUCH_Q.matches` 提前 return（循环压根不启动，省电）
+  7. 新增 `TOUCH_Q` 的 `change` 监听 → `placeOrb()` + 藏球时 `stop()` / 恢复时 `start()`（iPad 插拔鼠标、外接触控板时即时切换）
+- ⚠️ **`TOUCH_Q` 与 `MOBILE_Q` 是「叠加」而不是「替换」**：电脑把窗口拖窄到 ≤700px 时，`TOUCH_Q` 为假，仍走原来的窄屏分支 → 电脑端**任何窗口宽度**的行为都与改动前一致
+- ⚠️ **必须用 `display:none`，不能用 `visibility:hidden` / `opacity:0`**：点击涟漪走的是 `getBoundingClientRect()` 圆形命中判定，`display:none` 时 rect 全 0 → 自然跳过；`visibility:hidden` 的 rect 仍有效 → 在球本该消失的空白处误触发涟漪
+- 📐 **验证数据（无头 Chrome + CDP；`run-orb.sh` + `orb-verify.mjs`，9 个场景）**
+  - **电脑端零回归（逐项完全一致，含 1px 级）**：4 档鼠标环境 —— 1280 停靠 `[904,161,236,236]`、跟随落点 `[676,287,236,236]`、`doc 2935`；1024 `[748,177,205,205]` / `[532,302,205,205]` / `2820`；768（电脑拖窄，仍是 absolute 跟随）`[560,192,154,154]` / `[399,328,154,154]` / `2483`；**390（电脑拖窄到手机宽度，仍走原窄屏分支）** `[105,307,179,179]` / `doc 2667` / `welcome 379` —— 全部与改动前**逐字节相同**
+    - ⚠️ 中途出现过「1280 跟随落点差 1px」，加长收敛时间（`SETTLE=2500`）后**完全吻合** → 那是渐近缓动的采样相位，不是位移回归。**对比跟随位置一定要让缓动收敛透**
+  - **平板（1024 / 834 / 768，触屏）**：`display:none`、`orbSize=0`、`running=false`、指针移动后 rect 仍 `[0,0,0,0]`；**布局零变化** —— `doc.scrollHeight` 前后均 `2820 / 2554 / 2483`，`welcome` 均 `[137,285] / [134,253] / [128,282]`（它本是 `position:absolute` 浮层，不占位）
+  - **手机（390 / 360，触屏）**：`display:none`、不跟随、循环未运行；**位置不保留、下方内容上移** —— 390 的 `doc 2667 → 2469`、`welcome 379 → 181`；360 的 `2666 → 2483`、`365 → 181`（上移量 = 球高 + `margin-top 18px`，390 实测 **198px**）
+  - **动态能力切换**：1024 下触屏 → 插上鼠标 → 拔掉鼠标，三次切换均**即时生效**（`display` none→block→none、`running` false→true→false），验证了第 7 处 `change` 监听
+  - `file://` 双击复测：球宽 **236**、自检钩子 `object`、无异常（只有 SwiftShader 既有的 `GPU stall due to ReadPixels` 性能警告，改动前就有）
+- 🔬 **本次踩到的两个「验证仪器」大坑（以后再验本项目别重犯）**：
+  1. **`Emulation.setEmulatedMedia` 传 `hover` / `pointer` features 完全不生效**：连着设 `hover:none / pointer:coarse / any-*`，页面 `matchMedia("(hover: none)")` **仍是 false**。真正能翻转这些媒体特性的是 **`Emulation.setTouchEmulationEnabled({enabled:true, maxTouchPoints:5})`**（同时把 `maxTouchPoints` 变 5、重载后 `ontouchstart` 变 true —— 与真实 iPad 报告的能力一致）。`Emulation.setDeviceMetricsOverride(mobile:true)` **单独也做不到**
+  2. **`Page.reload` 默认会命中 Chrome 的 HTTP 缓存**：python 服务器只给 `Last-Modified`、没有 `Cache-Control`，Chrome 按启发式规则照样缓存 → 改完代码跑验证，**9 个场景的数据与基线逐字节相同**（差点误判成「改动没生效」）。必须 `Network.setCacheDisabled({cacheDisabled:true})` + `Page.reload({ignoreCache:true})`；且**启动时的首次导航早于禁缓存**、仍可能读到上一轮遗留的缓存 → 所以在脚本里加了一道「载入校验」（检查页面里有没有新的触屏媒体查询文本）来防呆
+- 基线对照方式：把原始文件放进 `.deepworks/tmp/hp-baseline/`（`assets` 用软链指回项目）单独起服务，`run-orb.sh` 参数化 `DIR` / `OUT` / `ONLY`（`mouse`/`touch`）/ `SETTLE`，改动前后各跑一遍再 diff —— **这样才是真正的同条件对照，而不是凭记忆**
+- 同步：`Documents/deepwork/outputs/personal-homepage/index.html` 与 `Documents/个人主页/outputs/personal-homepage/index.html` 两份 sha256 一致（改动后 `f91cd48b54cc1859…`，改动前 `a1e35730287b851c…`；文件 84560 → **87086** bytes）
+
+### 2026-09-18（手机端：数字分身输入栏的 Send 按钮不再出框）
+
+- 用户反馈：安卓端**数字分身（Virtual Space）**面板的 **Send 按钮出框**（顶出输入栏）；**苹果端正常**；**电脑端不改**
+- **根因（经典 flex 最小宽度陷阱）**：
+  - `.input-bar input` 只写了 `flex: 1`。flex 子项的 `min-width` 默认是 `auto`，对 `<input>` 而言就等于**固有宽度 185px**（`size=20` 默认值 × 14px 字体），所以它**根本收缩不下去**
+  - 于是整栏的最小宽度 = input 185 + send 120 + gap 10 = **315px**，而可用宽只有 **视口 − 约 110px**
+  - 实测溢出：430 余量仅 5px（不溢出）→ 414 顶出 **9px** → 390 顶出 **31px** → 360 顶出 **61px 并把页面撑出横向滚动** → 320 顶出 **101px**
+  - 安卓字体更宽 → input 固有宽度更大 → 顶得更狠。这就是「安卓出框、苹果看着正常」的来源 —— 苹果端 390/393 其实也在顶，只是幅度小、不明显
+- **改动**（`index.html`，两处，**均为新增行**，原有属性一行未删）：
+  - `.input-bar input` 增加 **`min-width: 0`** —— 让它能真正收缩，这是修复的根本。桌面端因空间充裕，实测宽度**完全不变**
+  - 新增 `@media (max-width: 380px) { .input-bar .stateful-btn { width: clamp(88px, 26vw, 120px); } }` —— 只靠 input 收缩的话，输入框在小屏会只剩 124px（320px 屏仅 84px）太挤，所以把 send 一并收窄、把宽度还给输入框；381px 以上与桌面端不受影响
+- 副作用核对：该媒体查询的特异性 (0,2,0) 与后面的 `.stateful-btn.is-loading / .is-success` 相同，靠源码顺序后者仍胜出 —— 实测各视口 loading 态宽度均仍是 **48px 圆形**，原动画未被破坏
+- 验证（无头 Chrome + CDP，`hp-chat-send-verify.mjs`，11 视口）：**全部通过**，输入栏溢出 0px、Send 越界 0px、页面无横向滚动
+  - input 宽度：430 → 189.84px · 414 → 176.09px · 393 → 157px · 390 → 154px · 375 → **161.5px**（send 同步缩至 97.5px）· 360 → **150.41px**（send 93.59px）· 340 → 135.61px · 320 → **116px**（send 88px）
+  - **桌面零回归**：1280 / 1024 / 768 的 input 仍 788 / 670.56 / 467.06px、send 仍 120px、gap 仍 10px —— 与改动前逐项一致
+- 同步：`Documents/deepwork/outputs/personal-homepage/index.html` 已同步，两份 sha256 一致
+
+### 2026-09-18（手机端：胶囊导航 About Me / Home / Virtual Space 不再折行）
+
+- 用户反馈（附安卓截图）：安卓端三个导航项折成两行（`About` / `Me`、`Virtual` / `Space`），**要求排成一排**；**苹果端正常**；**电脑端不改**
+- **根因（两个原因叠加，缺一不可）**：
+  1. `.nav a` 没设 `white-space`。它作为 flex 子项，默认 `min-width: auto` 的最小宽度是**「最长单词」而不是整段**，所以空间一紧就从空格处断开 —— 而不是把胶囊撑宽
+  2. `--font-serif` 首选 `"Songti SC"` / `"STSong"`，**苹果端有、安卓端没有**，只能 fallback 到 `"Noto Serif SC"` / 通用 serif，同一字号下英文更宽。这正是「苹果端正常、安卓端折行」的来源
+- 📐 **实测数据**：单行需 **288px**，胶囊可用宽 = **视口 − 90px**（body 24 + `.page` 32 + `.masthead` 32 + 胶囊左右内边距 28 ≈ 90）→ 盈亏点约 **378px**：390 / 393 / 412 不折，375 / 360 / 320 必折，与用户截图完全吻合；安卓因字体更宽还会再提前
+- **改动**（`index.html`，紧跟 `.nav a:hover, .nav a.active` 之后**纯新增**三个媒体查询，`.nav` / `.nav a` 原规则一行未改）：
+  - `@media (max-width: 430px)`：① `.nav a { white-space: nowrap }` 从根上禁止断行；② 只收紧 `gap` 与内边距（`gap: min(34px, 2.33vw)`、胶囊内边距 `min(40px, 2.79vw)`、项内边距 `min(10px, 2.21vw)`）—— **字号与字距一律不动**，手机上「字」本身没变，变的只是词与词之间的留白
+  - `@media (max-width: 380px)`：再收紧一档，到这一档字号才略缩（`clamp(11.5px, 3.45vw, 13px)`），给安卓更宽的 fallback 字体腾余量
+  - `@media (max-width: 340px)`：极窄屏兜底，把字体宽度差异的容差从约 18% 抬到约 28%，与主流机型拉平，避免极窄屏被顶出横向滚动
+- 验证（无头 Chrome + CDP，`hp-nav-verify.mjs`，13 视口）：**全部通过**，三项均 `1 行`、零溢出、页面无横向滚动
+  - 430 / 414 / 412 / 393 / 390 → 字号 **13px 原值**，导航宽 268~278px，可用宽 300~340px，余量 32~62px（381~430 这档只做很轻的收紧，是为了给安卓的 412/414 机型留余量；苹果端字号完全没变）
+  - 375 → 229px（可用 285）· 360 → 220px（可用 270）· 340 → 193px（可用 250）· 335 → 190px · 320 → 188px（可用 230）
+  - **字体容差**（按 macOS 实测文本宽反推「安卓 fallback 字体可宽多少仍不溢出」）：375 约 32%、360 约 30%、340 约 37%、320 约 28% —— 均远高于实测 10~20% 的字体差异
+  - **桌面零回归**：1280 / 1024 / 768 的 `white-space` 仍为 `normal`、`gap` 仍 34 / 30.72 / 23.04px、项内边距仍 `10px/10px`、字号仍 17 / 17 / 15.36px —— 与改动前逐项一致
+- 同步：`Documents/deepwork/outputs/personal-homepage/index.html` 已同步，两份 sha256 一致
+
+### 2026-09-18（手机端：About 面板简介保持单行不折行）
+
+- 用户反馈：「大一在读 · 在深圳慢慢长大 · 记录生活的人」在手机上会折行，**要求不折行，且明确「电脑端挺好的不用改动」**
+- **根因**：`.hero-note` 在手机端没有任何覆盖规则。`font-size: 13.5px` + `letter-spacing: 0.05em` 下这句**单行实测需 276.5px**，而容器可用宽恒为 **视口 − 130px**（body 12×2 + `.page` 16×2 + `.card` 24×2 + `.hero-intro` 12×2）→ **≤400px 必然折成两行**（414px 时 282 > 276.5 刚好还是单行，这就是断点边界）
+- **改动**（`index.html`，紧跟 `.hero-note` 原规则之后**纯新增**两个媒体查询，原规则一行未动）：
+  - `@media (max-width: 430px)`：四招吃回空间 —— ① `white-space: nowrap` 禁止折行；② 左右各 **−12px 负边距**吃回 `.hero-intro` 的内边距（凭空多出 24px 可用宽）；③ 字距 `0.05em → 0.01em`；④ `font-size: clamp(11.5px, calc((100vw - 106px) / 19.56), 13.5px)` 随视口线性收缩
+  - `@media (max-width: 331px)`：极窄屏兜底，恢复 `white-space: normal` + 原字号字距 —— 否则为保单行要么把字缩到不可读，要么溢出
+- 📐 **`19.56` 这个常数是实测算出来的，不是估的**：字距 0.01em 下「单行宽 ÷ 字号」恒为 `264.09 / 13.5 = 19.56`，且各视口完全一致（360 → `254 / 12.9857`、340 → `234 / 11.9632`，都是 19.56），所以线性收缩是**精确解**而非近似
+- ✅ **关键收益**：因为负边距先吃回 24px，**383~430px 区间字号仍是原值 13.5px（一个字都没动）**，真正缩字的只有 ≤382px。375 视口实测：字号 13.5px、单行宽 264.09px —— 与改动前视觉完全一致
+- 验证（无头 Chrome + CDP，`hp-note-verify.mjs`，12 视口）：**全部通过**
+  - 430 / 414 / 400 / 390 / 375 → 字号 **13.5px 原值**、单行宽 264.09px、**1 行、零溢出**
+  - 360 → 12.99px、340 → 11.96px，均 1 行零溢出
+  - 331 / 320 → 兜底折行 2 行、零溢出
+  - **桌面零回归**：1280 / 1024 / 768 的 `white-space` 仍为 `normal`、字距 `0.675px`、左右 `margin: 0px`、字号 `13.5px`、单行宽 `276.52px` —— 与改动前**逐项完全一致**
+- 同步：`Documents/deepwork/outputs/personal-homepage/index.html` 已同步，两份 sha256 一致
+
+### 2026-09-18（建议表单：「与我的关系」「设备」下拉框统一成输入框外观）
+
+- 用户反馈原话「填写与我的关系和设备的『请选择』那个框有点突兀，帮我改成和『你的昵称』和『填写建议』的框一样的」
+- **根因**：CSS 只给 `.field input` 和 `.field textarea` 写了样式，**`<select>` 一条都没有**，于是保持了浏览器原生外观。实测落差极大 —— 输入框 `918×48 / 圆角 14px / 冰蓝边框 rgba(217,232,244,.9) / 14.5px PingFang SC / 墨蓝 #2b3b4c / 半透明白底` vs 下拉框 `76×19 / 直角 / 系统深灰 rgb(118,118,118) / 13.33px Arial / 纯黑 / 纯白底`，宽度只有输入框的 **8%**、高度不到 **40%**
+- **改动**（`index.html` 的 `.field` 区块，原 724–744 行四处）：
+  - 共享选择器 `.field input, .field textarea` → 加入 `.field select`，一次性继承全部材质（满宽 / 字体 / 颜色 / 背景 / 边框 / 圆角 / padding / transition）
+  - 新增 `.field select` 块：`appearance: none`（+ `-webkit-` 前缀）抹掉系统外观、`padding-right: 44px` 给箭头让位、`cursor: pointer`、自绘下拉箭头（内联 SVG 折线 `M1 1.75L6 6.25L11 1.75`，`--ink-500` = `%236b8294`，12×8，`right 16px center`，与页面圆角线条风格一致）
+  - 新增 `.field select:invalid { color: var(--ink-400) }`：**借 `required` 属性**让未选择时的「请选择」自动显示为占位浅灰，选中后自动回到墨色，重置回空值又变浅灰 —— 无需任何 JS
+  - 新增 `.field select option { color: var(--ink-900) }` 保证展开列表里文字可读；`:focus` 规则补上 `.field select`
+- ⚠️ **顺序要点**：`.field select { background-image: … }` 必须写在共享规则 `background: rgba(255,255,255,0.8)` **之后**，否则简写会把 `background-image` 重置掉（两者特异性相同 `(0,1,1)`，靠源码顺序决胜）
+- 验证（无头 Chrome + CDP，`hp-select-verify.mjs`）：**1280 / 1024 / 768 / 390 / 360 五个视口 × 18 项断言 = 90/90 全通过**。下拉框宽度与 input **逐视口完全相同**（918 / 800.6 / 597.1 / 284 / 254），高度 **19 → 48** 与 input 一致；占位色 `rgb(157,177,192)`、选中后 `rgb(43,59,76)`、重置回占位色；`appearance: none`、箭头已渲染、无横向溢出
+- 功能回归：`relation.value` / `device.value` JS 读取正常（`=== '同学'`）、选项完整（关系 8 项含「请选择」、设备 5 项）、提交按钮在位、**Supabase 提交逻辑一行未动**
+- 副作用：无。`.field select` 作用域限定，全页仅这两个 `<select>`；`.field` 共 4 个，均在本表单内
+- ✅ **已同步到 deepwork 副本**（同日）：按用户要求，`Documents/deepwork/outputs/personal-homepage/` 已同步到权威版，共 11 个文件（`index.html`、`AGENTS.md`、`.gitignore`、`test-feedback.html`、`test-supabase.html`、`部署指南.md`、5 个 `*.sql`）。两份 `index.html` sha256 均为 `b97aeb52fd5abefa…`；deepwork 副本实测 1280 / 390 视口渲染全通过（下拉框满宽 918 / 284、高 48，与 input 一致）
+- 同步时**有意跳过**：`.git/`（权威副本的独立仓库，复制会在 deepwork 仓库里形成嵌套仓库）、`.DS_Store`（系统文件）、`.~mepage优化清单.docx`（Word 锁文件，本就被 `.gitignore` 忽略）、`assets/tour-{1,2,3}.png`（**7.5MB 且没有任何 html 引用**的废弃素材 —— `index.html` 实际引用的是同名 `.jpg`，三张 jpg 两份都有）
+- ⚠️ `deepwork/outputs/personal-homepage/` **未被 deepwork 仓库跟踪**（`git ls-files` = 0 条，同时也没被 `.gitignore` 忽略，属 untracked）→ 没有 git 兜底。同步前的旧版已备份至 `.deepworks/tmp/backup-deepwork-before-sync/`（`index.html` sha256 `6ec4ae17dc7a0cba…` / `AGENTS.md`）
 
 ### 2026-09-17（旅行页：地球上的照片标记缩小 · 52/40 → 42/32）
 
@@ -346,6 +797,7 @@ python3 -m http.server 8777 --directory .
   3. `profile.interests` 第三项：`"摄影"` → `"Citywalk"`
   4. 数字分身规则：原「摄影」规则（关键词 `["摄影","拍照","相机","照片","拍摄"]`）改为 Citywalk 规则（关键词 `["citywalk","城市漫步","散步","逛街","暴走"]`），答句改为「不赶景点、沿街巷慢慢走」的城市漫步表述；「兴趣」规则的两条答句同步去掉摄影字样
 - ⚠️ Citywalk 的 pill 仍是**不可点击的 `<span class="pill">`**（没有对应详情页），与「旅行 / 书法」两个带链接的 pill 不同；如果之后要做 citywalk 详情页，记得同步改成 `<a class="pill" href="...">`
+  - ✅ **2026-09-18 已实现**（本 TODO 已关闭）：两处 pill 均改为 `<a class="pill" href="citywalk.html">`，新增 `citywalk.html` 占位页 —— 见「变更记录」最上面那条
 - 仅改文案与规则关键词，未动样式、未引入新色系
 
 ### 2026-09-11（晚 · 六）
