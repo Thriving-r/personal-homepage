@@ -551,77 +551,52 @@
     letter-spacing: 0.04em;
   }
 
-  /* ==== 旅行照片轮播区 ==== */
+  /* ==== 蹭饭地图（水彩手绘中国地图）==== */
   .journey {
     margin-top: clamp(30px, 5vw, 50px);
   }
-  .stage {
+  .map-frame {
     position: relative;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 22px 50px rgba(95,139,181,0.22);
     border: 6px solid rgba(255,255,255,0.75);
-    aspect-ratio: 16 / 8;
+    background: #fbf7ef;
   }
-  .stage img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  /* 原图 1536×956（1.6067:1），用 height:auto 完整显示，不裁切地图本体与右下角附图 */
+  .map-frame img {
     display: block;
-    opacity: 0;
-    transition: opacity .8s ease, transform .8s ease;
-    transform: scale(1.04);
+    width: 100%;
+    height: auto;
   }
-  .stage img.show { opacity: 1; transform: scale(1); }
-
-  .season-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin: 20px 0 14px;
-    color: var(--ink-700);
-    font-family: var(--font-serif);
-    font-size: 20px;
-    letter-spacing: 0.22em;
-  }
-  .season-label .arrow {
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--ink-500);
-    user-select: none;
-    border: none;
-    background: none;
-    padding: 4px 8px;
-    transition: color .2s ease;
-  }
-  .season-label .arrow:hover { color: var(--ink-900); }
-
-  .thumbs {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .thumbs img {
-    width: 110px;
-    height: 68px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 3px solid rgba(255,255,255,0.85);
-    cursor: pointer;
-    transition: transform .2s ease, box-shadow .2s ease;
-    box-shadow: 0 6px 16px rgba(95,139,181,0.16);
-  }
-  .thumbs img:hover { transform: translateY(-3px); }
-  .thumbs img.current { box-shadow: 0 0 0 3px var(--sky-400), 0 8px 20px rgba(95,139,181,0.26); }
-
-  .journey-caption {
+  .map-caption {
     text-align: center;
-    margin-top: 16px;
-    font-size: 13px;
-    color: var(--ink-500);
-    letter-spacing: 0.08em;
+    margin-top: 18px;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    color: var(--ink-700);
+    letter-spacing: 0.14em;
+  }
+  /* ==== 地图上的定位符号（中山大学 · 广东）====
+     ⚠️ 坐标来源：先用台湾岛、海南岛两个已知点标定这张图的近似投影，再换算「113.26°E / 23.13°N」，
+     得到 (56.25%, 86.19%)。里面写成百分比，所以地图随容器缩放时尖端始终钉在同一点。
+     ⚠️ 换掉 assets/china-map.jpg（改尺寸 / 改构图 / 重绘）之前，必须重新标定这两个数字。
+     ⚠️ 位移用 transform 而不是 margin —— 只有 translate(-50%,-100%) 才能让「水滴尖」而不是「盒子中心」对准锚点。 */
+  .map-pin {
+    position: absolute;
+    left: 56.25%;
+    top: 86.19%;
+    width: clamp(32px, 7.2%, 78px);
+    transform: translate(-50%, -100%);
+    transform-origin: 50% 100%;
+    z-index: 2;
+    pointer-events: none;  /* 纯装饰浮层：绝不拦截点击 / 划选 / 滚轮 */
+    filter: drop-shadow(0 5px 10px rgba(20, 70, 110, 0.30));
+  }
+  .map-pin svg {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   /* ==== 标语：手写英文 ==== */
@@ -1075,22 +1050,49 @@
 
       <div class="section-gap"></div>
 
-      <!-- 旅行照片轮播区 -->
+      <!-- 蹭饭地图（水彩手绘中国地图，无任何文字标注） -->
       <section class="journey">
-        <div class="stage">
-          <img id="main" src="assets/tour-1.jpg" alt="旅行风景" />
+        <div class="map-frame">
+          <img src="assets/china-map.jpg" alt="水彩手绘中国地图" />
+          <!-- 定位符号：中山大学（广州 · 广东）。样式参照用户给的参考图 —— 蓝色水滴 + 白色圆徽章 + 金属环，
+               徽章中心是官方校徽图片 assets/sysu-emblem.png（256×256，已紧裁到外圆，圆形裁切后嵌入）。
+               ⚠️ 渐变/裁切 id 全部带 mapPin 前缀，避免与页面里别的 SVG defs 撞名。 -->
+          <div class="map-pin" role="img" aria-label="中山大学 · 广东">
+            <svg viewBox="0 0 64 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="mapPinBody" x1="0" y1="0" x2="0.45" y2="1">
+                  <stop offset="0" stop-color="#8fd0f5" />
+                  <stop offset="0.45" stop-color="#3f96da" />
+                  <stop offset="1" stop-color="#1d5f9e" />
+                </linearGradient>
+                <radialGradient id="mapPinGloss" cx="0.34" cy="0.24" r="0.5">
+                  <stop offset="0" stop-color="#ffffff" stop-opacity="0.92" />
+                  <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.26" />
+                  <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="mapPinRing" x1="0" y1="0" x2="0.6" y2="1">
+                  <stop offset="0" stop-color="#ffffff" />
+                  <stop offset="0.45" stop-color="#cfdae4" />
+                  <stop offset="1" stop-color="#9fb2c2" />
+                </linearGradient>
+                <clipPath id="mapPinCrestClip">
+                  <circle cx="32" cy="36" r="16.5" />
+                </clipPath>
+              </defs>
+              <!-- 水滴主体（圆头圆心 32,36 / 半径 28，尖点 32,84） -->
+              <path d="M32 84 C32 84 60 52 60 36 A28 28 0 1 0 4 36 C4 52 32 84 32 84 Z" fill="url(#mapPinBody)" />
+              <!-- 左上玻璃高光 -->
+              <ellipse cx="23" cy="22" rx="12" ry="14" fill="url(#mapPinGloss)" />
+              <!-- 金属环 + 白瓷面 -->
+              <circle cx="32" cy="36" r="20.6" fill="url(#mapPinRing)" />
+              <circle cx="32" cy="36" r="18.2" fill="#ffffff" />
+              <!-- 校徽：官方图片，圆形裁切（r=16.5，四周留约 1.7 单位白瓷边） -->
+              <image href="assets/sysu-emblem.png" x="15.5" y="19.5" width="33" height="33"
+                     clip-path="url(#mapPinCrestClip)" preserveAspectRatio="xMidYMid meet" />
+            </svg>
+          </div>
         </div>
-        <div class="season-label">
-          <button class="arrow" id="prev" aria-label="上一张">◀</button>
-          <span id="season">EXPLORE</span>
-          <button class="arrow" id="next" aria-label="下一张">▶</button>
-        </div>
-        <div class="thumbs" id="thumbs">
-          <img src="assets/tour-1.jpg" data-season="SUMMER" alt="夏·海边栈道" class="current" />
-          <img src="assets/tour-2.jpg" data-season="CITY" alt="地中海小镇" />
-          <img src="assets/tour-3.jpg" data-season="INK" alt="书法 · 墨" />
-        </div>
-        <div class="journey-caption" id="caption">夏 · 海边的栈道和遮阳伞</div>
+        <div class="map-caption">蹭饭地图持续打卡中...</div>
         <div class="lace lace-bot"></div>
       </section>
 
@@ -1563,33 +1565,9 @@
 
   window.addEventListener("load", () => typeOut(makeDigitalBubble(""), greeting));
 
-  /* ============ 旅行轮播 ============ */
-  const slides = [
-    { src: "assets/tour-1.jpg", season: "SUMMER", caption: "夏 · 海边的栈道和遮阳伞" },
-    { src: "assets/tour-2.jpg", season: "CITY", caption: "地中海 · 蓝白小镇的街角" },
-    { src: "assets/tour-3.jpg", season: "INK", caption: "书 · 一笔一划的安静时刻" },
-  ];
-  let cur = 0;
-  const mainImg = document.getElementById("main");
-  const seasonEl = document.getElementById("season");
-  const captionEl = document.getElementById("caption");
-  const thumbs = document.getElementById("thumbs").querySelectorAll("img");
-
-  function show(i) {
-    cur = (i + slides.length) % slides.length;
-    mainImg.classList.remove("show");
-    setTimeout(() => {
-      mainImg.src = slides[cur].src;
-      mainImg.classList.add("show");
-    }, 180);
-    seasonEl.textContent = slides[cur].season;
-    captionEl.textContent = slides[cur].caption;
-    thumbs.forEach((t, idx) => t.classList.toggle("current", idx === cur));
-  }
-  document.getElementById("next").addEventListener("click", () => show(cur + 1));
-  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
-  thumbs.forEach((t, idx) => t.addEventListener("click", () => show(idx)));
-  show(0);
+  /* 原「旅行照片轮播」脚本已删除：轮播区已替换为蹭饭地图（静态图 + 一行文案），
+     不再有 slides / show() / #main / #prev / #next / #thumbs / #caption 这些节点，
+     所以整段逻辑必须一并移除，否则 getElementById("main") 会拿到 null 并抛错。 */
 
   /* ============ TAB 面板切换 ============ */
   const panels = {
