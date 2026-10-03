@@ -23,6 +23,9 @@ jobs:
         run: |
           if [ -f update.patch ]; then
             sed -i 's/\r$//' update.patch
+            for file in index.html bci.html calligraphy.html travel.html; do
+              sed -i 's/[[:space:]]*$//' "$file"
+            done
             git apply --binary --ignore-whitespace update.patch
             rm update.patch
             git config user.name "github-actions[bot]"
