@@ -22,7 +22,8 @@ jobs:
       - name: Apply pending homepage patch
         run: |
           if [ -f update.patch ]; then
-            git apply --binary update.patch
+            sed -i 's/\r$//' update.patch
+            git apply --binary --ignore-whitespace update.patch
             rm update.patch
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
