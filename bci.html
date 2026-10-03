@@ -163,6 +163,46 @@
     background: rgba(95, 190, 255, 0.16);
     box-shadow: inset 0 0 0 1px rgba(95, 190, 255, 0.28);
   }
+  /* 顶栏三项：左「← Back」管回上一面、中间「当前页名」只是位置标识、右「Return to Home →」回主页。
+     当前页名不可点击，所以用 span 而不是 a —— 高亮观感沿用上面 .active 的青色胶囊
+     （本页是暗色科技风，不能照搬主页子页的 sky-100 浅底），光标保持默认箭头，避免被当成按钮。 */
+  .nav a, .nav .nav-here {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav .nav-here {
+    font-size: clamp(12px, 1.7vw, 14px);
+    font-family: var(--font-sans);
+    color: #eaf5ff;
+    background: rgba(95, 190, 255, 0.16);
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    box-shadow: inset 0 0 0 1px rgba(95, 190, 255, 0.28);
+    cursor: default;
+  }
+  .nav-arrow {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* 顶栏从两项变三项（多一枚「Return to Home →」），手机上要把留白收回来，否则会顶出胶囊。
+     这一档只收紧 gap / 内边距 / 字距，字号仍是上面 clamp 的原值。 */
+  @media (max-width: 560px) {
+    .nav { gap: min(10px, 1.6vw); padding-left: 10px; padding-right: 10px; }
+    .nav a, .nav .nav-here { padding-left: 7px; padding-right: 7px; letter-spacing: 0.02em; }
+  }
+  /* 440px 以下再让字号随视口线性收缩，兜住安卓更宽的 fallback 字体。 */
+  @media (max-width: 440px) {
+    .nav a, .nav .nav-here { font-size: clamp(11px, 3.05vw, 13px); }
+  }
 
   /* ============ 首屏 ============ */
   .hero {
@@ -563,8 +603,12 @@
   <!-- ============ 顶部导航 ============ -->
   <header class="masthead">
     <nav class="nav">
-      <a href="index.html">← Return to Home</a>
-      <a class="active" href="bci.html">脑机接口 BCI</a>
+      <!-- 左：回到「进入本页之前的那一面」（无历史可回时兜底跟随 href，逻辑见页尾脚本） -->
+      <a href="index.html" id="back"><svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M11.4 7H2.6M6 3.2 2.2 7 6 10.8"/></svg>Back</a>
+      <!-- 中：当前位置标识，不可点击 -->
+      <span class="nav-here">脑机接口 BCI</span>
+      <!-- 右：回主页（新导航，落 Home 面板顶部，不还原上次位置） -->
+      <a href="index.html" class="nav-home">Return to Home<svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2.6 7h8.8M8 3.2 11.8 7 8 10.8"/></svg></a>
     </nav>
   </header>
 
@@ -699,7 +743,9 @@
     </div>
 
     <footer class="foot">
-      <p><a href="index.html">← 返回主页 Back to Home</a></p>
+      <!-- 2026-09-18：原先这里还有一条「← 返回主页 Back to Home」的链接，
+           已按用户要求删除 —— 顶栏左侧的 Back 和右侧的 Return to Home 已经覆盖了回主页的需求，
+           而且另三页（travel / calligraphy / citywalk）的页脚也没有这一条。 -->
       <p>刘孟涵 · 智能医学工程（脑机接口方向）</p>
     </footer>
   </main>
@@ -1098,6 +1144,28 @@
       boot();
     }
   })();
+  </script>
+
+  <!-- 顶栏「← Back」：回到「进入本页之前的那一面」，也就是点「智能医学工程（脑机接口方向）」
+       时所在的界面（同源跳转下浏览器会把那一面的面板与滚动位置一起还原）。
+       兜底：没有可回退的历史（直接双击本页 / 从书签进来）时不拦截默认行为，
+       跟随 href="index.html" 回主页，避免按了没反应。
+       ⚠️ file:// 下 location.origin 是字符串 "null" 且 referrer 为空，
+       同源判断不成立，因此单列一个分支只看 history.length。 -->
+  <script>
+    (function () {
+      var back = document.getElementById("back");
+      if (!back) return;
+      back.addEventListener("click", function (e) {
+        var canGoBack = location.protocol === "file:"
+          ? window.history.length > 1
+          : document.referrer.indexOf(location.origin) === 0 && window.history.length > 1;
+        if (canGoBack) {
+          e.preventDefault();
+          window.history.back();
+        }
+      });
+    })();
   </script>
 </body>
 </html>

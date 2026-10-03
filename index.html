@@ -4,9 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>刘孟涵 · 个人主页</title>
-  
-<!-- Supabase 客户端库 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
+
+<!-- Supabase 客户端库
+     ⚠️ 必须带 defer：它原来是 <head> 里的「阻塞解析」脚本，整个文档（连同后面的云背景层）
+     都要等它从 jsdelivr 下载完才继续解析 —— 本机实测慢的时候要 2~4.5 秒，那段时间页面一片空白。
+     带 defer 后解析不再被它卡住；页面里创建客户端的地方已改成「等 window.supabase 就绪再建」，
+     行为不变（详见下面创建客户端处的注释）。 -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
@@ -122,6 +126,8 @@
      球的实际位置由渲染循环的缓动赋值给 transform，所以这里只固定「布局盒」。
      窄屏（≤700px）没有右侧留白也没有鼠标跟随：Home 回落到欢迎语下方的文档流，
      另外两个面板藏球，见 placeOrb()。
+     ⚠️ 触屏设备（手机 / 平板）**完全不显示这颗球**（见下方 @media (hover:none)）：判定用
+     「能力」而非「宽度」，所以 1024px 的 iPad 会去除、1024px 的电脑窗口不受影响。
      pointer-events:none → 它浮在正文之上，但绝不拦截点击、划选、滚轮。 */
   .welcome { position: relative; }
   .welcome h1, .welcome .welcome-sub { position: relative; z-index: 2; }
@@ -155,6 +161,15 @@
     .hero-glass canvas {
       filter: drop-shadow(0 8px 18px rgba(86, 128, 168, 0.26));
     }
+  }
+  /* 触屏设备（手机 / 平板）完全不显示这颗球（B 口径：电脑端保留跟随，触屏端去除）。
+     平板（>700px）上它本是 absolute 浮层，display:none 后不占位、布局零变化；
+     手机（≤700px）上它落在 .welcome 文档流里，display:none 后下方内容自然上移。
+     ⚠️ 这里只是兜底（防止脚本异常时球闪现），真正的开关在 JS 的 TOUCH_Q。
+     ⚠️ 用「能力」而不是「宽度」判定：1024px 的 iPad 与 1024px 的电脑窗口宽度相同，
+     只有 hover/pointer 能分开，所以电脑端任何窗口宽度都不受影响。 */
+  @media (hover: none) and (pointer: coarse) {
+    .hero-glass { display: none; }
   }
 
   .masthead .site-title {
@@ -203,6 +218,49 @@
     color: var(--ink-900);
     background: var(--sky-100);
   }
+  /* 安卓端这个胶囊导航会折行（「About Me」断成 About / Me），苹果端正常。
+     两个原因叠加：① `.nav a` 没设 nowrap，它作为 flex 子项的最小宽度是
+     「最长单词」而不是整段，空间一紧就从空格处断开；② `--font-serif` 首选
+     Songti SC —— 苹果端命中，安卓端没有只能 fallback 到 Noto Serif SC / 通用
+     serif，同一字号下英文更宽。实测单行需 288px，而胶囊可用宽 = 视口 − 90px，
+     盈亏点约 378px，安卓因字体更宽还会再提前。苹果端 390/393/414/430 本来
+     就不折行，所以这次的收紧对它几乎无感。
+     修法：① nowrap 从根上禁止断行；② 只收紧 gap 与内边距去腾地方，字号字距
+     尽量不动 —— 手机上「字」本身没变，变的是词与词之间的留白。
+     桌面端在媒体查询外，一行未改。 */
+  @media (max-width: 430px) {
+    .nav {
+      gap: min(34px, 2.33vw);
+      padding: 8px min(40px, 2.79vw);
+    }
+    .nav a {
+      white-space: nowrap;
+      padding: 4px min(10px, 2.21vw);
+    }
+  }
+  /* ≤380px 再收紧一档；字号才略缩，给安卓那份更宽的 fallback 字体留出余量 */
+  @media (max-width: 380px) {
+    .nav {
+      gap: min(34px, 1.05vw);
+      padding: 8px min(40px, 1.84vw);
+    }
+    .nav a {
+      padding: 4px min(10px, 1.4vw);
+      font-size: clamp(11.5px, 3.45vw, 13px);
+    }
+  }
+  /* ≤340px（iPhone SE 一代那种）再补一档：把安卓字体宽度差异的容差从约 18%
+     抬到约 28%，和主流机型拉平，避免极窄屏上被 fallback 字体顶出横向滚动 */
+  @media (max-width: 340px) {
+    .nav {
+      gap: min(34px, 0.9vw);
+      padding: 8px min(40px, 1.6vw);
+    }
+    .nav a {
+      padding: 4px min(10px, 1.15vw);
+      font-size: clamp(11px, 3.3vw, 13px);
+    }
+  }
 
   /* ==== 页面栅格 ==== */
   .page {
@@ -238,6 +296,43 @@
     text-transform: uppercase;
     color: var(--ink-400);
   }
+  /* 手机端：数字分身卡片标题「数字分身 · 和我聊聊 Virtual Space」整句单行、不折行。
+     ⚠️ 只作用于 #panel-chat，断点 480px —— 电脑（≥768 窗口）与平板（768~1024）一字不变。
+     实测（macOS 无头 Chrome）：标题整句宽 = 14.5727 × 字号 + 12（12 是 flex 的 gap）。
+     卡片可用宽 ≈「视口 − 106px」，该式在 <400px 档精确成立（body 12×2 + .page 16×2 + .card 24×2 + 边框 2）；
+     400~480px 档 body/.page 内边距按 3vw / 4vw 放大到 14.4~19.2px，可用宽其实更窄 4~11px ——
+     本式仍按 −106 估（偏乐观），靠下面 K 的余量兜住这一段，实测 480 档仍余 32px。
+     取 K = 15.8（相对实测的 14.5727 留约 8% 余量，覆盖安卓 fallback 更宽的拉丁字形；拉丁约占整句 31%），
+     于是 字号 = (视口 − 118) / 15.8；上限锁 22px（原字号，480px 档即与改动前完全一致），
+     下限 12px 防极端窄屏缩到不可读。
+     字距 0.06em→0.03em、.en 字距 0.2em→0.12em 换来可用空间；
+     .en 字号由固定 11px 改为 0.5em（原 11px 恰是 22px 的一半，宽档视觉与改动前完全相同，
+     窄档随主字号等比缩放，不会出现「中文缩小、英文仍 11px」的失衡）。 */
+  @media (max-width: 480px) {
+    #panel-chat .card-title {
+      white-space: nowrap;
+      flex-wrap: nowrap;
+      letter-spacing: 0.03em;
+      font-size: clamp(12px, calc((100vw - 118px) / 15.8), 22px);
+    }
+    #panel-chat .card-title .en {
+      font-size: 0.5em;
+      letter-spacing: 0.12em;
+    }
+  }
+  /* ≤300px 极窄屏兜底：恢复折行与原始字号字距，避免 nowrap 把页面撑出横向滚动 */
+  @media (max-width: 300px) {
+    #panel-chat .card-title {
+      white-space: normal;
+      flex-wrap: wrap;
+      letter-spacing: 0.06em;
+      font-size: 18px;
+    }
+    #panel-chat .card-title .en {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+    }
+  }
 
   /* ==== 主视觉卡片（About me） ==== */
   .about-grid {
@@ -249,6 +344,19 @@
     .about-grid { grid-template-columns: 1fr 1fr; }
   }
   .about-item { min-width: 0; }
+  /* 平板竖屏：把「兴趣」这一栏改成横跨整张卡片，三个 pill 才能在单行里放下。
+     实测三个 pill 单行需 395.4px（100.25 + 128.77 + 148.38 + 2×9 gap），
+     而 iPad 竖屏的两列布局只给这一栏 290~391px（768/810/820/834/1024），
+     必然折成两行（第二行 Citywalk），且它右边那列同高度的位置恰好是空的。
+     跨列后可用宽 598~803px，单行稳定放下，字号 / 内边距 / 间距一律不动。
+     ⚠️ 三重限定缺一不可：手机（About 本就是单列、宽度够不着 641px）、
+     平板横屏（orientation: landscape 不命中）与电脑（hover:hover 不命中）
+     因此都保持原样 —— 电脑端任何窗口宽度都不会被这条规则影响。
+     ⚠️ 用「设备能力」判定触屏，而不是只看宽度：1024px 的 iPad 竖屏与
+     1024px 的电脑窗口宽度相同，只有 hover/pointer 能把两者分开。 */
+  @media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+    #panel-about .about-item.interests-item { grid-column: 1 / -1; }
+  }
   .about-item h3 {
     display: flex;
     align-items: center;
@@ -393,6 +501,30 @@
     color: var(--ink-500);
     letter-spacing: 0.05em;
   }
+  /* 手机端：这句简介保持单行不折行。
+     实测单行需 276.5px，而可用宽 = 视口 − 130px，故 ≤400px 必折行。
+     这里①借左右各 12px 负边距吃回 hero-intro 的内边距（多出 24px 可用宽），
+     ②字距收到 0.01em，③字号按视口线性收缩 —— 430~383px 区间仍保持原字号 13.5px，
+     真正开始缩小的只有 ≤382px。桌面端完全不受影响（媒体查询外）。 */
+  @media (max-width: 430px) {
+    .hero-note {
+      white-space: nowrap;
+      margin-left: -12px;
+      margin-right: -12px;
+      letter-spacing: 0.01em;
+      font-size: clamp(11.5px, calc((100vw - 106px) / 19.56), 13.5px);
+    }
+  }
+  /* 极窄屏兜底：≤331px 时连 11.5px 都排不下，恢复折行以免溢出 */
+  @media (max-width: 331px) {
+    .hero-note {
+      white-space: normal;
+      margin-left: 0;
+      margin-right: 0;
+      letter-spacing: 0.05em;
+      font-size: 13.5px;
+    }
+  }
 
   .contact-list {
     display: flex;
@@ -419,77 +551,52 @@
     letter-spacing: 0.04em;
   }
 
-  /* ==== 旅行照片轮播区 ==== */
+  /* ==== 蹭饭地图（水彩手绘中国地图）==== */
   .journey {
     margin-top: clamp(30px, 5vw, 50px);
   }
-  .stage {
+  .map-frame {
     position: relative;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 22px 50px rgba(95,139,181,0.22);
     border: 6px solid rgba(255,255,255,0.75);
-    aspect-ratio: 16 / 8;
+    background: #fbf7ef;
   }
-  .stage img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  /* 原图 1536×956（1.6067:1），用 height:auto 完整显示，不裁切地图本体与右下角附图 */
+  .map-frame img {
     display: block;
-    opacity: 0;
-    transition: opacity .8s ease, transform .8s ease;
-    transform: scale(1.04);
+    width: 100%;
+    height: auto;
   }
-  .stage img.show { opacity: 1; transform: scale(1); }
-
-  .season-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin: 20px 0 14px;
-    color: var(--ink-700);
-    font-family: var(--font-serif);
-    font-size: 20px;
-    letter-spacing: 0.22em;
-  }
-  .season-label .arrow {
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--ink-500);
-    user-select: none;
-    border: none;
-    background: none;
-    padding: 4px 8px;
-    transition: color .2s ease;
-  }
-  .season-label .arrow:hover { color: var(--ink-900); }
-
-  .thumbs {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .thumbs img {
-    width: 110px;
-    height: 68px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 3px solid rgba(255,255,255,0.85);
-    cursor: pointer;
-    transition: transform .2s ease, box-shadow .2s ease;
-    box-shadow: 0 6px 16px rgba(95,139,181,0.16);
-  }
-  .thumbs img:hover { transform: translateY(-3px); }
-  .thumbs img.current { box-shadow: 0 0 0 3px var(--sky-400), 0 8px 20px rgba(95,139,181,0.26); }
-
-  .journey-caption {
+  .map-caption {
     text-align: center;
-    margin-top: 16px;
-    font-size: 13px;
-    color: var(--ink-500);
-    letter-spacing: 0.08em;
+    margin-top: 18px;
+    font-family: var(--font-serif);
+    font-size: 15px;
+    color: var(--ink-700);
+    letter-spacing: 0.14em;
+  }
+  /* ==== 地图上的定位符号（中山大学 · 广东）====
+     ⚠️ 坐标来源：先用台湾岛、海南岛两个已知点标定这张图的近似投影，再换算「113.26°E / 23.13°N」，
+     得到 (56.25%, 86.19%)。里面写成百分比，所以地图随容器缩放时尖端始终钉在同一点。
+     ⚠️ 换掉 assets/china-map.webp（改尺寸 / 改构图 / 重绘）之前，必须重新标定这两个数字。
+     ⚠️ 位移用 transform 而不是 margin —— 只有 translate(-50%,-100%) 才能让「水滴尖」而不是「盒子中心」对准锚点。 */
+  .map-pin {
+    position: absolute;
+    left: 56.25%;
+    top: 86.19%;
+    width: clamp(32px, 7.2%, 78px);
+    transform: translate(-50%, -100%);
+    transform-origin: 50% 100%;
+    z-index: 2;
+    pointer-events: none;  /* 纯装饰浮层：绝不拦截点击 / 划选 / 滚轮 */
+    filter: drop-shadow(0 5px 10px rgba(20, 70, 110, 0.30));
+  }
+  .map-pin svg {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   /* ==== 标语：手写英文 ==== */
@@ -520,33 +627,7 @@
     color: var(--ink-500);
   }
 
-  /* ==== 左侧白色竖排圆形图标条 ==== */
-  .side-dock {
-    position: fixed;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 20;
-  }
-  .side-dock a {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.85);
-    color: var(--ink-500);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    text-decoration: none;
-    box-shadow: 0 4px 12px rgba(95,139,181,0.18);
-    transition: transform .2s ease, color .2s ease;
-  }
-  .side-dock a:hover { transform: translateY(-2px); color: var(--sky-600); }
-  @media (max-width: 720px) { .side-dock { display: none; } }
+  /* ==== 左侧白色竖排圆形图标条：已按用户要求整块移除（未获用户要求、观感不佳） ==== */
 
   /* ==== 数字分身聊天 ==== */
   .chat { display: flex; flex-direction: column; min-height: 380px; }
@@ -669,6 +750,10 @@
   }
   .input-bar input {
     flex: 1;
+    /* 关键：flex 子项默认 min-width: auto = 固有宽度 185px（size=20），
+       光有 flex:1 收缩不下去，于是和固定 120px 的 send、10px 的 gap 一起
+       凑成 315px 的最小宽度，把 send 顶出输入栏。置 0 才允许真正收缩。 */
+    min-width: 0;
     border: 1px solid rgba(217,232,244,0.9);
     border-radius: 12px;
     padding: 12px 16px;
@@ -680,6 +765,11 @@
     transition: border-color .2s ease;
   }
   .input-bar input:focus { border-color: var(--sky-400); }
+  /* ≤380px：只让 input 收缩的话，输入框会只剩 124px（320px 屏只有 84px）太挤，
+     所以把 send 一起收窄，把宽度还给输入框。381px 以上与桌面端不受影响。 */
+  @media (max-width: 380px) {
+    .input-bar .stateful-btn { width: clamp(88px, 26vw, 120px); }
+  }
   .chat-foot {
     margin-top: 10px;
     font-size: 11px;
@@ -694,6 +784,41 @@
     font-size: 12px;
     color: var(--ink-400);
     letter-spacing: 0.06em;
+  }
+
+  /* 手机端（≤480px）：页脚署名整句一行，末尾不再折行
+     —— 原样式在手机上必然折行：12px + 0.06em 下整句实测需 350.31px，
+     而可用宽只有「视口 − 56px」（body 内边距 12 + .page 内边距 16，左右各两处），
+     所以 406px 以下就放不下（真机 400 / 390 / 375 / 360 全部折成两行）。
+     这里四招吃回空间：① white-space: nowrap 从根上禁止断行；
+     ② 左右各 −16px 负边距吃回 .page 的内边距（可用宽变成「视口 − 24px」）；
+     ③ 字距 0.06em → 0.02em；④ 字号随视口 (100vw − 26px) / 30 线性收缩。
+     ⚠️ 30 是实测出来的：整句宽 ≈ 27.9em（字距 0.02em 下），取 30 留约 7% 余量，
+     给安卓等更宽的 fallback 字体。因负边距先吃回空间，390px 及以上字号仍被
+     clamp 在原本的 12px（视觉一字未变），只有更窄才微微缩小。
+     ≤300px 极窄屏兜底恢复折行，避免 nowrap 撑出横向滚动（字号下限 9.5px 时整句需 265px）。 */
+  @media (max-width: 480px) {
+    .footer {
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      /* iOS Safari 默认会给「宽文本块」自动放大字号，nowrap 下放大就会溢出，
+         这里显式关掉自动调整（对桌面与安卓无效，属纯保险） */
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      margin-left: -16px;
+      margin-right: -16px;
+      font-size: clamp(9.5px, calc((100vw - 26px) / 30), 12px);
+    }
+  }
+
+  @media (max-width: 300px) {
+    .footer {
+      white-space: normal;
+      letter-spacing: 0.06em;
+      margin-left: 0;
+      margin-right: 0;
+      font-size: 11px;
+    }
   }
 
   /* ==== 给我建议 ==== */
@@ -722,7 +847,8 @@
     text-transform: uppercase;
   }
   .field input,
-  .field textarea {
+  .field textarea,
+  .field select {
     width: 100%;
     font-family: var(--font-sans);
     font-size: 14.5px;
@@ -735,10 +861,25 @@
     transition: border-color .2s ease, box-shadow .2s ease;
     resize: vertical;
   }
+  /* 下拉框：抹掉系统原生外观，与输入框用同一套材质，箭头自绘（颜色 --ink-500） */
+  .field select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 44px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.75L6 6.25L11 1.75' fill='none' stroke='%236b8294' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 12px 8px;
+  }
+  /* 未选择时「请选择」按占位色显示（依赖 select 的 required），选中后自动回到正常墨色 */
+  .field select:invalid { color: var(--ink-400); }
+  .field select option { color: var(--ink-900); }
   .field input::placeholder,
   .field textarea::placeholder { color: var(--ink-400); }
   .field input:focus,
-  .field textarea:focus {
+  .field textarea:focus,
+  .field select:focus {
     border-color: var(--sky-400);
     box-shadow: 0 0 0 3px rgba(147,188,221,0.16);
   }
@@ -849,16 +990,43 @@
   }
 
   .section-gap { height: clamp(30px, 6vw, 56px); }
+  /* ==== 云背景层（会飘的云）==== */
+  /* 最底层装饰：fixed + z-index:-1 → 永远在 body 背景之上、所有内容之下；
+     pointer-events:none → 绝不拦截点击 / 划选 / 滚轮。
+     天空透明、只画云，底层的水彩天空（bg.jpg + 多层柔光）照旧透出来。
+     渲染逻辑见 assets/cloud-bg.js（Aceternity UI《Cloud Shader》的原生移植）。 */
+  canvas.cloud-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: -1;
+    pointer-events: none;
+  }
 </style>
+<!-- 云背景层（assets/cloud-bg.js）不在这里引入：改在 <body> 里 canvas 之后就动态注入，
+     这样它不必等「整页解析完成 + 未加载完的外部样式表到齐」才执行（本页有 supabase CDN 与 Google Fonts），
+     云的下载与执行会和后续解析并行。详见 body 里那段的说明。 -->
 </head>
 <body>
 
-  <!-- 左侧白色竖排圆形图标条 -->
-  <div class="side-dock">
-    <a href="#top" title="首页">⌂</a>
-    <a href="#about" title="关于我">人</a>
-    <a href="#contact" title="联系">✉</a>
-  </div>
+  <!-- 云背景层：会缓慢飘动的云（最底层装饰，由 assets/cloud-bg.js 渲染，不遮挡也不拦截任何内容） -->
+  <canvas class="cloud-bg" aria-hidden="true"></canvas>
+  <!-- 云背景层引导：在这里「动态注入」脚本，而不是在 <head> 里写 <script defer src="assets/cloud-bg.js">。
+      原因：defer 要等「整页解析完成」并且「尚未加载完的样式表到齐」才执行，本页 head 里的外部
+      资源（supabase CDN / Google Fonts）慢的时候会把云一起拖后几秒；改成这里立刻注入后，脚本的
+      下载与后面文档的解析并行进行、下载完立即执行，云因此更早出现，同时也不阻塞页面解析。 -->
+  <script>
+    (function () {
+      var s = document.createElement("script");
+      s.src = "assets/cloud-bg.js";
+      document.head.appendChild(s);
+    })();
+  </script>
+
+  <!-- 左侧白色竖排圆形图标条（首页 / 关于我 / 联系 三枚圆按钮）：已按用户要求移除 -->
 
   <div class="page" id="top">
     <!-- 顶部：胶囊导航（面板切换） -->
@@ -882,22 +1050,49 @@
 
       <div class="section-gap"></div>
 
-      <!-- 旅行照片轮播区 -->
+      <!-- 蹭饭地图（水彩手绘中国地图，无任何文字标注） -->
       <section class="journey">
-        <div class="stage">
-          <img id="main" src="assets/tour-1.jpg" alt="旅行风景" />
+        <div class="map-frame">
+          <img src="assets/china-map.webp" alt="水彩手绘中国地图" />
+          <!-- 定位符号：中山大学（广州 · 广东）。样式参照用户给的参考图 —— 蓝色水滴 + 白色圆徽章 + 金属环，
+               徽章中心是官方校徽图片 assets/sysu-emblem.webp（256×256，已紧裁到外圆，圆形裁切后嵌入）。
+               ⚠️ 渐变/裁切 id 全部带 mapPin 前缀，避免与页面里别的 SVG defs 撞名。 -->
+          <div class="map-pin" role="img" aria-label="中山大学 · 广东">
+            <svg viewBox="0 0 64 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="mapPinBody" x1="0" y1="0" x2="0.45" y2="1">
+                  <stop offset="0" stop-color="#8fd0f5" />
+                  <stop offset="0.45" stop-color="#3f96da" />
+                  <stop offset="1" stop-color="#1d5f9e" />
+                </linearGradient>
+                <radialGradient id="mapPinGloss" cx="0.34" cy="0.24" r="0.5">
+                  <stop offset="0" stop-color="#ffffff" stop-opacity="0.92" />
+                  <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.26" />
+                  <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="mapPinRing" x1="0" y1="0" x2="0.6" y2="1">
+                  <stop offset="0" stop-color="#ffffff" />
+                  <stop offset="0.45" stop-color="#cfdae4" />
+                  <stop offset="1" stop-color="#9fb2c2" />
+                </linearGradient>
+                <clipPath id="mapPinCrestClip">
+                  <circle cx="32" cy="36" r="16.5" />
+                </clipPath>
+              </defs>
+              <!-- 水滴主体（圆头圆心 32,36 / 半径 28，尖点 32,84） -->
+              <path d="M32 84 C32 84 60 52 60 36 A28 28 0 1 0 4 36 C4 52 32 84 32 84 Z" fill="url(#mapPinBody)" />
+              <!-- 左上玻璃高光 -->
+              <ellipse cx="23" cy="22" rx="12" ry="14" fill="url(#mapPinGloss)" />
+              <!-- 金属环 + 白瓷面 -->
+              <circle cx="32" cy="36" r="20.6" fill="url(#mapPinRing)" />
+              <circle cx="32" cy="36" r="18.2" fill="#ffffff" />
+              <!-- 校徽：官方图片，圆形裁切（r=16.5，四周留约 1.7 单位白瓷边） -->
+              <image href="assets/sysu-emblem.webp" x="15.5" y="19.5" width="33" height="33"
+                     clip-path="url(#mapPinCrestClip)" preserveAspectRatio="xMidYMid meet" />
+            </svg>
+          </div>
         </div>
-        <div class="season-label">
-          <button class="arrow" id="prev" aria-label="上一张">◀</button>
-          <span id="season">EXPLORE</span>
-          <button class="arrow" id="next" aria-label="下一张">▶</button>
-        </div>
-        <div class="thumbs" id="thumbs">
-          <img src="assets/tour-1.jpg" data-season="SUMMER" alt="夏·海边栈道" class="current" />
-          <img src="assets/tour-2.jpg" data-season="CITY" alt="地中海小镇" />
-          <img src="assets/tour-3.jpg" data-season="INK" alt="书法 · 墨" />
-        </div>
-        <div class="journey-caption" id="caption">夏 · 海边的栈道和遮阳伞</div>
+        <div class="map-caption">蹭饭地图持续打卡中...</div>
         <div class="lace lace-bot"></div>
       </section>
 
@@ -925,7 +1120,7 @@
               <div class="interest-pills" style="margin-top:10px;">
                 <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
                 <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
-                <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
+                <a class="pill" href="citywalk.html">Citywalk<span class="pill-en">City Walk</span></a>
               </div>
             </div>
           </div>
@@ -1027,12 +1222,12 @@
             <p>打磨这个主页 · 上大一必修课 · 用脚步认识深圳</p>
             <p class="en">Building this page · Studying · Exploring Shenzhen</p>
           </div>
-          <div class="about-item">
+          <div class="about-item interests-item">
             <h3><span class="dot"></span>兴趣 <span class="en">Interests</span></h3>
             <div class="interest-pills">
               <a class="pill" href="travel.html">旅行<span class="pill-en">Travel</span></a>
               <a class="pill" href="calligraphy.html">书法<span class="pill-en">Calligraphy</span></a>
-              <span class="pill">Citywalk<span class="pill-en">City Walk</span></span>
+              <a class="pill" href="citywalk.html">Citywalk<span class="pill-en">City Walk</span></a>
             </div>
           </div>
           <div class="about-item span-all" id="contact">
@@ -1370,33 +1565,9 @@
 
   window.addEventListener("load", () => typeOut(makeDigitalBubble(""), greeting));
 
-  /* ============ 旅行轮播 ============ */
-  const slides = [
-    { src: "assets/tour-1.jpg", season: "SUMMER", caption: "夏 · 海边的栈道和遮阳伞" },
-    { src: "assets/tour-2.jpg", season: "CITY", caption: "地中海 · 蓝白小镇的街角" },
-    { src: "assets/tour-3.jpg", season: "INK", caption: "书 · 一笔一划的安静时刻" },
-  ];
-  let cur = 0;
-  const mainImg = document.getElementById("main");
-  const seasonEl = document.getElementById("season");
-  const captionEl = document.getElementById("caption");
-  const thumbs = document.getElementById("thumbs").querySelectorAll("img");
-
-  function show(i) {
-    cur = (i + slides.length) % slides.length;
-    mainImg.classList.remove("show");
-    setTimeout(() => {
-      mainImg.src = slides[cur].src;
-      mainImg.classList.add("show");
-    }, 180);
-    seasonEl.textContent = slides[cur].season;
-    captionEl.textContent = slides[cur].caption;
-    thumbs.forEach((t, idx) => t.classList.toggle("current", idx === cur));
-  }
-  document.getElementById("next").addEventListener("click", () => show(cur + 1));
-  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
-  thumbs.forEach((t, idx) => t.addEventListener("click", () => show(idx)));
-  show(0);
+  /* 原「旅行照片轮播」脚本已删除：轮播区已替换为蹭饭地图（静态图 + 一行文案），
+     不再有 slides / show() / #main / #prev / #next / #thumbs / #caption 这些节点，
+     所以整段逻辑必须一并移除，否则 getElementById("main") 会拿到 null 并抛错。 */
 
   /* ============ TAB 面板切换 ============ */
   const panels = {
@@ -1406,12 +1577,15 @@
   };
   const navLinks = document.querySelectorAll("#nav a");
 
-  function activate(name) {
+  function activate(name, opts) {
+    const o = opts || {};
     Object.keys(panels).forEach((k) => {
       panels[k].classList.toggle("active", k === name);
     });
     navLinks.forEach((a) => a.classList.toggle("active", a.dataset.panel === name));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // keepScroll: 由「从子页返回」的还原流程调用 —— 那次要落回用户离开前的滚动位置，
+    // 不能再执行这里的「滚回顶部」，否则会先被拉回顶部再被还原，白闪一下
+    if (!o.keepScroll) window.scrollTo({ top: 0, behavior: "smooth" });
     // 通知全站常驻的玻璃球重新落位（Home 贴欢迎语右侧，其他面板走右侧留白）
     window.dispatchEvent(new CustomEvent("panelchange", { detail: { panel: name } }));
   }
@@ -1426,6 +1600,90 @@
   // 默认显示 HOME 面板（欢迎语 + 旅行）
   activate("home");
 
+  /* ============ 从站内子页返回：还原「离开前的样子」 ============
+     背景：面板切换是纯 JS 的 classList.toggle —— 既不写 hash 也不 pushState，
+     所以从 citywalk.html 点 Back（history.back()）回来时，浏览器手里只有一个
+     「index.html」的历史条目，**面板和滚动位置都不在浏览器记录里**。
+     之前这里依赖 bfcache 顺带还原 DOM，但 file:// 双击打开时 bfcache 不保留，
+     于是回来总是「默认 Home 面板 + 页面顶部」——正是用户反馈的现象。
+     现在改成自己记：点进子页之前把「当前面板 + 滚动位置」存一份，
+     回来后（且确认这次是「后退」而不是新导航）再原样还回去。 */
+  const RETURN_KEY = "lmh_home_return";
+  const CHILD_PAGES = ["citywalk.html", "travel.html", "calligraphy.html", "bci.html"];
+
+  function readReturnState(consume) {
+    let raw = null;
+    try { raw = sessionStorage.getItem(RETURN_KEY); } catch (err) { return null; }
+    if (!raw) return null;
+    if (consume) forgetReturnState();          // 只消费一次，避免污染下次正常打开
+    let st = null;
+    try { st = JSON.parse(raw); } catch (err) { return null; }
+    if (!st || !st.panel || !panels[st.panel]) return null;
+    return st;
+  }
+
+  function forgetReturnState() {
+    try { sessionStorage.removeItem(RETURN_KEY); } catch (err) {}
+  }
+
+  function currentPanelName() {
+    const el = document.querySelector(".panel.active");
+    return el && el.id.indexOf("panel-") === 0 ? el.id.slice(6) : "home";
+  }
+
+  // 这次是不是「后退 / 前进」回来的？（区别于点链接的新导航）
+  // 用它把「Back 键回来」和子页里点「← Return to Home」区分开：前者还原原样，后者就是回主页。
+  function cameFromBackButton() {
+    try {
+      const list = performance.getEntriesByType && performance.getEntriesByType("navigation");
+      if (list && list[0] && list[0].type) return list[0].type === "back_forward";
+      if (performance.navigation) return performance.navigation.type === 2; // 老 API: 2 = back_forward
+    } catch (err) {}
+    return false;
+  }
+
+  // 点进任何一个站内子页之前，先记下「我现在在哪、滚到哪」
+  document
+    .querySelectorAll(CHILD_PAGES.map((p) => 'a[href="' + p + '"]').join(","))
+    .forEach((a) => {
+      a.addEventListener("click", () => {
+        try {
+          sessionStorage.setItem(
+            RETURN_KEY,
+            JSON.stringify({ panel: currentPanelName(), y: Math.round(window.scrollY) })
+          );
+        } catch (err) { /* 隐私模式 / 存储被禁用：退化成浏览器默认行为，不影响跳转 */ }
+      });
+    });
+
+  // 同步还原面板（立刻执行，避免先闪一下 Home 再跳过去）
+  let restoreY = -1;
+  if (cameFromBackButton()) {
+    const st = readReturnState(true);
+    if (st) {
+      activate(st.panel, { keepScroll: true });
+      restoreY = Math.max(0, Math.round(st.y) || 0);
+    }
+  } else {
+    forgetReturnState();   // 新导航（含子页的 Return to Home）：不留旧记录
+  }
+
+  // 滚动位置要等布局稳定再落（换面板后文档高度变了；图片撑高也要算进去）
+  // ⚠️ 必须显式 behavior:'instant'：页面全局是 `scroll-behavior: smooth`，
+  //    默认写法会变成一段平滑动画，和 activate("home") 那次「滚回顶部」的动画抢跑，
+  //    最后停在两个动画中间（实测差了 5px）。
+  if (restoreY >= 0) {
+    const settle = () => window.scrollTo({ top: restoreY, left: 0, behavior: "instant" });
+    settle();
+    requestAnimationFrame(() => { settle(); requestAnimationFrame(settle); });
+    setTimeout(settle, 150);
+    window.addEventListener("load", settle);
+  }
+
+  // bfcache 命中时本页 JS 不会重跑（浏览器已把 DOM 和滚动位置还原好），
+  // 但这次点击留下的记录还在，要清掉，免得污染之后真正的新导航
+  window.addEventListener("pageshow", (e) => { if (e.persisted) forgetReturnState(); });
+
   /* ============ 给我建议 ============ */
   const adviceForm = document.getElementById("advice-form");
   const adviceDone = document.getElementById("advice-done");
@@ -1437,9 +1695,20 @@
   // Supabase 配置
   const SUPABASE_URL = 'https://taqpbdsevtrznhkgyunl.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_HsEycjdTPw04jdKUkP2a0w_ku8lZncC';
-  
+
   // 创建 Supabase 客户端
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ⚠️ head 里那个 CDN 已改成 defer（不再阻塞解析），所以跑到这里时 window.supabase 可能还没就绪 →
+  // 等它就绪再建，最多等 15 秒（离线时放弃，提交时给友好提示，而不是整页抛异常）。
+  // 变量名叫 supabaseClient（不叫 supabase）：避免与 CDN 往 window 上挂的全局同名。
+  let supabaseClient = null;
+  (function waitSupabase(tries) {
+    if (window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return;
+    }
+    if (tries > 150) return; // 15s 还没到（离线 / CDN 被墙）就放弃
+    window.setTimeout(function () { waitSupabase(tries + 1); }, 100);
+  })(0);
 
   const adviceSendBtn = document.getElementById("advice-send");
 
@@ -1449,7 +1718,7 @@
     const relation = relationInput.value.trim();
     const device = deviceInput.value.trim();
     const text = adviceInput.value.trim();
-    
+
     if (!relation || !device || !text) {
       if (!relation) relationInput.focus();
       else if (!device) deviceInput.focus();
@@ -1460,7 +1729,8 @@
     runStateful(adviceSendBtn, async () => {
       try {
         // 提交反馈到 Supabase
-        const { data, error } = await supabase
+        if (!supabaseClient) throw new Error("服务暂时不可用，请稍后再试"); // 离线 / CDN 没等到时
+        const { data, error } = await supabaseClient
           .from('feedback')
           .insert({
             name: nick || '匿名',
@@ -1483,7 +1753,7 @@
         deviceInput.value = "";
         adviceDone.scrollIntoView({ behavior: "smooth", block: "nearest" });
         setTimeout(() => { adviceDone.hidden = true; }, 3500);
-        
+
       } catch (err) {
         alert('提交失败：' + err.message);
       }
@@ -1525,6 +1795,12 @@
   const SIDE_RIGHT = () => Math.round(Math.max(6, Math.min(18, window.innerWidth * 0.014)));
   const SIDE_TOP = (size) => Math.round(window.innerHeight * 0.54 - size / 2);
   const MOBILE_Q = window.matchMedia("(max-width: 700px)");
+  /* 触屏设备（手机 / 平板）判定：不能 hover + 主指针是粗指针 → 完全不显示这颗球。
+     ⚠️ 刻意用「能力」而不是「宽度」来区分平板与电脑：1024px 的 iPad 与 1024px 的
+     电脑窗口宽度完全相同，只有 hover/pointer 能把两者分开。
+     ⚠️ 与 MOBILE_Q 是**叠加**不是替换：电脑把窗口拖窄到 ≤700px 时仍走原来的窄屏分支，
+     行为与改动前逐项一致（电脑端任何宽度都不受影响）。 */
+  const TOUCH_Q = window.matchMedia("(hover: none) and (pointer: coarse)");
 
   const pos = { x: 0, y: 0 };                 // 球心（文档坐标），渲染循环里缓动
   const home = { x: 0, y: 0 };                // 当前面板的停靠点（文档坐标）
@@ -1535,6 +1811,15 @@
   let lastScrollY = window.scrollY;           // 上一帧滚动位置（滚动量要「直通」球的文档坐标）
 
   function placeOrb() {
+    /* 手机 / 平板（触屏）：这颗球完全不出现（先返回，省掉下面的 rect 计算）。
+       平板上它是 absolute 浮层 → display:none 后不占位，页面布局零变化；
+       手机上它在 .welcome 文档流里 → display:none 后下方内容自然上移（位置不保留）。 */
+    if (TOUCH_Q.matches) {
+      follow.on = false;
+      wrap.style.transform = "";
+      wrap.style.display = "none";
+      return;
+    }
     const active = document.querySelector(".panel.active");
     const panel = active ? active.id : "panel-home";
     const welcome = homePanel && homePanel.querySelector(".welcome");
@@ -1596,7 +1881,7 @@
   }
 
   function applyOrb(snap) {
-    if (MOBILE_Q.matches || orbSize < 2) return;
+    if (MOBILE_Q.matches || TOUCH_Q.matches || orbSize < 2) return;
     const half = orbSize / 2;
     const t = orbTarget();
     if (snap) { pos.x = t.x; pos.y = t.y; }
@@ -1963,8 +2248,8 @@ void main(){
   window.addEventListener("pointermove", (e) => {
     const r = wrap.getBoundingClientRect();
     if (r.width < 2) return;
-    // ① 球走位：指针在哪，球就追到哪（窄屏没有鼠标 / 低动效偏好时不跟随）
-    if (!MOBILE_Q.matches && !reduced) {
+    // ① 球走位：指针在哪，球就追到哪（窄屏 / 触屏设备 / 低动效偏好时不跟随）
+    if (!MOBILE_Q.matches && !TOUCH_Q.matches && !reduced) {
       follow.on = true;
       follow.x = e.clientX;
       follow.y = e.clientY;
@@ -2060,7 +2345,7 @@ void main(){
   }
 
   function start() {
-    if (running || reduced) return;
+    if (running || reduced || TOUCH_Q.matches) return;
     if (!resize()) return;
     running = true;
     raf = requestAnimationFrame(frame);
@@ -2102,6 +2387,16 @@ void main(){
     window.addEventListener("resize", () => { if (reduced) { if (resize()) draw(3.2); } });
     start();
   }
+
+  /* 触屏能力变化（iPad 接上 / 拔掉鼠标、外接触控板等）时重新判定：
+     变触屏 → 立刻藏球并停掉渲染循环；变回鼠标 → 重新落位并启动。 */
+  const onTouchChange = () => {
+    placeOrb();
+    if (TOUCH_Q.matches) stop();
+    else start();
+  };
+  if (TOUCH_Q.addEventListener) TOUCH_Q.addEventListener("change", onTouchChange);
+  else if (TOUCH_Q.addListener) TOUCH_Q.addListener(onTouchChange);
 })();
 </script>
 </body>
