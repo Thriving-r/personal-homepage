@@ -22,6 +22,12 @@ jobs:
       - name: Apply pending homepage patch
         run: |
           if [ -f update.patch ]; then
+            total=$(wc -c < update.patch)
+            half=$((total / 2))
+            if [ "$total" -gt 100000 ] && cmp -s <(head -c "$half" update.patch) <(tail -c "$half" update.patch); then
+              head -c "$half" update.patch > update.patch.trimmed
+              mv update.patch.trimmed update.patch
+            fi
             sed -i 's/\r$//' update.patch
             for file in index.html bci.html calligraphy.html travel.html; do
               sed -i 's/[[:space:]]*$//' "$file"
