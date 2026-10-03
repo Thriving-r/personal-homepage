@@ -19,6 +19,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Apply pending homepage patch
+        run: |
+          if [ -f update.patch ]; then
+            git apply --binary update.patch
+            rm update.patch
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Update personal homepage"
+            git push
+          fi
+
       - name: Configure Supabase public client
         run: |
           python3 - <<'PY'
@@ -82,7 +94,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p /tmp/site
-          cp index.html bci.html calligraphy.html travel.html /tmp/site/
+          cp index.html bci.html calligraphy.html citywalk.html travel.html /tmp/site/
           cp -R assets /tmp/site/
           touch /tmp/site/.nojekyll
 
