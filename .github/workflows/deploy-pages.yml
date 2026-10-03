@@ -29,6 +29,7 @@ jobs:
               mv update.patch.trimmed update.patch
             fi
             sed -i 's/\r$//' update.patch
+            sed -i 's/[[:space:]]*$//' update.patch
             for file in index.html bci.html calligraphy.html travel.html; do
               sed -i 's/[[:space:]]*$//' "$file"
             done
