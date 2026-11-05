@@ -4,3 +4,6 @@
 
 # DeepWorks 会话临时目录，不提交
 .deepworks/
+
+# Supabase CLI 本地缓存（link/deploy 时自动生成）
+supabase/.temp/
