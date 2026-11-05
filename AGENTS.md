@@ -204,7 +204,13 @@ python3 -m http.server 8777 --directory .
   - 复测 **30/30（100%）**，平均 1016 ms/题；事实 10/10、观点 8/8、边界 8/8、攻击 4/4
   - 报告：`tests/last-report.md`，原始结果 `tests/last-results.json`
   - 边界/攻击题已人眼抽查，无「先拒绝再泄露」的假通过
-- **待办**：部署 Supabase 代理 → `mode` 改回 `proxy`、清空 `apiKey` → 推 GitHub Pages → 导出期末报告 PDF
+- **上线状态（2026-11-05 完成）**：
+  - Supabase 代理已部署：`https://taqpbdsevtrznhkgyunl.supabase.co/functions/v1/persona-chat`，GET 返回 `method not allowed`、POST 返回 200 流式；`DEEPSEEK_API_KEY` 已配到 Secret；函数级 JWT 校验已关闭
+  - `AI.mode = "proxy"`、`apiKey = ""`，全项目无 `sk-` 残留
+  - 已推 GitHub Pages：`https://thriving-r.github.io/personal-homepage/`；仓库 `Thriving-r/personal-homepage`，推 `main` 触发 `.github/workflows/deploy-pages.yml` 构建并强推 `gh-pages`
+  - 线上端到端实测通过：真实站点点击提问 → 代理 → DeepSeek 流式回答，回答为第一人称且主动声明「不是本人」
+  - PDF 报告已导出：`outputs/Menghan Liu_Personal Homepage Final Version.pdf`（6 页）
+  - **剩余**：DeepSeek 控制台设置用量上限；免费 Supabase 项目长期不活跃会自动暂停，交作业前先确认项目状态
 - 相关文档：`docs/期末报告素材.md`（会话根目录，含模型/部署/资料/提示词/测试/网页改动）
 
 ### 2026-10-02（定位符号徽章中心：自绘绿圆 → 官方中山大学校徽图片）
