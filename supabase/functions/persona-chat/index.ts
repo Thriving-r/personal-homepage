@@ -25,24 +25,33 @@ const MAX_TOKENS = 600;
 const MAX_MESSAGES = 32;      // 32 条：system + 最多 4 组 few-shot(8 条) + 8 轮历史(16 条) + 当前问题
 const MAX_TOTAL_CHARS = 20000;  // system prompt 约 3300 字 + few-shot 约 1600 字 + 最近对话
 
-/* 上线后把 "*" 换成你的主页地址，例如：
-   const ALLOWED_ORIGINS = ["https://你的用户名.github.io", "http://localhost:8899"]; */
-const ALLOWED_ORIGINS: string[] = ["*"];
+/* 只允许主页本身和本地预览调用。
+   本地预览用一个固定端口跑静态服务器即可，例如：
+     python3 -m http.server 8899   → http://localhost:8899 */
+const ALLOWED_ORIGINS: string[] = [
+  "https://thriving-r.github.io",
+  "http://localhost:8899",
+  "http://127.0.0.1:8899",
+];
+
+function isOriginAllowed(origin: string): boolean {
+  return origin === "" || origin === "null" || ALLOWED_ORIGINS.includes(origin);
+}
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") || "";
-  const allowed =
-    ALLOWED_ORIGINS.includes("*") || ALLOWED_ORIGINS.includes(origin);
-  return {
-    "Access-Control-Allow-Origin": allowed
-      ? (ALLOWED_ORIGINS.includes("*") ? "*" : origin)
-      : "null",
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
+  /* 只有白名单来源才回 ACAO；不回时浏览器会直接拦掉响应 */
+  if (origin && isOriginAllowed(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
 }
 
 function json(req: Request, obj: unknown, status = 200): Response {
@@ -53,6 +62,16 @@ function json(req: Request, obj: unknown, status = 200): Response {
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get("origin") || "";
+  /* 浏览器跨站请求直接拒绝；curl 等无 Origin 的调用不受 CORS 约束，
+     仅靠条数/字数上限控制成本 */
+  if (origin && !isOriginAllowed(origin)) {
+    return new Response(JSON.stringify({ error: "origin not allowed" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders(req) });
   }
