@@ -1,0 +1,12 @@
+{
+  "prompt": "A soft watercolor painting of Chinese calligraphy brush and ink strokes on rice paper, elegant ink, serene and minimal, pale blue-tinted background, artistic and calm, no text",
+  "providerId": "dth",
+  "providerName": "DTH",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/tour-3.png",
+  "status": "succeeded",
+  "durationMs": 57584,
+  "warnings": []
+}

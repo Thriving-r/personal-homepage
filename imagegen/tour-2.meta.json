@@ -1,0 +1,12 @@
+{
+  "prompt": "A soft watercolor painting of a Mediterranean coastal town, white houses with blue accents, narrow streets, sea view, light blue and white palette, dreamy and serene, travel postcard style, no text",
+  "providerId": "dth",
+  "providerName": "DTH",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/tour-2.png",
+  "status": "succeeded",
+  "durationMs": 26695,
+  "warnings": []
+}

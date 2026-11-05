@@ -1,0 +1,12 @@
+{
+  "prompt": "A wide watercolor illustration background, dreamy soft blue sky with fluffy white clouds and faint distant blue mountains, light pale-blue and white color palette, gentle hand-painted watercolor texture, airy and elegant, calm and minimalist, no text, high resolution, suitable as a serene personal homepage backdrop. Very light and soft tones, lots of white space.",
+  "providerId": "dth",
+  "providerName": "DTH",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/bg.png",
+  "status": "succeeded",
+  "durationMs": 21981,
+  "warnings": []
+}

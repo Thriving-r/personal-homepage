@@ -1,0 +1,12 @@
+{
+  "prompt": "A soft watercolor painting of a seaside summer boardwalk with thatched umbrellas, wooden deck, palm trees, calm turquoise sea, light blue and white palette, dreamy and serene, travel postcard style, panoramic wide view, no text",
+  "providerId": "dth",
+  "providerName": "DTH",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/tour-1.png",
+  "status": "succeeded",
+  "durationMs": 39542,
+  "warnings": []
+}
