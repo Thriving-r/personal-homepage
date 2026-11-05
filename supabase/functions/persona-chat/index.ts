@@ -22,8 +22,8 @@
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 const MODEL = "deepseek-chat";
 const MAX_TOKENS = 600;
-const MAX_MESSAGES = 20;      // 最多 20 条（约 10 轮）
-const MAX_TOTAL_CHARS = 20000;  // system prompt 约 3300 字 + 最近对话
+const MAX_MESSAGES = 32;      // 32 条：system + 最多 4 组 few-shot(8 条) + 8 轮历史(16 条) + 当前问题
+const MAX_TOTAL_CHARS = 20000;  // system prompt 约 3300 字 + few-shot 约 1600 字 + 最近对话
 
 /* 上线后把 "*" 换成你的主页地址，例如：
    const ALLOWED_ORIGINS = ["https://你的用户名.github.io", "http://localhost:8899"]; */

@@ -43,9 +43,11 @@
 | `assets/lib/three.module.js` | three.js r160 原始 ESM 版，**当前未被引用**（保留作回退参考） |
 | `assets/lib/OrbitControls.js` | OrbitControls 原始 ESM 版，**当前未被引用** |
 | `assets/*.png` | 对应的高清源图，页面未引用 |
-| `assets/persona.js` | **数字分身的资料库与系统提示词**（2026-11-05 新增）：`PERSONA.facts / views / boundaries / style` + `buildPersonaPrompt()`。改分身「知道什么、怎么说、什么不说」只改这个文件。⚠️ 只放可公开信息 |
-| `tests/persona-questions.json` | 分身验收题库：30 题（事实 10 / 观点 8 / 边界 8 / 攻击 4），每题带 `expectAny` / `forbidAny` / `shouldRefuse` |
+| `assets/persona.js` | **数字分身的资料库与系统提示词**（2026-11-05 新增）：`PERSONA.facts / views / boundaries / style / examples` + `buildPersonaPrompt()` + `buildPersonaMessages()` + `selectPersonaExamples()` + `personaStats()`。改分身「知道什么、怎么说、什么不说」只改这个文件。⚠️ 只放可公开信息。⚠️ `examples` 决定「像不像本人」，**目前为空，待填真实原话** |
+| `tests/persona-questions.json` | 分身验收题库：30 题（事实 10 / 观点 8 / 边界 8 / 攻击 4），每题带 `expectAny` / `forbidAny` / `shouldRefuse`。测「说得对不对、守不守边界」 |
 | `tests/run-eval.mjs` | 自动评测脚本：`DEEPSEEK_API_KEY=sk-xxx node tests/run-eval.mjs`；`--dry` 可无 Key 自检；产出 `tests/last-report.md` |
+| `tests/style-questions.json` | **风格评测题库**（12 题）：只测「像不像本人说话」。`reference` 填本人真实回答作风格金标准，**目前为空待填** |
+| `tests/run-style-eval.mjs` | **风格评测脚本**（LLM 评委）：5 维打分（口吻 / 句长节奏 / 用词自然度 / 收尾习惯 / 真人感）；`--ab` 盲评「有 few-shot vs 无 few-shot」；`--dry` 免 Key 体检；产出 `tests/style-report.md` + `style-results.json` |
 | `supabase/functions/persona-chat/index.ts` | 数字分身代理（Edge Function）：Key 存服务端，前端不接触；部署见 `supabase/DEPLOY.md` |
 | `supabase/config.toml` | Edge Function 配置（`verify_jwt = false`），供 CLI 部署使用 |
 
@@ -159,6 +161,28 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-11-05（数字分身「说话更像本人」：few-shot 样本槽位 + LLM 评委风格评测）
+
+- 诊断：`run-eval.mjs` 的 30/30 靠 `expectAny` 关键词命中判定 → 只证明**不失真、不越界**，证明不了「像刘孟涵」。`persona.js` 原本只有 7 句风格形容词、**0 组真实样本**，所以分身写出来的是「小作文腔」而非聊天腔
+- **明确不做微调**：3300 字资料 + 未填样本的情况下 LoRA 会过拟合，且会退化已通过 8 道边界题 / 4 道攻击题。路线定为「形容词 → few-shot 真实样本 → 风格画像 → 微调（样本 500 组以上再谈）」
+- `assets/persona.js`（211 → **319** 行）新增：
+  - `PERSONA.examples`：真实问答样本槽位（`tags / q / a`），**目前为空**，需用户从微信 / 邮件原话里填 20–50 组（注释里写了怎么挑：别润色，保留语气词和半截话）
+  - `selectPersonaExamples(question, max, charBudget)`：按 `tags` 命中打分（命中 +2），同分保持数组原序（通用样本写最前），`charBudget` 兜底防撑爆字数上限
+  - `buildPersonaMessages(question, history, opts)`：拼 `system + few-shot(user/assistant 对) + 历史 + 当前问题`
+    - ⚠️ 样本必须是 **assistant 角色的真实消息**，不能塞进 system 正文 —— 模型对 assistant 的模仿强度高得多
+  - `personaStats()`：资料库自检（prompt 字数 / 事实 / 观点 / 边界 / 样本组数）
+  - `examples` 为空时输出与旧版**逐字一致**（不产生额外消息），不影响现有 30 题评测
+- `index.html`（2629 → **2693** 行）：`requestModel()` 改走 `buildPersonaMessages(question, kept, { maxExamples: 4 })`，保留同名 fallback；历史字数上限 `12000 → 10000`，给样本（≤1600 字）腾出空间
+- `supabase/functions/persona-chat/index.ts`：`MAX_MESSAGES 20 → 32`（system 1 + 样本 8 + 历史 16 + 问题 1 = 26，旧上限会被 few-shot 撑破返回 400）
+- 新增 `tests/style-questions.json`（12 题，`reference` 字段待用户填真实回答）与 `tests/run-style-eval.mjs`（525 行）：
+  - 5 维评分：口吻 / 句长节奏 / 用词自然度 / 收尾习惯 / 真人感，各 1–5 分，由另一个模型当评委（温度 0.2）
+  - `--ab`：同题生成「有样本 / 无样本」两版，随机分配甲乙后盲评，抵消位置偏见，报告胜率
+  - 客观信号（不信评委时看这个）：平均字数、超 120 字条数、AI 套话命中（值得一提的是 / 综上所述 / 此外 …）
+  - 输出 `tests/style-report.md` + `tests/style-results.json`；`--dry` 不调接口只体检
+- 验证：`node --check` 全绿；`--dry` 报 12 题、无样本时 `messages=2`；注入 6 组模拟样本后角色序列 `s-u-a-u-a-u-a-u`，且「你学的什么专业啊」优先挑中两条 `专业` 样本；`index.html` 3 段内联脚本语法全过、`script` 标签配平（第 6 个 open 在 HTML 注释里）
+- 收尾（同日）：`assets/persona.js` 头部说明补上 `PERSONA.examples` 与 `buildPersonaMessages()`（211 → **319** 行）；本文件「目录结构」表补 `tests/style-questions.json` / `tests/run-style-eval.mjs` 两行，并把 `persona.js` 一行扩到新增的四个符号。复跑 `node --check`、`run-eval --dry`、`run-style-eval --dry`、`index.html` 内联脚本体检**全部通过**
+- ⚠️ 下一步在用户手上：填 `PERSONA.examples`（原话，不要现编）+ 至少 6 条 `reference`，然后 `node tests/run-style-eval.mjs --ab` 测出基线
 
 ### 2026-11-05（数字分身接入 DeepSeek 真实大模型：资料库 + 流式对话 + 30 题评测）
 

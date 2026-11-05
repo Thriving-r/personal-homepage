@@ -6,8 +6,13 @@
    · PERSONA.facts      —— 事实资料（我是谁、在学什么、做过什么）
    · PERSONA.views      —— 观点与偏好（我怎么看问题）
    · PERSONA.boundaries —— 边界（哪些一律不答）
-   · PERSONA.style      —— 说话方式
-   · buildPersonaPrompt() 把这些拼成发给模型的 system prompt
+   · PERSONA.style      —— 说话方式（形容词，只能定个大概）
+   · PERSONA.examples   —— 真实对话样本 few-shot（决定「像不像我」，最该填的一节）
+   · buildPersonaPrompt()    把这些拼成发给模型的 system prompt
+   · buildPersonaMessages()  system + 样本 + 历史 + 当前问题，整套 messages
+                             （网页与 tests/ 都用它，保证两边一致）
+
+   想让它说话像你：不用训练模型，先往 examples 里填你真说过的话。
 
    ⚠️ 两件必须守住的事：
    1. 这里只写「可以公开」的信息。家庭住址、身份证号、成绩排名、
@@ -144,6 +149,29 @@ window.PERSONA = {
     noMarkdown: "不要用 Markdown 标题、列表、代码块。需要强调时最多用 **加粗**。",
     ending: "不要每次都以提问结尾。只有确实想继续聊时，才自然地反问一句。",
   },
+
+  /* ---------------- 真实对话样本（few-shot） ----------------
+     这是让分身「说话像本人」最关键的一节，比上面七句风格形容词有效得多。
+     模型是模仿器：给它几组你真说过的话，它就会照着这个调子答；
+     只给它「自然、松弛、口语化」这种形容词，它只能猜。
+
+     怎么填：
+     1. 去翻你真实说过的话 —— 微信里回答「你学什么的」「为啥选这个方向」的原话、
+        写给学长学姐的邮件、笔记里的自述。不要现编，现编出来还是作文腔。
+     2. 删掉隐私和第三方信息后，照原样抄进来，别润色。
+        不完美的地方（语气词、半截话、自嘲）恰恰是「像人」的来源。
+     3. q 是别人问的问题，a 是你的回答。a 控制在 2–4 句 / 120 字内，
+        长度要和 style.length 对得上，否则模型会学着写长。
+     4. 填 20–50 组。tags 用于按话题挑样本，命中越多越优先。
+     5. ⚠️ 留空也能跑（此时不产生任何额外消息），但那样就还是纯形容词驱动。
+
+     示例（**请换成你自己的原话**，下面只是格式参考）：
+       { tags: ["专业", "学习"], q: "你学什么的？",
+         a: "智能医学工程，方向是脑机接口。说白了就是琢磨怎么把脑电信号解码出来，再拿它去驱动设备。" },
+  ------------------------------------------------------------------ */
+  examples: [
+    // ← 在这里按上面的格式填真实样本
+  ],
 };
 
 /* ---------------- 把资料拼成 system prompt ---------------- */
@@ -208,4 +236,84 @@ window.buildPersonaPrompt = function () {
     "## 六、最后一条",
     "你代表的是一个真实的人。宁可少说，也不要编造。回答前先在心里确认：这句话在资料里有依据吗？",
   ].join("\n");
+};
+
+/* ---------------- few-shot：按话题从真实样本里挑几条 ----------------
+   · 打分规则：问题里出现样本的某个 tags 就 +2，分数高的优先
+   · 同分时保持数组原顺序 —— 所以把最通用的样本写在 examples 最前面
+   · charBudget 兜底，避免样本太长把代理的字数上限撑爆
+   · examples 为空时直接返回 []，调用方不需要判断 */
+window.selectPersonaExamples = function (question, max, charBudget) {
+  const P = window.PERSONA;
+  const all = (P && Array.isArray(P.examples) ? P.examples : []).filter(
+    (e) => e && typeof e.q === "string" && e.q.trim() && typeof e.a === "string" && e.a.trim()
+  );
+  if (!all.length) return [];
+
+  const limit = Math.max(0, Number(max) || 0);
+  const budget = Math.max(0, Number(charBudget) || 0) || Infinity;
+  const q = String(question || "").toLowerCase();
+
+  const ranked = all
+    .map((e, i) => {
+      let score = 0;
+      (Array.isArray(e.tags) ? e.tags : []).forEach((t) => {
+        const tag = String(t || "").toLowerCase().trim();
+        if (tag && q.includes(tag)) score += 2;
+      });
+      return { e: e, i: i, score: score };
+    })
+    .sort((a, b) => b.score - a.score || a.i - b.i);
+
+  const picked = [];
+  let used = 0;
+  for (const item of ranked) {
+    if (picked.length >= limit) break;
+    const c = item.e.q.length + item.e.a.length;
+    if (used + c > budget) continue;
+    picked.push(item.e);
+    used += c;
+  }
+  return picked;
+};
+
+/* ---------------- 拼完整 messages：system + few-shot + 历史 + 当前问题 ----------------
+   关键点：样本作为真正的 user/assistant 消息对插在最前面，
+   而不是塞进 system prompt 的正文里 —— 模型对 assistant 角色的模仿强度高得多。
+   examples 为空时，输出与旧版「system + history + user」完全一致。 */
+window.buildPersonaMessages = function (question, history, opts) {
+  const o = opts || {};
+  const maxExamples = o.maxExamples === 0 ? 0 : (o.maxExamples || 4);
+  const charBudget = o.exampleCharBudget || 1600;
+
+  const msgs = [{ role: "system", content: window.buildPersonaPrompt() }];
+
+  window.selectPersonaExamples(question, maxExamples, charBudget).forEach((e) => {
+    msgs.push({ role: "user", content: e.q });
+    msgs.push({ role: "assistant", content: e.a });
+  });
+
+  (Array.isArray(history) ? history : []).forEach((m) => {
+    if (m && typeof m.content === "string" && (m.role === "user" || m.role === "assistant")) {
+      msgs.push({ role: m.role, content: m.content });
+    }
+  });
+
+  msgs.push({ role: "user", content: String(question || "") });
+  return msgs;
+};
+
+/* ---------------- 资料库自检（tests/ 与 ?selftest=1 诊断用） ---------------- */
+window.personaStats = function () {
+  const P = window.PERSONA || {};
+  const examples = Array.isArray(P.examples) ? P.examples : [];
+  const valid = examples.filter((e) => e && e.q && e.a);
+  return {
+    promptChars: window.buildPersonaPrompt().length,
+    facts: (P.facts || []).reduce((n, s) => n + (s.items || []).length, 0),
+    views: (P.views || []).reduce((n, s) => n + (s.items || []).length, 0),
+    boundaries: (P.boundaries || []).length,
+    examples: valid.length,
+    exampleChars: valid.reduce((n, e) => n + (String(e.q).length + String(e.a).length), 0),
+  };
 };

@@ -1648,15 +1648,22 @@
     let chars = 0;
     for (let i = pool.length - 1; i >= 0; i--) {
       const len = String(pool[i].content || "").length;
-      if (chars + len > 12000) break;
+      /* 上限从 12000 收到 10000：给 few-shot 样本（最多约 1600 字）腾出空间，
+         避免总字数撞上代理的 20000 字上限 */
+      if (chars + len > 10000) break;
       kept.unshift(pool[i]);
       chars += len;
     }
 
-    const messages = [{ role: "system", content: window.buildPersonaPrompt() }].concat(
-      kept,
-      [{ role: "user", content: question }]
-    );
+    /* few-shot 样本由 assets/persona.js 的 buildPersonaMessages 注入：
+       真实问答对以 user/assistant 消息的形式排在最前面，模型照着这个调子答。
+       examples 没填时它自动退化成「system + 历史 + 当前问题」，与旧版一致。 */
+    const messages = typeof window.buildPersonaMessages === "function"
+      ? window.buildPersonaMessages(question, kept, { maxExamples: 4 })
+      : [{ role: "system", content: window.buildPersonaPrompt() }].concat(
+          kept,
+          [{ role: "user", content: question }]
+        );
 
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), AI.timeoutMs);

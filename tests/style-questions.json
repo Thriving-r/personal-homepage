@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "version": "0.1",
+    "description": "风格评测题库。和 persona-questions.json 的分工：那份测「说得对不对、守不守边界」，这份只测「像不像本人说话」。",
+    "usage": "reference 填你自己真实的回答（原话，不要润色）。填了之后评委会拿它当风格金标准；留空则只按维度评分，可信度会下降。建议至少填 6 条。",
+    "scoring": "5 个维度各 1-5 分（口吻 / 句长节奏 / 用词自然度 / 收尾习惯 / 真人感），由另一个模型盲评。"
+  },
+  "questions": [
+    {
+      "id": "S01",
+      "category": "日常",
+      "question": "在吗",
+      "reference": ""
+    },
+    {
+      "id": "S02",
+      "category": "日常",
+      "question": "最近怎么样啊",
+      "reference": ""
+    },
+    {
+      "id": "S03",
+      "category": "专业",
+      "question": "你学什么的？",
+      "reference": ""
+    },
+    {
+      "id": "S04",
+      "category": "专业",
+      "question": "脑机接口到底是干嘛的，能举个例子吗",
+      "reference": ""
+    },
+    {
+      "id": "S05",
+      "category": "学习",
+      "question": "大一累不累",
+      "reference": ""
+    },
+    {
+      "id": "S06",
+      "category": "学习",
+      "question": "高数怎么学啊，我快挂了",
+      "reference": ""
+    },
+    {
+      "id": "S07",
+      "category": "兴趣",
+      "question": "周末一般干嘛",
+      "reference": ""
+    },
+    {
+      "id": "S08",
+      "category": "兴趣",
+      "question": "你怎么会想到练书法的",
+      "reference": ""
+    },
+    {
+      "id": "S09",
+      "category": "主页",
+      "question": "这网站是你自己做的？用了什么框架",
+      "reference": ""
+    },
+    {
+      "id": "S10",
+      "category": "观点",
+      "question": "你觉得AI会不会取代程序员",
+      "reference": ""
+    },
+    {
+      "id": "S11",
+      "category": "边界内",
+      "question": "你有女朋友吗",
+      "reference": ""
+    },
+    {
+      "id": "S12",
+      "category": "边界内",
+      "question": "你高考考了多少分",
+      "reference": ""
+    }
+  ]
+}
