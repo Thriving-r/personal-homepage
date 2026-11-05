@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Citywalk · 敬请期待 — 刘孟涵</title>
+<!--
+  Citywalk 占位页 · 打字机效果（Typewriter Effect）
+  ------------------------------------------------------------------
+  · 效果来源：Aceternity UI《Typewriter Effect》
+    https://ui.aceternity.com/components/typewriter-effect
+    组件源码：https://ui.aceternity.com/registry/typewriter-effect.json
+    作者 Manu Arora · 该组件以 "Aceternity License" 发布，允许用于个人 / 客户的
+    终端产品并允许修改，仅禁止把组件源文件当模板或素材转售；本项目属个人展示，
+    在允许范围内。
+
+  · ⚠️ 本项目硬约束是「零依赖 + file:// 双击可用」（见 AGENTS.md），
+    所以这里**没有引入 motion / React**，而是用原生 CSS 动画按官方参数
+    1:1 复刻。官方 `TypewriterEffect` 的动画定义：
+
+      animate("span", { display:"inline-block", opacity:1, width:"fit-content" },
+              { duration:0.3, delay:stagger(0.1), ease:"easeInOut" })
+      光标：opacity 0→1，duration 0.8，repeat Infinity，repeatType reverse
+
+    复刻对照（本页 → 官方）：
+      每个字符  .tw-char            → motion.span（初始 opacity-0 hidden）
+      0.3s / ease-in-out            → duration 0.3 / ease easeInOut
+      animation-delay: i × 0.1s     → delay: stagger(0.1)  ← 逐字间隔，产生打字感
+      animation-fill-mode: both     → 延迟期间保持 opacity 0（同 initial hidden）
+      光标 0.8s alternate 无限循环   → duration 0.8 / repeat Infinity / reverse
+
+    ⚠️ 官方的 `display` 与 `width` 是对**全部** span 一次性设置的，所以实际
+       渲染就是「所有字符瞬间占位 → 按 0.1s 逐个淡入」。这里用
+       `display:inline-block` + `opacity:0` 常驻占位，效果等价且更省事。
+
+  · 唯一有意偏离：光标颜色用页面既有的 --sky-500（水彩天空蓝），
+    而不是官方的 Tailwind blue-500 (#3b82f6)。原因是 AGENTS.md 明确约定
+    「配色严格遵守水彩天空蓝体系，不引入新色系」。想要官方原色就把
+    .tw-caret 的 background 换成 #3b82f6。
+
+  · 无障碍 / 降级：整句放在 aria-label 里供读屏读取，逐字 span 标记
+    aria-hidden；prefers-reduced-motion 下直接显示整句、不闪烁。
+  ------------------------------------------------------------------
+-->
+<style>
+  /* ============ 设计系统（与 index.html / calligraphy.html 保持一致） ============ */
+  :root {
+    --sky-100: #e7f2fb;
+    --sky-200: #cfe4f5;
+    --sky-300: #b4d4ec;
+    --sky-400: #93bcdd;
+    --sky-500: #7aa8cf;
+    --sky-600: #5f8bb5;
+
+    --ink-900: #2b3b4c;
+    --ink-700: #456072;
+    --ink-500: #6b8294;
+    --ink-400: #9db1c0;
+
+    --line: #d9e8f4;
+    --white: #ffffff;
+    --pink: #f4c7d6;
+
+    --font-serif: "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    --font-hand: "Snell Roundhand", "Segoe Script", "Bradley Hand", cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background-color: var(--sky-100);
+    padding: 0 clamp(12px, 3vw, 40px);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.05'/></svg>"),
+      radial-gradient(1100px 620px at 10% 4%, rgba(255,255,255,0.90), rgba(255,255,255,0) 62%),
+      radial-gradient(900px 560px at 92% 6%, rgba(244,199,214,0.30), rgba(244,199,214,0) 64%),
+      radial-gradient(1200px 760px at 50% 106%, rgba(180,212,236,0.60), rgba(180,212,236,0) 62%),
+      url("assets/bg.jpg");
+    background-size: 140px 140px, cover, cover, cover, cover;
+    background-position: left top, center top, right top, center bottom, center top;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==== 顶部导航（同 travel.html / calligraphy.html） ==== */
+  .masthead {
+    position: sticky;
+    top: 14px;
+    z-index: 80;
+    display: flex;
+    justify-content: center;
+    padding: 14px 0 8px;
+  }
+  .nav {
+    display: inline-flex;
+    gap: clamp(8px, 3vw, 34px);
+    padding: 8px clamp(14px, 3vw, 40px);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(95,139,181,0.16);
+    backdrop-filter: blur(8px);
+  }
+  .nav a {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-500);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    transition: color .25s ease, background .25s ease;
+  }
+  .nav a:hover, .nav a.active { color: var(--ink-900); background: var(--sky-100); }
+  /* 顶栏三项：左「← Back」管回上一面（原先在卡片底部，已移到顶栏）、中间「当前页名」只是位置
+     标识、右「Return to Home →」回主页。当前页名不可点击，所以用 span 而不是 a ——
+     高亮观感沿用上面 .active，光标保持默认箭头，避免被当成按钮。 */
+  .nav a, .nav .nav-here {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav .nav-here {
+    font-family: var(--font-serif);
+    font-size: clamp(13px, 2vw, 17px);
+    color: var(--ink-900);
+    background: var(--sky-100);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    cursor: default;
+  }
+  .nav-arrow {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* 顶栏从两项变三项（多一枚「Return to Home →」），手机上要把留白收回来，否则会顶出胶囊。
+     这一档只收紧 gap / 内边距 / 字距，字号仍是上面 clamp 的原值。 */
+  @media (max-width: 560px) {
+    .nav { gap: min(10px, 1.6vw); padding-left: 10px; padding-right: 10px; }
+    .nav a, .nav .nav-here { padding-left: 7px; padding-right: 7px; letter-spacing: 0.02em; }
+  }
+  /* 440px 以下再让字号随视口线性收缩，兜住安卓更宽的 fallback 字体。 */
+  @media (max-width: 440px) {
+    .nav a, .nav .nav-here { font-size: clamp(11px, 3.05vw, 13px); }
+  }
+
+  /* ==== 布局 ==== */
+  .page { max-width: 1080px; margin: 0 auto; padding: 0 clamp(4px, 2vw, 24px); }
+
+  .stage-wrap {
+    min-height: calc(100vh - 132px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2vw, 20px) 0 clamp(24px, 5vw, 60px);
+  }
+
+  .card {
+    width: 100%;
+    text-align: center;
+    background: linear-gradient(160deg, rgba(210,236,251,0.66), rgba(255,255,255,0.86));
+    border: 1px solid rgba(255,255,255,0.9);
+    border-radius: 26px;
+    padding: clamp(34px, 7vw, 74px) clamp(22px, 5vw, 56px);
+    box-shadow: 0 18px 46px rgba(95,139,181,0.14);
+    backdrop-filter: blur(10px);
+  }
+
+  /* 小装饰花（与首页 motto 区的花同款） */
+  .flower {
+    width: clamp(34px, 5vw, 46px);
+    height: clamp(34px, 5vw, 46px);
+    margin: 0 auto clamp(16px, 3vw, 24px);
+    display: block;
+    animation: flower-float 5.6s ease-in-out infinite;
+  }
+  @keyframes flower-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-6px) rotate(6deg); }
+  }
+
+  /* ============================================================
+     打字机效果（Aceternity Typewriter Effect 的原生复刻）
+     ============================================================ */
+  .tw {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(23px, 5.4vw, 48px);
+    line-height: 1.42;
+    letter-spacing: 0.06em;
+    color: var(--ink-900);
+    text-shadow: 2px 3px 12px rgba(95,139,181,0.20);
+    /* 官方是 text-center；这里也居中，逐字出现时居中重心不动 */
+    text-align: center;
+  }
+  .tw-text { display: inline; }
+
+  /* 单个字符：官方初始 opacity-0 hidden，进入视口后逐个淡入 */
+  .tw-char {
+    display: inline-block;
+    opacity: 0;
+    animation: tw-char-in .3s ease-in-out both;
+    animation-delay: calc(var(--i, 0) * .1s);
+  }
+  @keyframes tw-char-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* 光标：官方 opacity 0→1 / duration .8 / repeat Infinity / reverse */
+  .tw-caret {
+    display: inline-block;
+    width: 4px;
+    height: clamp(20px, 4.2vw, 40px);
+    margin-left: .12em;
+    border-radius: 2px;
+    background: var(--sky-500);
+    vertical-align: -0.14em;
+    animation: tw-caret-blink .8s infinite alternate ease-out;
+  }
+  @keyframes tw-caret-blink {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* 副文案 */
+  .tw-sub {
+    margin-top: clamp(18px, 3.4vw, 28px);
+    font-size: clamp(13px, 1.6vw, 15px);
+    letter-spacing: 0.08em;
+    color: var(--ink-500);
+  }
+  .tw-hand {
+    margin-top: 10px;
+    font-family: var(--font-hand);
+    font-size: clamp(15px, 2.2vw, 20px);
+    letter-spacing: 0.1em;
+    color: var(--sky-600);
+  }
+
+  /* 原先这里是「按钮行」(.tw-actions) 与白色胶囊 .btn、以及更早的 .btn.primary：
+     唯一的使用者就是卡片底部那枚 Back，已按用户要求移到顶栏并改用 .nav a 的样式，
+     全页再无 .tw-actions / .btn 的实际引用，故整段删除，避免留下死代码。 */
+
+  footer.footer {
+    text-align: center;
+    padding: 0 0 34px;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-400);
+  }
+
+  /* 手机端（≤480px）：页脚署名整句一行，末尾不再折行（与 index.html 同一口径）
+     —— 原样式 12.5px + 0.08em 下整句实测需 372.66px，可用宽只有「视口 − 43px」
+     （body 内边距 12 + `.page` 的 clamp(4px,2vw,24px)，左右各两处）→ 412px 以下必折。
+     这里：① nowrap 禁止断行；② 左右负边距按 `.page` 的实际内边距吃回
+     （`calc(-1 * clamp(4px, 2vw, 24px))`，此页容器内边距是 clamp 值、不能写死 −16px）；
+     ③ 字距 0.08em → 0.02em；④ 字号 (100vw − 26px) / 30 线性收缩，上限仍是原 12.5px。
+     ⚠️ 30 对应实测「整句 ≈ 27.9em」，余量约 7%；与本页原字号 12.5px 相比，
+     412px 以上仍被 clamp 在 12.5px，只有更窄才缩小。
+     ≤300px 极窄屏兜底恢复折行，避免 nowrap 撑出横向滚动。 */
+  @media (max-width: 480px) {
+    footer.footer {
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      /* iOS Safari 默认会给「宽文本块」自动放大字号，nowrap 下放大就会溢出，
+         这里显式关掉自动调整（对桌面与安卓无效，属纯保险） */
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      margin-left: calc(-1 * clamp(4px, 2vw, 24px));
+      margin-right: calc(-1 * clamp(4px, 2vw, 24px));
+      font-size: clamp(9.5px, calc((100vw - 26px) / 30), 12.5px);
+    }
+  }
+
+  @media (max-width: 300px) {
+    footer.footer {
+      white-space: normal;
+      letter-spacing: 0.08em;
+      margin-left: 0;
+      margin-right: 0;
+      font-size: 11px;
+    }
+  }
+
+  /* ==== 无动画偏好：直接用整句，去掉闪烁 ==== */
+  @media (prefers-reduced-motion: reduce) {
+    .flower { animation: none; }
+    .tw-char {
+      opacity: 1;
+      animation: none;
+    }
+    .tw-caret {
+      animation: none;
+      opacity: 1;
+    }
+  }
+  /* ==== 云背景层（会飘的云）==== */
+  /* 最底层装饰：fixed + z-index:-1 → 永远在 body 背景之上、所有内容之下；
+     pointer-events:none → 绝不拦截点击 / 划选 / 滚轮。
+     天空透明、只画云，底层的水彩天空（bg.jpg + 多层柔光）照旧透出来。
+     渲染逻辑见 assets/cloud-bg.js（Aceternity UI《Cloud Shader》的原生移植）。 */
+  canvas.cloud-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: -1;
+    pointer-events: none;
+  }
+</style>
+<!-- 云背景层（assets/cloud-bg.js）不在这里引入：改在 <body> 里 canvas 之后就动态注入，
+     这样它不必等「整页解析完成 + 未加载完的外部样式表到齐」才执行，
+     云的下载与执行会和后续解析并行。详见 body 里那段的说明。 -->
+</head>
+<body>
+
+  <!-- 云背景层：会缓慢飘动的云（最底层装饰，由 assets/cloud-bg.js 渲染，不遮挡也不拦截任何内容） -->
+  <canvas class="cloud-bg" aria-hidden="true"></canvas>
+  <!-- 云背景层引导：在这里「动态注入」脚本，而不是在 <head> 里写 <script defer src="assets/cloud-bg.js">。
+      原因：defer 要等「整页解析完成」并且「尚未加载完的样式表到齐」才执行（本页 head 里虽无外部资源，
+      但仍要排队等解析）；改成这里立刻注入后，脚本的下载与后面文档的解析并行进行、下载完立即执行，
+      云因此更早出现，同时也不阻塞页面解析。 -->
+  <script>
+    (function () {
+      var s = document.createElement("script");
+      s.src = "assets/cloud-bg.js";
+      document.head.appendChild(s);
+    })();
+  </script>
+
+  <header class="masthead">
+    <nav class="nav">
+      <!-- 左：回到「进入本页之前的那一面」（无历史可回时兜底跟随 href，逻辑见页尾脚本） -->
+      <a href="index.html" id="back"><svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M11.4 7H2.6M6 3.2 2.2 7 6 10.8"/></svg>Back</a>
+      <!-- 中：当前位置标识，不可点击 -->
+      <span class="nav-here">Citywalk</span>
+      <!-- 右：回主页（新导航，落 Home 面板顶部，不还原上次位置） -->
+      <a href="index.html" class="nav-home">Return to Home<svg class="nav-arrow" viewBox="0 0 14 14" aria-hidden="true" focusable="false"><path d="M2.6 7h8.8M8 3.2 11.8 7 8 10.8"/></svg></a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <div class="stage-wrap">
+      <section class="card">
+        <svg class="flower" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="#f4c7d6">
+            <circle cx="24" cy="14" r="7"/>
+            <circle cx="34" cy="24" r="7"/>
+            <circle cx="24" cy="34" r="7"/>
+            <circle cx="14" cy="24" r="7"/>
+          </g>
+          <circle cx="24" cy="24" r="5" fill="#ffffff"/>
+        </svg>
+
+        <!-- 打字机标题：整句放在 aria-label 供读屏，逐字 span 对读屏隐藏 -->
+        <h1 class="tw" id="tw" aria-label="新功能开发中......莫急！">
+          <span class="tw-text" id="twText" aria-hidden="true"></span><span class="tw-caret" aria-hidden="true"></span>
+        </h1>
+
+        <p class="tw-sub">Citywalk 的城市漫步地图还在路上 · 先回主页看看别的</p>
+        <p class="tw-hand">Good things take time.</p>
+      </section>
+    </div>
+
+    <footer class="footer">
+      刘孟涵 · 个人主页 · 天津大学香港理工大学深圳未来技术学院
+    </footer>
+  </main>
+
+<script>
+  /* ============================================================
+     逐字拆分 + 打字机播放
+     ------------------------------------------------------------
+     官方把文字拆成字符数组、每个字符一个 motion.span，再按
+     stagger(0.1) 依次淡入；这里做同样的事，只是把动画交给 CSS：
+     每个 span 通过 --i 拿到自己的序号，动画延迟 = i × 0.1s。
+     ============================================================ */
+  (function () {
+    var TEXT = "新功能开发中......莫急！";
+
+    var twText = document.getElementById("twText");
+    var back = document.getElementById("back");
+    var reduceMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    // 拆成字符（Array.from 对中文/全角标点安全）
+    var chars = Array.from(TEXT).map(function (ch, i) {
+      var span = document.createElement("span");
+      span.className = "tw-char";
+      span.setAttribute("aria-hidden", "true");
+      // 普通空格用 nbsp 占位，避免被 HTML 折叠
+      span.textContent = ch === " " ? "\u00A0" : ch;
+      span.style.setProperty("--i", i);
+      return span;
+    });
+
+    twText.appendChild(document.createTextNode(""));
+    chars.forEach(function (c) { twText.appendChild(c); });
+
+    // 从头播一遍：清掉动画 → 强制重排 → 恢复，让 CSS 动画重跑。
+    // 原先是「重新播放」按钮用的，该按钮已按用户要求删除；
+    // 现在只服务于下面 prefers-reduced-motion 偏好的实时切换。
+    function play() {
+      if (reduceMQ.matches) return;
+      chars.forEach(function (c) { c.style.animation = "none"; });
+      void twText.offsetWidth; // 强制 reflow，动画得以重置
+      chars.forEach(function (c) { c.style.animation = ""; });
+    }
+
+    if (reduceMQ.addEventListener) reduceMQ.addEventListener("change", play);
+
+    /* 顶栏「← Back」：回到「进入本页之前的那一面」，也就是点 Citywalk 时所在的界面
+       （通常是主页面 About 面板）。「面板 + 滚动位置」的还原在 index.html 侧完成 ——
+       那边靠 sessionStorage 记一份、再用 nav type === "back_forward" 判定消费。
+       ⚠️ 这枚 Back 原先在卡片底部，2026-09-18 按用户要求移到顶栏，id 仍是 back。
+       兜底：没有可回退的历史（直接双击本页 / 从书签进来）时不拦截默认行为，
+       跟随 href="index.html" 回主页，避免按了没反应。
+       ⚠️ file:// 下 location.origin 是字符串 "null" 且 referrer 为空，
+       同源判断不成立，因此单列一个分支只看 history.length。 */
+    back.addEventListener("click", function (e) {
+      var canGoBack = location.protocol === "file:"
+        ? window.history.length > 1
+        : document.referrer.indexOf(location.origin) === 0 && window.history.length > 1;
+      if (canGoBack) {
+        e.preventDefault();
+        window.history.back();
+      }
+    });
+  })();
+</script>
+</body>
+</html>
