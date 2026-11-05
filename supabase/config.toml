@@ -1,0 +1,7 @@
+project_id = "taqpbdsevtrznhkgyunl"
+
+[functions.persona-chat]
+# 关掉 JWT 校验后，前端不需要带任何密钥即可调用；
+# 函数内部用环境变量里的 DEEPSEEK_API_KEY 去访问模型。
+verify_jwt = false
+enabled = true

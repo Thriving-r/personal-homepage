@@ -551,52 +551,77 @@
     letter-spacing: 0.04em;
   }
 
-  /* ==== 蹭饭地图（水彩手绘中国地图）==== */
+  /* ==== 旅行照片轮播区 ==== */
   .journey {
     margin-top: clamp(30px, 5vw, 50px);
   }
-  .map-frame {
+  .stage {
     position: relative;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 22px 50px rgba(95,139,181,0.22);
     border: 6px solid rgba(255,255,255,0.75);
-    background: #fbf7ef;
+    aspect-ratio: 16 / 8;
   }
-  /* 原图 1536×956（1.6067:1），用 height:auto 完整显示，不裁切地图本体与右下角附图 */
-  .map-frame img {
-    display: block;
+  .stage img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity .8s ease, transform .8s ease;
+    transform: scale(1.04);
   }
-  .map-caption {
-    text-align: center;
-    margin-top: 18px;
-    font-family: var(--font-serif);
-    font-size: 15px;
+  .stage img.show { opacity: 1; transform: scale(1); }
+
+  .season-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0 14px;
     color: var(--ink-700);
-    letter-spacing: 0.14em;
+    font-family: var(--font-serif);
+    font-size: 20px;
+    letter-spacing: 0.22em;
   }
-  /* ==== 地图上的定位符号（中山大学 · 广东）====
-     ⚠️ 坐标来源：先用台湾岛、海南岛两个已知点标定这张图的近似投影，再换算「113.26°E / 23.13°N」，
-     得到 (56.25%, 86.19%)。里面写成百分比，所以地图随容器缩放时尖端始终钉在同一点。
-     ⚠️ 换掉 assets/china-map.jpg（改尺寸 / 改构图 / 重绘）之前，必须重新标定这两个数字。
-     ⚠️ 位移用 transform 而不是 margin —— 只有 translate(-50%,-100%) 才能让「水滴尖」而不是「盒子中心」对准锚点。 */
-  .map-pin {
-    position: absolute;
-    left: 56.25%;
-    top: 86.19%;
-    width: clamp(32px, 7.2%, 78px);
-    transform: translate(-50%, -100%);
-    transform-origin: 50% 100%;
-    z-index: 2;
-    pointer-events: none;  /* 纯装饰浮层：绝不拦截点击 / 划选 / 滚轮 */
-    filter: drop-shadow(0 5px 10px rgba(20, 70, 110, 0.30));
+  .season-label .arrow {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--ink-500);
+    user-select: none;
+    border: none;
+    background: none;
+    padding: 4px 8px;
+    transition: color .2s ease;
   }
-  .map-pin svg {
-    display: block;
-    width: 100%;
-    height: auto;
+  .season-label .arrow:hover { color: var(--ink-900); }
+
+  .thumbs {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .thumbs img {
+    width: 110px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.85);
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+    box-shadow: 0 6px 16px rgba(95,139,181,0.16);
+  }
+  .thumbs img:hover { transform: translateY(-3px); }
+  .thumbs img.current { box-shadow: 0 0 0 3px var(--sky-400), 0 8px 20px rgba(95,139,181,0.26); }
+
+  .journey-caption {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-500);
+    letter-spacing: 0.08em;
   }
 
   /* ==== 标语：手写英文 ==== */
@@ -740,6 +765,36 @@
 
   .typed::after { content: "▍"; animation: blink 1s steps(1) infinite; color: var(--sky-600); }
   @keyframes blink { 50% { opacity: 0; } }
+
+  /* 真实模型回复里的轻量排版（只放行加粗与行内代码，其余一律转义） */
+  .msg.digital .bubble strong { color: var(--ink-900); font-weight: 600; }
+  .msg.digital .bubble code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    background: rgba(180,212,236,0.35);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+  .msg.digital .bubble .ai-note {
+    display: block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--ink-400);
+  }
+
+  /* 等待模型首字时的三点动画 */
+  .dot-typing { display: inline-flex; align-items: center; gap: 4px; height: 1em; }
+  .dot-typing i {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--sky-500);
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+  .dot-typing i:nth-child(2) { animation-delay: .16s; }
+  .dot-typing i:nth-child(3) { animation-delay: .32s; }
+  @keyframes dotPulse {
+    0%, 70%, 100% { opacity: .25; transform: translateY(0); }
+    35% { opacity: 1; transform: translateY(-2px); }
+  }
 
   .input-bar {
     display: flex;
@@ -1050,49 +1105,22 @@
 
       <div class="section-gap"></div>
 
-      <!-- 蹭饭地图（水彩手绘中国地图，无任何文字标注） -->
+      <!-- 旅行照片轮播区 -->
       <section class="journey">
-        <div class="map-frame">
-          <img src="assets/china-map.jpg" alt="水彩手绘中国地图" />
-          <!-- 定位符号：中山大学（广州 · 广东）。样式参照用户给的参考图 —— 蓝色水滴 + 白色圆徽章 + 金属环，
-               徽章中心是官方校徽图片 assets/sysu-emblem.png（256×256，已紧裁到外圆，圆形裁切后嵌入）。
-               ⚠️ 渐变/裁切 id 全部带 mapPin 前缀，避免与页面里别的 SVG defs 撞名。 -->
-          <div class="map-pin" role="img" aria-label="中山大学 · 广东">
-            <svg viewBox="0 0 64 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <defs>
-                <linearGradient id="mapPinBody" x1="0" y1="0" x2="0.45" y2="1">
-                  <stop offset="0" stop-color="#8fd0f5" />
-                  <stop offset="0.45" stop-color="#3f96da" />
-                  <stop offset="1" stop-color="#1d5f9e" />
-                </linearGradient>
-                <radialGradient id="mapPinGloss" cx="0.34" cy="0.24" r="0.5">
-                  <stop offset="0" stop-color="#ffffff" stop-opacity="0.92" />
-                  <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.26" />
-                  <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
-                </radialGradient>
-                <linearGradient id="mapPinRing" x1="0" y1="0" x2="0.6" y2="1">
-                  <stop offset="0" stop-color="#ffffff" />
-                  <stop offset="0.45" stop-color="#cfdae4" />
-                  <stop offset="1" stop-color="#9fb2c2" />
-                </linearGradient>
-                <clipPath id="mapPinCrestClip">
-                  <circle cx="32" cy="36" r="16.5" />
-                </clipPath>
-              </defs>
-              <!-- 水滴主体（圆头圆心 32,36 / 半径 28，尖点 32,84） -->
-              <path d="M32 84 C32 84 60 52 60 36 A28 28 0 1 0 4 36 C4 52 32 84 32 84 Z" fill="url(#mapPinBody)" />
-              <!-- 左上玻璃高光 -->
-              <ellipse cx="23" cy="22" rx="12" ry="14" fill="url(#mapPinGloss)" />
-              <!-- 金属环 + 白瓷面 -->
-              <circle cx="32" cy="36" r="20.6" fill="url(#mapPinRing)" />
-              <circle cx="32" cy="36" r="18.2" fill="#ffffff" />
-              <!-- 校徽：官方图片，圆形裁切（r=16.5，四周留约 1.7 单位白瓷边） -->
-              <image href="assets/sysu-emblem.png" x="15.5" y="19.5" width="33" height="33"
-                     clip-path="url(#mapPinCrestClip)" preserveAspectRatio="xMidYMid meet" />
-            </svg>
-          </div>
+        <div class="stage">
+          <img id="main" src="assets/tour-1.jpg" alt="旅行风景" />
         </div>
-        <div class="map-caption">蹭饭地图持续打卡中...</div>
+        <div class="season-label">
+          <button class="arrow" id="prev" aria-label="上一张">◀</button>
+          <span id="season">EXPLORE</span>
+          <button class="arrow" id="next" aria-label="下一张">▶</button>
+        </div>
+        <div class="thumbs" id="thumbs">
+          <img src="assets/tour-1.jpg" data-season="SUMMER" alt="夏·海边栈道" class="current" />
+          <img src="assets/tour-2.jpg" data-season="CITY" alt="地中海小镇" />
+          <img src="assets/tour-3.jpg" data-season="INK" alt="书法 · 墨" />
+        </div>
+        <div class="journey-caption" id="caption">夏 · 海边的栈道和遮阳伞</div>
         <div class="lace lace-bot"></div>
       </section>
 
@@ -1257,7 +1285,7 @@
               <div class="mini"><img src="assets/avatar.png" alt="刘孟涵的头像" /></div>
               <div class="who">
                 <strong>刘孟涵的数字分身</strong>
-                <span>基于主人的公开信息 · 本地原型</span>
+                <span id="chatModelTag">DeepSeek 驱动 · 实时回答</span>
               </div>
               <div class="online">在线</div>
             </div>
@@ -1269,7 +1297,7 @@
             </div>
             <div class="log" id="log"></div>
             <div class="input-bar">
-              <input id="input" type="text" placeholder="随便聊聊，比如「你最近在做什么？」" />
+              <input id="input" type="text" maxlength="500" placeholder="随便聊聊，比如「你最近在做什么？」" />
               <button id="send" class="stateful-btn" type="button">
                 <span class="sb-icon sb-spinner" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
@@ -1280,7 +1308,7 @@
                 <span class="sb-label">Send</span>
               </button>
             </div>
-            <div class="chat-foot">本地规则引擎原型 · 之后可接入真实 AI</div>
+            <div class="chat-foot">由 DeepSeek 大模型实时生成 · 基于我的公开资料，仅供参考</div>
           </div>
         </div>
       </section>
@@ -1298,6 +1326,8 @@
   <canvas id="glassCanvas"></canvas>
 </div>
 
+<!-- 数字分身的资料库与系统提示词（改资料只需改这个文件） -->
+<script src="assets/persona.js"></script>
 <script>
   /* ---- 可配置资料：想补充信息时只改这里，分身会自动用上 ---- */
   const profile = {
@@ -1514,20 +1544,248 @@
     return pick(best ? best.a : fallback);
   }
 
-  function send(text) {
-    const t = text.trim();
-    if (!t) return;
+  /* ============ 真实语言模型接入（DeepSeek） ============
+     · 直接调用 DeepSeek 官方 API（已确认其 CORS 允许浏览器直连）
+     · 资料与边界在 assets/persona.js，改资料不用动这里
+     · 没有填 Key、额度用完或网络失败时，自动退回下面的本地规则引擎，
+       保证页面在任何情况下都还能聊，不会白屏或卡死 */
+  const AI = {
+    /* 两种模式，二选一：
+       ── "proxy"（推荐，安全）
+          请求先发到你自己的 Supabase Edge Function，DeepSeek Key 存在服务端，
+          前端和访客都看不到。部署完函数后，把 proxyUrl 填上即可。
+       ── "direct"（简单，但 Key 会暴露）
+          浏览器直连 DeepSeek 官方 API，必须在 apiKey 里填 sk-xxx。
+          任何访客按 F12 都能拿到这个 Key，只适合本地演示、不上线。 */
+    mode: "proxy",
+    proxyUrl: "https://taqpbdsevtrznhkgyunl.supabase.co/functions/v1/persona-chat",
+    endpoint: "https://api.deepseek.com/chat/completions",
+    apiKey: "",                       // ← 永远留空：代理模式下不需要，填了反而会暴露
+    model: "deepseek-chat",
+    temperature: 0.7,
+    maxTokens: 600,
+    timeoutMs: 45000,
+    historyTurns: 8,                  // 随请求带上的最近对话轮数
+    dailyLimit: 200,                  // 单浏览器每天最多提问数（防止被刷爆额度）
+  };
+
+  /* 当前该走哪个地址；没配置好就是空字符串，页面自动进入演示模式 */
+  AI.activeEndpoint = AI.mode === "proxy" ? AI.proxyUrl : (AI.apiKey ? AI.endpoint : "");
+  AI.ready = !!AI.activeEndpoint;
+
+  const chatHistory = [];             // { role, content }[]，仅本次页面会话
+  let chatBusy = false;
+
+  // 没配置 Key 时如实标注为演示模式，不假装在用大模型
+  (function markChatMode() {
+    const tag = document.getElementById("chatModelTag");
+    if (tag && !AI.ready) tag.textContent = "本地资料问答 · 演示模式";
+  })();
+
+  function todayKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function readQuota() {
+    try {
+      const raw = JSON.parse(localStorage.getItem("lmh_persona_quota") || "{}");
+      return raw.date === todayKey() ? Number(raw.count) || 0 : 0;
+    } catch (e) { return 0; }
+  }
+
+  function bumpQuota() {
+    try {
+      localStorage.setItem("lmh_persona_quota", JSON.stringify({
+        date: todayKey(),
+        count: readQuota() + 1,
+      }));
+    } catch (e) { /* 隐私模式下 localStorage 可能不可用，忽略 */ }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
+    }[c]));
+  }
+
+  /* 只放行加粗与行内代码，其余全部转义 —— 模型输出不可信，绝不直接 innerHTML */
+  function renderRich(el, text, note) {
+    const html = escapeHtml(text)
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\n/g, "<br>");
+    el.innerHTML = html + (note ? '<span class="ai-note">' + escapeHtml(note) + "</span>" : "");
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function showTyping(bubble) {
+    bubble.innerHTML = '<span class="dot-typing" aria-label="正在输入"><i></i><i></i><i></i></span>';
+  }
+
+  function appendMe(text) {
     const me = document.createElement("div");
     me.className = "msg me";
     const b = document.createElement("div");
     b.className = "bubble";
-    b.textContent = t;
+    b.textContent = text;
     me.appendChild(b);
     logEl.appendChild(me);
     logEl.scrollTop = logEl.scrollHeight;
-    const reply = answer(t);
-    // 稍作停顿再回答，更接近真人聊天的节奏
-    setTimeout(() => typeOut(makeDigitalBubble(""), reply), 280 + Math.random() * 420);
+  }
+
+  function setSendBusy(on) {
+    if (!sendBtn) return;
+    sendBtn.classList.toggle("is-loading", on);
+    sendBtn.disabled = on;
+    if (on) sendBtn.setAttribute("aria-busy", "true");
+    else sendBtn.removeAttribute("aria-busy");
+  }
+
+  async function requestModel(question) {
+    // 按「最近优先」裁剪历史，保证总长度不会把代理的字数上限撑爆
+    const pool = chatHistory.slice(-AI.historyTurns * 2);
+    const kept = [];
+    let chars = 0;
+    for (let i = pool.length - 1; i >= 0; i--) {
+      const len = String(pool[i].content || "").length;
+      if (chars + len > 12000) break;
+      kept.unshift(pool[i]);
+      chars += len;
+    }
+
+    const messages = [{ role: "system", content: window.buildPersonaPrompt() }].concat(
+      kept,
+      [{ role: "user", content: question }]
+    );
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), AI.timeoutMs);
+    try {
+      const headers = { "Content-Type": "application/json" };
+      // proxy 模式的鉴权在服务端完成，前端不带任何密钥
+      if (AI.mode === "direct") headers["Authorization"] = "Bearer " + AI.apiKey;
+
+      const res = await fetch(AI.activeEndpoint, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(
+          AI.mode === "proxy"
+            ? { messages: messages, stream: true }
+            : {
+                model: AI.model,
+                messages: messages,
+                stream: true,
+                temperature: AI.temperature,
+                max_tokens: AI.maxTokens,
+              }
+        ),
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error("HTTP " + res.status + " " + body.slice(0, 160));
+      }
+      return res;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /* DeepSeek 用 SSE：按空行切块，逐块取 choices[0].delta.content */
+  async function consumeStream(res, onText) {
+    if (!res.body || !res.body.getReader) {
+      const data = await res.json();
+      const txt = (data.choices && data.choices[0] && data.choices[0].message.content) || "";
+      onText(txt);
+      return txt;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let full = "";
+    while (true) {
+      const step = await reader.read();
+      if (step.done) break;
+      buffer += decoder.decode(step.value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+      for (const chunk of chunks) {
+        const line = chunk.split("\n").find((l) => l.trim().indexOf("data:") === 0);
+        if (!line) continue;
+        const payload = line.trim().slice(5).trim();
+        if (payload === "[DONE]") return full;
+        let json = null;
+        try { json = JSON.parse(payload); } catch (e) { continue; }
+        const delta = json.choices && json.choices[0] && json.choices[0].delta;
+        if (delta && delta.content) {
+          full += delta.content;
+          onText(full);
+        }
+      }
+    }
+    return full;
+  }
+
+  async function send(text) {
+    const t = String(text || "").trim();
+    if (!t || chatBusy) return;
+    chatBusy = true;
+    setSendBusy(true);
+    appendMe(t);
+
+    const bubble = makeDigitalBubble("");
+    bubble.classList.add("typed");
+    showTyping(bubble);
+
+    try {
+      if (!AI.ready) throw new Error("NO_KEY");
+      if (readQuota() >= AI.dailyLimit) throw new Error("QUOTA");
+
+      const res = await requestModel(t);
+
+      let raf = 0;
+      let latest = "";
+      const paint = (txt) => {
+        latest = txt;
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
+          renderRich(bubble, latest);
+        });
+      };
+
+      const full = await consumeStream(res, paint);
+      if (raf) cancelAnimationFrame(raf);
+      if (!full.trim()) throw new Error("EMPTY");
+
+      renderRich(bubble, full);
+      bubble.classList.remove("typed");
+      chatHistory.push({ role: "user", content: t }, { role: "assistant", content: full });
+      bumpQuota();
+    } catch (err) {
+      const msg = err && err.message;
+      bubble.textContent = "";
+      bubble.classList.remove("typed");
+
+      if (msg === "QUOTA") {
+        renderRich(bubble, "今天和我聊得有点多啦，先歇一歇，明天再来？急事可以发邮件：lmh_2007@tju.edu.cn。");
+      } else {
+        // 未配置 Key（静默）或网络/接口异常（加一行说明）都退回本地规则引擎
+        const reply = answer(t);
+        typeOut(bubble, reply);
+        if (msg !== "NO_KEY") {
+          setTimeout(() => {
+            const tip = document.createElement("span");
+            tip.className = "ai-note";
+            tip.textContent = "（刚才网络有点不稳，先用本地预设回答你）";
+            bubble.appendChild(tip);
+          }, reply.length * 14 + 80);
+        }
+      }
+    } finally {
+      chatBusy = false;
+      setSendBusy(false);
+    }
   }
 
   /* ---- Stateful Button 状态机 ---- */
@@ -1548,9 +1806,10 @@
 
   function submitChat() {
     const t = inputEl.value.trim();
+    if (chatBusy) return;              // 上一条还在生成，忽略这次点击
     if (!t) { inputEl.focus(); return; }
     inputEl.value = "";
-    runStateful(sendBtn, () => send(t), { loadMs: 550, okMs: 2000 });
+    send(t);                           // 按钮 loading 由 send 内部按真实请求状态控制
   }
 
   sendBtn.addEventListener("click", submitChat);
@@ -1565,9 +1824,33 @@
 
   window.addEventListener("load", () => typeOut(makeDigitalBubble(""), greeting));
 
-  /* 原「旅行照片轮播」脚本已删除：轮播区已替换为蹭饭地图（静态图 + 一行文案），
-     不再有 slides / show() / #main / #prev / #next / #thumbs / #caption 这些节点，
-     所以整段逻辑必须一并移除，否则 getElementById("main") 会拿到 null 并抛错。 */
+  /* ============ 旅行轮播 ============ */
+  const slides = [
+    { src: "assets/tour-1.jpg", season: "SUMMER", caption: "夏 · 海边的栈道和遮阳伞" },
+    { src: "assets/tour-2.jpg", season: "CITY", caption: "地中海 · 蓝白小镇的街角" },
+    { src: "assets/tour-3.jpg", season: "INK", caption: "书 · 一笔一划的安静时刻" },
+  ];
+  let cur = 0;
+  const mainImg = document.getElementById("main");
+  const seasonEl = document.getElementById("season");
+  const captionEl = document.getElementById("caption");
+  const thumbs = document.getElementById("thumbs").querySelectorAll("img");
+
+  function show(i) {
+    cur = (i + slides.length) % slides.length;
+    mainImg.classList.remove("show");
+    setTimeout(() => {
+      mainImg.src = slides[cur].src;
+      mainImg.classList.add("show");
+    }, 180);
+    seasonEl.textContent = slides[cur].season;
+    captionEl.textContent = slides[cur].caption;
+    thumbs.forEach((t, idx) => t.classList.toggle("current", idx === cur));
+  }
+  document.getElementById("next").addEventListener("click", () => show(cur + 1));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1));
+  thumbs.forEach((t, idx) => t.addEventListener("click", () => show(idx)));
+  show(0);
 
   /* ============ TAB 面板切换 ============ */
   const panels = {

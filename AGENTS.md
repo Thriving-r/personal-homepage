@@ -43,6 +43,11 @@
 | `assets/lib/three.module.js` | three.js r160 原始 ESM 版，**当前未被引用**（保留作回退参考） |
 | `assets/lib/OrbitControls.js` | OrbitControls 原始 ESM 版，**当前未被引用** |
 | `assets/*.png` | 对应的高清源图，页面未引用 |
+| `assets/persona.js` | **数字分身的资料库与系统提示词**（2026-11-05 新增）：`PERSONA.facts / views / boundaries / style` + `buildPersonaPrompt()`。改分身「知道什么、怎么说、什么不说」只改这个文件。⚠️ 只放可公开信息 |
+| `tests/persona-questions.json` | 分身验收题库：30 题（事实 10 / 观点 8 / 边界 8 / 攻击 4），每题带 `expectAny` / `forbidAny` / `shouldRefuse` |
+| `tests/run-eval.mjs` | 自动评测脚本：`DEEPSEEK_API_KEY=sk-xxx node tests/run-eval.mjs`；`--dry` 可无 Key 自检；产出 `tests/last-report.md` |
+| `supabase/functions/persona-chat/index.ts` | 数字分身代理（Edge Function）：Key 存服务端，前端不接触；部署见 `supabase/DEPLOY.md` |
+| `supabase/config.toml` | Edge Function 配置（`verify_jwt = false`），供 CLI 部署使用 |
 
 > 注意：`assets/` 里的图片是相对路径引用，移动或拷贝 `index.html` 时必须连同 `assets/` 一起。
 
@@ -154,6 +159,53 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-11-05（数字分身接入 DeepSeek 真实大模型：资料库 + 流式对话 + 30 题评测）
+
+- 需求：期末要求数字分身「真正接入语言模型」，不能是预设问答；选定 DeepSeek + 前端直连（访客主要在国内，DeepSeek 官方 API 国内可直连）
+- **前置实测**：`OPTIONS https://api.deepseek.com/chat/completions` 带 `Origin` 返回 `access-control-allow-origin: <回显 Origin>`，允许 `authorization,content-type` → 确认浏览器可直连，不需要后端代理
+- 新增 `assets/persona.js`（211 行，资料库与提示词，改资料只动这一个文件）：
+  - `PERSONA.facts` 5 节（我是谁 / 我在学什么 / 兴趣 / 作品 / 最近在做）
+  - `PERSONA.views` 3 节（学习 / AI / 生活）
+  - `PERSONA.boundaries` 6 条（家庭隐私 / 政治 / 评价他人 / 专业建议 / 学业作弊 / 未公开信息），每条带标准回应
+  - `PERSONA.style`（第一人称、2–4 句、120 字内、不客服腔、不确定就承认）
+  - `buildPersonaPrompt()` 拼成约 3300 字 system prompt，含防注入五条
+  - ⚠️ 这里只放可公开信息；住址、身份证、成绩排名、他人隐私一律不写
+- `index.html`（2403 → **2629** 行）：
+  - `<script src="assets/persona.js">` 放在主脚本前（`file://` 双击也可用，不走 fetch）
+  - 新增 `AI` 配置块：`endpoint / apiKey / model / temperature / maxTokens / timeoutMs / historyTurns / dailyLimit`
+  - `send()` 改为 async：`fetch` → SSE 逐块解析 `choices[0].delta.content` → `requestAnimationFrame` 合帧渲染
+  - 只放行 `**加粗**` 与 `` `代码` ``，其余全部 `escapeHtml` 后再 `innerHTML`（模型输出不可信）
+  - 最近 8 轮历史随请求带上；`localStorage` 记录单浏览器每日 200 次上限
+  - **三级兜底**：未填 Key → 静默走原规则引擎；额度用尽 → 提示明天再来；网络/接口异常 → 规则引擎 + 一行「网络有点不稳」小字。任何情况都不白屏、不卡死
+  - 按钮 loading 改为跟随真实请求状态（不再用 `runStateful` 的固定 650ms 假动画）
+  - 文案：`chat-head` 副标题 →「DeepSeek 驱动 · 实时回答」；`chat-foot` →「由 DeepSeek 大模型实时生成 · 基于我的公开资料，仅供参考」
+  - 新增 CSS：`.dot-typing` 三点等待动画、`.bubble strong/code`、`.ai-note`
+  - ⚠️ `apiKey` 当前仍为空字符串（`AI.apiKey`），填入后才能走真实模型；Key 在前端可见，**必须在 DeepSeek 控制台设置用量上限**
+- 新增 `tests/`：
+  - `persona-questions.json` 30 题：事实 10 / 观点 8 / 边界 8 / 攻击 4，每题带 `expectAny` / `forbidAny` / `shouldRefuse`
+  - `run-eval.mjs`：用 `vm` 直接加载 `assets/persona.js`（与网页共用同一份 prompt，避免两边漂移），并发调 API，输出 `tests/last-report.md` + `tests/last-results.json`；Key 只从 `DEEPSEEK_API_KEY` 环境变量读，不落盘
+  - `node tests/run-eval.mjs --dry` 可无 Key 自检
+- 已验证（无 Key 状态）：本地 `http.server` + headless Chrome `--dump-dom`，greeting 正常渲染，点快捷问题后规则引擎正常回答，无脚本错误
+- **安全改造（同日追加）**：Key 不能放前端（访客 F12 可见），改为双模式
+  - `AI.mode = "proxy"`（默认，安全）：请求发到 Supabase Edge Function `persona-chat`，Key 只存服务端 Secret，前端不带任何密钥
+  - `AI.mode = "direct"`：浏览器直连 DeepSeek，仅本地演示用，`apiKey` 会暴露
+  - `AI.activeEndpoint` / `AI.ready` 统一判断，未配置时自动进入「本地资料问答 · 演示模式」
+  - 历史消息按「最近优先 + 总字符 ≤ 12000」裁剪，避免撑爆代理上限
+  - 输入框加 `maxlength="500"`
+  - 新增 `supabase/functions/persona-chat/index.ts`：固定模型 / max_tokens / temperature，限制 20 条消息、20000 字符，上游错误只回简短信息
+  - 新增 `supabase/config.toml`（`verify_jwt = false`）与 `supabase/DEPLOY.md`（网页控制台 / CLI 两种部署步骤）
+  - ⚠️ 部署后要把 `AI.proxyUrl` 填成 `https://taqpbdsevtrznhkgyunl.supabase.co/functions/v1/persona-chat`
+  - ⚠️ 上线前把函数里的 `ALLOWED_ORIGINS` 从 `["*"]` 收紧为主页域名
+- **实测结果（2026-11-05）**：填真实 Key 后跑 30 题
+  - 首轮 28/30（93%），两题判失败：B05「不太合适」vs 题库「不合适」、B08「还没在这页里公开」vs「没公开」
+  - 人工复核：两题模型均守住边界，属评分脚本关键词过死
+  - `run-eval.mjs` 的 `judge()` 新增 `looseMatch()`：中文关键词允许中间插入 ≤6 个非句末字符；`forbidAny` 仍严格匹配
+  - 复测 **30/30（100%）**，平均 1016 ms/题；事实 10/10、观点 8/8、边界 8/8、攻击 4/4
+  - 报告：`tests/last-report.md`，原始结果 `tests/last-results.json`
+  - 边界/攻击题已人眼抽查，无「先拒绝再泄露」的假通过
+- **待办**：部署 Supabase 代理 → `mode` 改回 `proxy`、清空 `apiKey` → 推 GitHub Pages → 导出期末报告 PDF
+- 相关文档：`docs/期末报告素材.md`（会话根目录，含模型/部署/资料/提示词/测试/网页改动）
 
 ### 2026-10-02（定位符号徽章中心：自绘绿圆 → 官方中山大学校徽图片）
 

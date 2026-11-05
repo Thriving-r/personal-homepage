@@ -1,3 +1,6 @@
 .DS_Store
 .~*.docx
 *.docx
+
+# DeepWorks 会话临时目录，不提交
+.deepworks/
