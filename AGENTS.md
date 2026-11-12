@@ -171,7 +171,7 @@ python3 -m http.server 8777 --directory .
   - `ALLOWED_ORIGINS` 只保留 `https://thriving-r.github.io`；本地调试改由 `DEV_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/` 放行**任意端口**（`python3 -m http.server 8777` 即可，不必再改白名单）
   - 请求入口：来源校验改成 `if (!isOriginAllowed(origin))` 直接 403（不再有「无 Origin 放行」这条路）
   - **新增按 IP 限流**：`RL_MAX_PER_WINDOW = 8` / 分钟、`RL_MAX_PER_DAY = 150`、`RL_MAX_KEYS = 5000`；`takeToken()` 走 `Map<string, Bucket>` 双窗口计数，超限返回 **429 + `Retry-After`**（只有 POST 计数，OPTIONS 不占额度）；取 IP 顺序 `x-forwarded-for` 首段 → `cf-connecting-ip` → `x-real-ip` → `__shared__`
-  - 头部安全说明从 5 条扩到 6 条，并写明 **CORS 不是鉴权**（`Origin` 可伪造）、内存窗口是多实例下的「降速」而非硬上限、真正的止损是 DeepSeek 控制台用量上限
+  - 头部安全说明从 5 条扩到 6 条，并写明 **CORS 不是鉴权**（`Origin` 可伪造）、内存窗口是多实例下的「降速」而非硬上限、真正的硬墙是「账户只留小额预付费余额」
 - `index.html`（2693 → **2696** 行）：`send()` 的兜底提示按错误分流 —— `/^HTTP 429/` 显示「问得有点快，先歇几秒」，其余仍是「网络有点不稳」。无新增元素/样式
 - `supabase/DEPLOY.md`（61 → **78** 行）：验证用的 `curl` 补上 `-H "Origin: https://thriving-r.github.io"`（裸 curl 现在会被 403），补 403/429 两种返回的解读，新增「已经内置的安全措施」表（白名单 / 限流 / 载荷上限 / 固定参数），并写明 `file://` 双击会被 403 挡掉、要测真实模型请用本地 http
 - 自测：新增 `.deepworks/tmp/persona-chat-selftest.mjs`（Node 24 type-stripping 直接 import `.ts`，打桩 `Deno.serve` 与 `fetch`）**14/14 通过** —— 无 Origin 403、`null` 403、站外 403、后缀仿冒 `thriving-r.github.io.evil.com` 403、主页 200 + 回显 ACAO、localhost/127.0.0.1 200、OPTIONS 200、同 IP 第 9 次 429（`Retry-After: 60`）、换 IP 不受影响、33 条消息 400、超 2 万字 413
@@ -182,6 +182,7 @@ python3 -m http.server 8777 --directory .
   - 主页 `Origin` → 200 流式，`access-control-allow-origin` 正确回显
   - 同 IP 第 9 次请求 → **429 `rate limited`**，响应头带 `retry-after: 46`；62 秒后自动恢复（回到 413/200 正常校验）
   - 验证用「超长 body 触发 413」来数次数，除首尾各 1 次正常调用外不消耗 DeepSeek 额度
+- 📌 **成本兜底的更正**：此前多处写「在 DeepSeek 控制台设 10–20 元用量上限」，这是错的 —— DeepSeek 开放平台是**纯预付费**，没有 OpenAI 式的 usage limit / 消费硬上限开关，余额花完调用直接失败（402）。实际做法只有「只充 20 元，不补余额」，让余额本身成为硬墙。报告第五节/第七节/第八节、`DEPLOY.md` 均已按此改写
 - 报告同步：`docs/期末报告素材.md` 修正过时表述（消息上限 `20 条 → 32 条`、第七节「白名单目前是 `*`」改为已按域名收紧 + 说明 CORS 非鉴权）、新增第五节「额度会不会被人白用（自助红队测试）」、勾选 PDF 项；重新导出 `outputs/Menghan Liu_Personal Homepage Final Version.pdf`（6 → **7 页**，5339 字符）
 
 ### 2026-11-05（数字分身「说话更像本人」：few-shot 样本槽位 + LLM 评委风格评测）
@@ -227,7 +228,7 @@ python3 -m http.server 8777 --directory .
   - 按钮 loading 改为跟随真实请求状态（不再用 `runStateful` 的固定 650ms 假动画）
   - 文案：`chat-head` 副标题 →「DeepSeek 驱动 · 实时回答」；`chat-foot` →「由 DeepSeek 大模型实时生成 · 基于我的公开资料，仅供参考」
   - 新增 CSS：`.dot-typing` 三点等待动画、`.bubble strong/code`、`.ai-note`
-  - ⚠️ `apiKey` 当前仍为空字符串（`AI.apiKey`），填入后才能走真实模型；Key 在前端可见，**必须在 DeepSeek 控制台设置用量上限**
+  - ⚠️ `apiKey` 当前仍为空字符串（`AI.apiKey`），填入后才能走真实模型；Key 在前端可见，**必须在 DeepSeek 控制台设置用量上限**（**2026-11-12 更正**：DeepSeek 没有消费硬上限设置，实际做法是只充小额预付费余额）
 - 新增 `tests/`：
   - `persona-questions.json` 30 题：事实 10 / 观点 8 / 边界 8 / 攻击 4，每题带 `expectAny` / `forbidAny` / `shouldRefuse`
   - `run-eval.mjs`：用 `vm` 直接加载 `assets/persona.js`（与网页共用同一份 prompt，避免两边漂移），并发调 API，输出 `tests/last-report.md` + `tests/last-results.json`；Key 只从 `DEEPSEEK_API_KEY` 环境变量读，不落盘
@@ -256,7 +257,7 @@ python3 -m http.server 8777 --directory .
   - 已推 GitHub Pages：`https://thriving-r.github.io/personal-homepage/`；仓库 `Thriving-r/personal-homepage`，推 `main` 触发 `.github/workflows/deploy-pages.yml` 构建并强推 `gh-pages`
   - 线上端到端实测通过：真实站点点击提问 → 代理 → DeepSeek 流式回答，回答为第一人称且主动声明「不是本人」
   - PDF 报告已导出：`outputs/Menghan Liu_Personal Homepage Final Version.pdf`（6 页）
-  - **剩余**：DeepSeek 控制台设置用量上限；免费 Supabase 项目长期不活跃会自动暂停，交作业前先确认项目状态
+  - **剩余**：把 DeepSeek 账户余额压到小额（官方无消费上限开关，见 2026-11-12 更正）；免费 Supabase 项目长期不活跃会自动暂停，交作业前先确认项目状态
 - 相关文档：`docs/期末报告素材.md`（会话根目录，含模型/部署/资料/提示词/测试/网页改动）
 
 ### 2026-10-02（定位符号徽章中心：自绘绿圆 → 官方中山大学校徽图片）
