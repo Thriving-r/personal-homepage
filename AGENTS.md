@@ -48,7 +48,7 @@
 | `tests/run-eval.mjs` | 自动评测脚本：`DEEPSEEK_API_KEY=sk-xxx node tests/run-eval.mjs`；`--dry` 可无 Key 自检；产出 `tests/last-report.md` |
 | `tests/style-questions.json` | **风格评测题库**（12 题）：只测「像不像本人说话」。`reference` 填本人真实回答作风格金标准，**目前为空待填** |
 | `tests/run-style-eval.mjs` | **风格评测脚本**（LLM 评委）：5 维打分（口吻 / 句长节奏 / 用词自然度 / 收尾习惯 / 真人感）；`--ab` 盲评「有 few-shot vs 无 few-shot」；`--dry` 免 Key 体检；产出 `tests/style-report.md` + `style-results.json` |
-| `supabase/functions/persona-chat/index.ts` | 数字分身代理（Edge Function）：Key 存服务端，前端不接触；部署见 `supabase/DEPLOY.md` |
+| `supabase/functions/persona-chat/index.ts` | 数字分身代理（Edge Function）：Key 存服务端，前端不接触；含**来源白名单**（只认主页域名 + localhost）与**按 IP 限流**（8 次/分、150 次/天）；部署见 `supabase/DEPLOY.md` |
 | `supabase/config.toml` | Edge Function 配置（`verify_jwt = false`），供 CLI 部署使用 |
 
 > 注意：`assets/` 里的图片是相对路径引用，移动或拷贝 `index.html` 时必须连同 `assets/` 一起。
@@ -64,6 +64,7 @@ python3 -m http.server 8777 --directory .
 > ✅ `index.html` 和 `travel.html` 都**可以直接双击打开**（`file://`）。
 > `travel.html` 已刻意避开 `file://` 的两个限制：不用 ES Module（改用 `*.global.js` 普通脚本）、贴图走 data URI（避免 canvas 被判跨域污染）。所以它不再需要本地服务器。
 > 仍然推荐用服务器预览：改完代码刷新即可，且行为与将来部署到 GitHub Pages 一致。
+> ⚠️ 但**数字分身的真实模型调用只在 http/https 下可用**：`file://` 的 Origin 是 `null`，会被代理函数的白名单 403 挡掉，分身自动退回本地规则引擎。要测真模型请用上面的 `8777` 本地服务。
 
 ## 设计系统
 
@@ -91,7 +92,7 @@ python3 -m http.server 8777 --directory .
   - 状态机函数：`runStateful(btn, onSuccess, opts)`
   - 现有用例：数字分身 `#send`、建议表单 `#advice-send`
   - **按钮文案统一为 `Send`**
-- **数字分身**：本地规则引擎（`rules` 数组关键词匹配），非真实 AI
+- **数字分身**：真实接入 DeepSeek（`AI.mode = "proxy"` → Supabase Edge Function → DeepSeek），带三级兜底（未配置 / 额度用完 / 网络失败）时退回本地规则引擎（`rules` 数组关键词匹配）
 - **建议表单**：提交后写入 `localStorage`，key 为 `lmh_advices`
 - **液态玻璃球（`.hero-glass` / `#glassCanvas`）**：**全站常驻**。桌面端 Home / About Me / Virtual Space 三个面板都是同一颗球、都跟着鼠标走
   - 停靠点由 `placeOrb()` 按当前面板计算：Home 贴欢迎语右侧（保持原位 `[904,161,236]`）；另两页走右侧留白（`right:18 / width:210 / top:54%` → `[1052,304,210]`）
@@ -161,6 +162,27 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-11-12（数字分身代理加固：来源白名单不再放行空 Origin · 新增按 IP 服务端限流）
+
+- 动机（期末自查）：用 `curl` 不带 `Origin` 打线上函数 → **200 并真实扣 DeepSeek 额度**。根因是 `isOriginAllowed()` 里带了 `origin === ""` 与 `origin === "null"` 两个放行分支 —— 浏览器跨域请求一定带 `Origin`，这两条分支**只对脚本有意义**，等于给 curl 留了正门
+- `supabase/functions/persona-chat/index.ts`（148 → **215** 行）：
+  - `isOriginAllowed()` 改为「必须带 Origin 且命中白名单」，空白 / `"null"`（`file://`）/ 站外域名一律 `false`
+  - `ALLOWED_ORIGINS` 只保留 `https://thriving-r.github.io`；本地调试改由 `DEV_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/` 放行**任意端口**（`python3 -m http.server 8777` 即可，不必再改白名单）
+  - 请求入口：来源校验改成 `if (!isOriginAllowed(origin))` 直接 403（不再有「无 Origin 放行」这条路）
+  - **新增按 IP 限流**：`RL_MAX_PER_WINDOW = 8` / 分钟、`RL_MAX_PER_DAY = 150`、`RL_MAX_KEYS = 5000`；`takeToken()` 走 `Map<string, Bucket>` 双窗口计数，超限返回 **429 + `Retry-After`**（只有 POST 计数，OPTIONS 不占额度）；取 IP 顺序 `x-forwarded-for` 首段 → `cf-connecting-ip` → `x-real-ip` → `__shared__`
+  - 头部安全说明从 5 条扩到 6 条，并写明 **CORS 不是鉴权**（`Origin` 可伪造）、内存窗口是多实例下的「降速」而非硬上限、真正的止损是 DeepSeek 控制台用量上限
+- `index.html`（2693 → **2696** 行）：`send()` 的兜底提示按错误分流 —— `/^HTTP 429/` 显示「问得有点快，先歇几秒」，其余仍是「网络有点不稳」。无新增元素/样式
+- `supabase/DEPLOY.md`（61 → **78** 行）：验证用的 `curl` 补上 `-H "Origin: https://thriving-r.github.io"`（裸 curl 现在会被 403），补 403/429 两种返回的解读，新增「已经内置的安全措施」表（白名单 / 限流 / 载荷上限 / 固定参数），并写明 `file://` 双击会被 403 挡掉、要测真实模型请用本地 http
+- 自测：新增 `.deepworks/tmp/persona-chat-selftest.mjs`（Node 24 type-stripping 直接 import `.ts`，打桩 `Deno.serve` 与 `fetch`）**14/14 通过** —— 无 Origin 403、`null` 403、站外 403、后缀仿冒 `thriving-r.github.io.evil.com` 403、主页 200 + 回显 ACAO、localhost/127.0.0.1 200、OPTIONS 200、同 IP 第 9 次 429（`Retry-After: 60`）、换 IP 不受影响、33 条消息 400、超 2 万字 413
+- ⚠️ **行为变化**：`file://` 双击打开 `index.html` 时浏览器发的 `Origin` 是 `null` → 分身会退回本地规则引擎（并显示「网络有点不稳」）。这是有意取舍（部署到 GitHub Pages 后不受影响），本地要测真实模型必须走 `http://127.0.0.1:8777`
+- ✅ **已部署并线上实测（2026-11-12，Dashboard → Code 粘贴后 Deploy）**：
+  - 无 `Origin` 的 POST → **403 `origin not allowed`**（加固前是 200 且真实扣额度）
+  - `Origin: null` → 403；`Origin: https://evil.example.com` → 403
+  - 主页 `Origin` → 200 流式，`access-control-allow-origin` 正确回显
+  - 同 IP 第 9 次请求 → **429 `rate limited`**，响应头带 `retry-after: 46`；62 秒后自动恢复（回到 413/200 正常校验）
+  - 验证用「超长 body 触发 413」来数次数，除首尾各 1 次正常调用外不消耗 DeepSeek 额度
+- 报告同步：`docs/期末报告素材.md` 修正过时表述（消息上限 `20 条 → 32 条`、第七节「白名单目前是 `*`」改为已按域名收紧 + 说明 CORS 非鉴权）、新增第五节「额度会不会被人白用（自助红队测试）」、勾选 PDF 项；重新导出 `outputs/Menghan Liu_Personal Homepage Final Version.pdf`（6 → **7 页**，5339 字符）
 
 ### 2026-11-05（数字分身「说话更像本人」：few-shot 样本槽位 + LLM 评委风格评测）
 

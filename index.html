@@ -1784,7 +1784,10 @@
           setTimeout(() => {
             const tip = document.createElement("span");
             tip.className = "ai-note";
-            tip.textContent = "（刚才网络有点不稳，先用本地预设回答你）";
+            // 429 是服务端限流（挡刷额度），不是网络抖动，文案要说清楚
+            tip.textContent = /^HTTP 429/.test(msg || "")
+              ? "（问得有点快，先歇几秒；现在用本地预设回答你）"
+              : "（刚才网络有点不稳，先用本地预设回答你）";
             bubble.appendChild(tip);
           }, reply.length * 14 + 80);
         }

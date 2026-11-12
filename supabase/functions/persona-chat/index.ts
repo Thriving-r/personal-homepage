@@ -11,12 +11,16 @@
      前端直连 DeepSeek 时，Key 必然出现在页面源码里，任何访客都能复制走。
      加这一层代理后，浏览器只知道自己调用了一个自家函数。
 
-   安全措施（按作业规模够用，不算企业级）：
-     1. Key 只在服务端，永不下发前端
-     2. 强制固定模型和 max_tokens，访客改不了（防止拿你的 Key 跑贵模型）
-     3. 限制消息条数与总字数，避免被塞超长上下文烧钱
-     4. 上游报错只返回简短信息，不把 DeepSeek 原始响应透给前端
-     5. 可选：把 ALLOWED_ORIGINS 收紧成你的主页域名，别的网站就调不动
+    安全措施（按作业规模够用，不算企业级）：
+      1. Key 只在服务端，永不下发前端
+      2. 强制固定模型和 max_tokens，访客改不了（防止拿你的 Key 跑贵模型）
+      3. 限制消息条数与总字数，避免被塞超长上下文烧钱
+      4. 上游报错只返回简短信息，不把 DeepSeek 原始响应透给前端
+      5. 来源白名单：只认主页域名与 localhost，空 Origin / "null" 一律拒绝
+      6. 按 IP 的服务端限流（分钟窗口 + 每日上限），压住脚本刷额度
+      ⚠️ 第 5 条只是「挡住别的网页在浏览器里调用」，CORS 不是鉴权 ——
+         Origin 头谁都能伪造。真正的钱袋子兜底是第 6 条 + DeepSeek 控制台
+         的用量上限（建议 10~20 元），两者都要设。
    ========================================================================== */
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
@@ -26,16 +30,64 @@ const MAX_MESSAGES = 32;      // 32 条：system + 最多 4 组 few-shot(8 条) 
 const MAX_TOTAL_CHARS = 20000;  // system prompt 约 3300 字 + few-shot 约 1600 字 + 最近对话
 
 /* 只允许主页本身和本地预览调用。
-   本地预览用一个固定端口跑静态服务器即可，例如：
-     python3 -m http.server 8899   → http://localhost:8899 */
+   本地预览任意端口都放行（python3 -m http.server 8777 就行），方便调试；
+   线上只认 GitHub Pages 这一个来源。
+   ⚠️ 不要为了「方便 curl 测试」把 "" / "null" 加回来：那正是脚本刷额度的入口。 */
 const ALLOWED_ORIGINS: string[] = [
   "https://thriving-r.github.io",
-  "http://localhost:8899",
-  "http://127.0.0.1:8899",
 ];
+const DEV_ORIGIN_RE = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/;
 
 function isOriginAllowed(origin: string): boolean {
-  return origin === "" || origin === "null" || ALLOWED_ORIGINS.includes(origin);
+  /* 必须带 Origin 且命中白名单；空串、"null"（file:// / 沙箱 iframe）一律不放行 */
+  if (!origin) return false;
+  return ALLOWED_ORIGINS.includes(origin) || DEV_ORIGIN_RE.test(origin);
+}
+
+/* ---------------------------------------------------------------------------
+   按 IP 限流：单实例内存滑窗，尽力而为。
+   Edge Function 会起多个 isolate，所以这是「降速」不是「硬上限」；
+   但配上每请求 600 tokens 的固定上限，刷一晚上也就几块钱，足够兜住作业场景。
+   --------------------------------------------------------------------------- */
+const RL_WINDOW_MS = 60_000;     // 1 分钟窗口
+const RL_MAX_PER_WINDOW = 8;     // 单 IP 每分钟最多 8 次
+const RL_DAY_MS = 86_400_000;    // 24 小时窗口
+const RL_MAX_PER_DAY = 150;      // 单 IP 每天最多 150 次
+const RL_MAX_KEYS = 5000;        // 防止 Map 无限增长
+
+type Bucket = { winAt: number; winCount: number; dayAt: number; dayCount: number };
+const buckets = new Map<string, Bucket>();
+
+function clientIp(req: Request): string {
+  const xff = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+  return (
+    xff ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "__shared__"
+  );
+}
+
+function takeToken(ip: string): { ok: true } | { ok: false; retryAfter: number } {
+  const now = Date.now();
+  let b = buckets.get(ip);
+  if (!b) {
+    if (buckets.size >= RL_MAX_KEYS) buckets.clear();
+    b = { winAt: now, winCount: 0, dayAt: now, dayCount: 0 };
+    buckets.set(ip, b);
+  }
+  if (now - b.winAt >= RL_WINDOW_MS) { b.winAt = now; b.winCount = 0; }
+  if (now - b.dayAt >= RL_DAY_MS) { b.dayAt = now; b.dayCount = 0; }
+
+  if (b.winCount >= RL_MAX_PER_WINDOW) {
+    return { ok: false, retryAfter: Math.ceil((b.winAt + RL_WINDOW_MS - now) / 1000) };
+  }
+  if (b.dayCount >= RL_MAX_PER_DAY) {
+    return { ok: false, retryAfter: Math.ceil((b.dayAt + RL_DAY_MS - now) / 1000) };
+  }
+  b.winCount += 1;
+  b.dayCount += 1;
+  return { ok: true };
 }
 
 function corsHeaders(req: Request): Record<string, string> {
@@ -63,9 +115,11 @@ function json(req: Request, obj: unknown, status = 200): Response {
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin") || "";
-  /* 浏览器跨站请求直接拒绝；curl 等无 Origin 的调用不受 CORS 约束，
-     仅靠条数/字数上限控制成本 */
-  if (origin && !isOriginAllowed(origin)) {
+  /* 统一拒绝「没带 Origin」和「不在白名单」的请求。
+     注意这挡不住伪造 Origin 的 curl —— 它挡的是别的网页在浏览器里偷调；
+     成本兜底靠下面的限流 + DeepSeek 控制台用量上限。 */
+  if (!isOriginAllowed(origin)) {
+    console.warn("拒绝来源", origin || "(empty)", "ip:", clientIp(req));
     return new Response(JSON.stringify({ error: "origin not allowed" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
@@ -77,6 +131,19 @@ Deno.serve(async (req: Request) => {
   }
   if (req.method !== "POST") {
     return json(req, { error: "method not allowed" }, 405);
+  }
+
+  /* 只有真正要花钱的 POST 才计数 */
+  const gate = takeToken(clientIp(req));
+  if (!gate.ok) {
+    return new Response(JSON.stringify({ error: "rate limited" }), {
+      status: 429,
+      headers: {
+        ...corsHeaders(req),
+        "Content-Type": "application/json",
+        "Retry-After": String(gate.retryAfter),
+      },
+    });
   }
 
   const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
