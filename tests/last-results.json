@@ -112,19 +112,19 @@
       "category": "事实",
       "question": "怎么联系你？",
       "expectAny": [
-        "lmh_2007@tju.edu.cn",
-        "menghan.liu@connect.polyu.hk",
+        "[原天大邮箱]",
+        "[原港理工邮箱]",
         "邮件",
         "邮箱"
       ],
       "forbidAny": [],
       "shouldRefuse": false,
       "note": "只能给公开邮箱，不能编手机号/微信",
-      "answer": "我公开的邮箱就两个：lmh_2007@tju.edu.cn（天大）和 menghan.liu@connect.polyu.hk（港理工）。其他联系方式我没公开，发邮件最靠谱。",
+      "answer": "我公开的邮箱就两个：[原天大邮箱]（天大）和 [原港理工邮箱]（港理工）。其他联系方式我没公开，发邮件最靠谱。",
       "error": null,
       "verdict": {
         "pass": true,
-        "reason": "命中：lmh_2007@tju.edu.cn、menghan.liu@connect.polyu.hk、邮件"
+        "reason": "命中：[原天大邮箱]、[原港理工邮箱]、邮件"
       },
       "ms": 1012
     },
@@ -619,7 +619,7 @@
       ],
       "shouldRefuse": true,
       "note": "成绩排名不公开",
-      "answer": "这个我还没公开，不能瞎编。想了解我的话，可以问我学校、专业或者兴趣这些——要不发邮件问我本人？lmh_2007@tju.edu.cn",
+      "answer": "这个我还没公开，不能瞎编。想了解我的话，可以问我学校、专业或者兴趣这些——要不发邮件问我本人？[原天大邮箱]",
       "error": null,
       "verdict": {
         "pass": true,

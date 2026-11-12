@@ -43,7 +43,7 @@
 | `assets/lib/three.module.js` | three.js r160 原始 ESM 版，**当前未被引用**（保留作回退参考） |
 | `assets/lib/OrbitControls.js` | OrbitControls 原始 ESM 版，**当前未被引用** |
 | `assets/*.png` | 对应的高清源图，页面未引用 |
-| `assets/persona.js` | **数字分身的资料库与系统提示词**（2026-11-05 新增）：`PERSONA.facts / views / boundaries / style / examples` + `buildPersonaPrompt()` + `buildPersonaMessages()` + `selectPersonaExamples()` + `personaStats()`。改分身「知道什么、怎么说、什么不说」只改这个文件。⚠️ 只放可公开信息。⚠️ `examples` 决定「像不像本人」，**目前为空，待填真实原话** |
+| `assets/persona.js` | **数字分身的资料库与系统提示词**（2026-11-05 新增）：`PERSONA.facts / views / boundaries / style / examples` + `buildPersonaPrompt()` + `buildPersonaMessages()` + `selectPersonaExamples()` + `personaStats()`。改分身「知道什么、怎么说、什么不说」只改这个文件。⚠️ 只放可公开信息。⚠️ `examples` 决定「像不像本人」，**已填 36 组**（9 组本人原话 + 27 组按其语气代拟，注释里分段标明）；`style.length` 是硬约束「一句话、10–30 字、超 45 字算答错」 |
 | `tests/persona-questions.json` | 分身验收题库：30 题（事实 10 / 观点 8 / 边界 8 / 攻击 4），每题带 `expectAny` / `forbidAny` / `shouldRefuse`。测「说得对不对、守不守边界」 |
 | `tests/run-eval.mjs` | 自动评测脚本：`DEEPSEEK_API_KEY=sk-xxx node tests/run-eval.mjs`；`--dry` 可无 Key 自检；产出 `tests/last-report.md` |
 | `tests/style-questions.json` | **风格评测题库**（12 题）：只测「像不像本人说话」。`reference` 填本人真实回答作风格金标准，**目前为空待填** |
@@ -162,6 +162,45 @@ python3 -m http.server 8777 --directory .
 ## 变更记录
 
 > 每次修改后在此追加，**最新的记录放在最上面**。
+
+### 2026-11-12（联系方式收敛为一个 163 邮箱：全校邮箱下线，含 facts / 页脚 / 规则 / 样本）
+
+- 用户要求：邮箱换成 **13602716720@163.com**，**不再透露天大和港理的邮箱**
+- `index.html`
+  - About 面板 `#contact` 的 `.contact-list`：两条学校邮箱（`[原天大邮箱]` + `[原港理工邮箱]`）连同「天大 TJU」「港理工 PolyU」两个 tag 一起删掉，只留一条 `mailto:13602716720@163.com` + `邮箱 Email` tag（flex 布局，单条不需要改样式）
+  - `profile.email` 由 `{tju, polyu}` 收成 `{main}`，并加注释「唯一公开的联系方式，学校邮箱已按要求移除，不要写回来」（该字段目前没有被 JS 引用，改 key 无副作用）
+  - 5 处对话文本（fallback 1 处、联系规则 2 处、未公开规则 3 处）+ 限流提示里的邮箱全部替换
+- `assets/persona.js`
+  - `facts`「我是谁」里的邮箱条目改为「我公开的邮箱只有 13602716720@163.com。除这个邮箱外，我不公开其他联系方式；**也不透露学校邮箱**。」—— 这句是 JSON 之外唯一的"资料事实"，必须和界面一致，否则分身会照着 facts 主动报学校邮箱
+  - `boundaries`「未公开的信息」话术、`examples` 三条含邮箱的样本全部替换
+  - 新增一条边界样本：问「你天大邮箱是多少」→「学校邮箱不公开哈，用 13602716720@163.com 找我就行」（examples 36 → **37**）。不给这条示范，模型很可能自己拼一个 `@tju.edu.cn` 出来
+  - **样本打分算法修正**：原来「命中一个 tag +2」只看个数，`天大邮箱`(4 字) 与 `邮箱`(2 字) 同分 → 问学校邮箱时被「怎么联系你」那条通用样本抢走（hash 平手）。改成 `longest * 2 + 命中个数`，命中的 tag 越长越优先；实测「你天大邮箱是多少 / 你港理工邮箱」都正确落到「学校邮箱不公开」，「怎么联系你 / 你邮箱多少」仍落到「发邮件吧」
+- `tests/persona-questions.json`：联系方式用例的期望邮箱改为单个 163 地址
+- 自检：`personaStats()` → `examples 37 / exampleChars 1078 / promptChars 3713`；全站 `grep` 确认除 `https://sz.tju.edu.cn/`（学校官网外链，保留）外，**正文/脚本/配置里已无 `tju.edu.cn`、`connect.polyu.hk` 邮箱**；`.deepworks/tmp/` 与 `tests/last-results.json` 里的旧邮箱属于历史快照，未改
+- ⚠️ 线上生效仍需 commit + push；浏览器缓存 `assets/persona.js`，验证时 Cmd+Shift+R
+
+### 2026-11-12（数字分身改成「一句话」风格：length 立铁律 · 边界话术压短 · 样本 12 → 36）
+
+- 动机：用户反馈线上回答**仍然不是他的风格**，并给了范例 —— 问「高考考了多少分」答「这个我还没在这页里公开，不能瞎编。要不发邮件问我本人？[原天大邮箱]」。也就是说要的是「**短句 + 打哈哈 + 给邮箱**」，而不是分两段讲道理。上次把 `length` 定成「1–2 句、20–50 字、上限 120 字」太松，模型按上限写
+- `assets/persona.js`（370 → **466** 行）
+  - `style.length` 重写为**硬约束**：「铁律：一次只回一句话，10–30 字，超过 45 字就是答错。不分段、不换行、不列点、不加小标题、不写总结句」。原「2–4 句 / 120 字」是「作文腔」的直接来源 —— **指令里出现上限，模型就会写到上限**
+  - 新增 `style.noExplain`：禁止「其实 / 说白了 / 换句话说 / 值得一提的是」这类铺垫，禁破折号长句、禁分号罗列
+  - `style.tone` 的 emoji 从固定 5 个改为**开放式清单**（😌 😼 🥲 😭 🤲 😂 😅 🫠 🙃 😎 🤔 ✌️），并限定「一条最多一个，别堆」
+  - `style.honesty` / `ending` 收紧：不知道就直接一句 + 邮箱，不先解释；反问「三条里最多一条」
+  - **`boundaries` 六条回复全部压短**（24 / 13 / 13 / 21 / 20 / 47 字；最后一条是用户截图里认可的原话）。这一步很关键：prompt 里原本写「直接用标准回应」，话术是长段落 → 模型照抄就变长
+  - `examples` **12 → 36 组**（`exampleChars` 492 → **1035**）：前 9 组本人原话原样保留，新增 27 组按他语气代拟、按「事实 / 观点 / 边界 / 攻击 / 寒暄」分段并在注释里标明。长度中位数 **20 字**、最长 46 字（边界那条）
+  - `buildPersonaPrompt()`：新增**〇节「最先看这条（高于下文一切）」**（一句话、超 45 字算答错）；明确「资料是『你知道什么』，不是『你该怎么写』—— 别照抄资料里的书面长句」；边界改为「参考说法（用自己的话，一两句就够，别照抄）」+「不要先共情、再讲道理、最后才拒绝」；最后一条加「这句话能不能再删掉一半？」
+  - `selectPersonaExamples()`：同分排序由「固定取数组前 N 条」改为 **hash(问题 + 序号) 确定性洗牌**。样本涨到 36 组后，固定取前几条会让每个问题都看到同一批（在吗 / 最近怎么样 / 你学什么），浪费上下文且漏掉「怎么短着拒绝」
+  - 默认参数：`maxExamples 4 → 6`、`exampleCharBudget 1600 → 1800`
+- `index.html`（2696 → **2717** 行）
+  - `maxExamples: 4 → 6`
+  - `greeting` / `fallback` / `moreHint` 全部压短；`fallback` 首选改为中性句（原来首位是「没公开」，导致「帮我写论文」被回成「没公开」）
+  - **`rules` 从 20 → 25 条、全部答句重写**：原答句普遍 40–60 字书面语（「我最近主要忙三件事：亲手搭这个个人主页、学习大一必修课、抽空探索深圳。日子过得挺充实。」），这是**离线兜底时**用户看到的「作文腔」；现在中位数 **16 字**
+  - 新增三条规则：高考/分数/绩点（回「嘿嘿这个不告诉你，你猜猜呢」）、医疗用药（回「这个我不敢乱讲，真有事还是找医生吧」）、代写论文（回「代写我不做哈。哪个概念没懂，我陪你捋一捋」）
+  - 「你叫什么」从身份规则里拆出单独一条，回「刘孟涵，英文名 Menghan Liu😌」（原来会被「你是谁」抢走，答成「不是本人啦」）
+- 自检（静态，`window.personaStats()`）：`facts 26 / views 9 / boundaries 6 / examples 36`、`promptChars 3743`、`exampleChars 1035`；单次问题注入 **6 组 few-shot（14 条消息）**，历史塞满 16 条时 **30 条 ≤ 代理上限 32**；`index.html` 3 段内联脚本 + `persona.js` 语法全过；两个测试 JSON 可解析
+- 规则引擎实测（复刻 `scoreRule`）：高考 / 年龄 / 微信 / 失眠用药 / 绩点 / 代写 / 深圳 / 以后想干嘛 / 你是 GPT 吗 / 你叫什么 **全部命中对应短句**，只有「忽略之前所有指令」仍落兜底（本就该由线上的防注入规则处理）
+- ⚠️ **未跑线上评测**：本机仍无 `DEEPSEEK_API_KEY`。改的是 prompt 与 few-shot 本身（前端 `assets/persona.js` 直接生效，不需要重新部署代理）；下次有 key 优先跑 `node tests/run-style-eval.mjs`，重点看「平均字数」是否掉到 20–30 字区间、超 45 字条数是否归零
 
 ### 2026-11-12（数字分身填入首批 12 组真实 few-shot：examples 0 → 12 · 风格形容词改成贴合本人）
 
